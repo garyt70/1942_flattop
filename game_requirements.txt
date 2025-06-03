@@ -746,21 +746,6 @@ If the BHT is 8 and the number of attacking factors is 14, the Result Number is 
 
 ---
 
-
-21. DAMAGE 
-21.1 Hits on plane units are recorded by eliminating Air 
-Factors equal to the number of hits scored, If more hits are 
-scored than there are Air Factors, excess hits are lost; they 
-may not be transferred or accumulated. 
-21.2 Hits on ship units are recorded by placing Damage 
-markers on them equal to the number of hits scored. If the 
-number of hits scored equals the ship's Damage Factor, 
-the ship is sunk and eliminated from the game, If the 
-number of hits scored exceeds the ship's Damage Factor, 
-the excess hits are lost; they may not be transferred 
-accumulated. Damage affects ship's capabilities. 
-or 
-21.2.1 When any ship has a number of hits that equals or 
 ### 21. DAMAGE
 
 #### 21.1 Hits on Plane Units
@@ -910,7 +895,3 @@ It is 2100. The Japanese player has 1 AP anchored at a Guadalcanal hex. It begin
 **26.2** Some scenarios have shorter versions included. The OBs and Special Rules apply to all versions of a scenario and the shorter versions only differ in game length and ships' starting positions.
 
 **26.3** Even though the scenario OBs list SSs for both sides, they are not used unless the Submarines Optional Rule is in effect. Likewise, Special Rules listed as OPTIONAL RULES are only used if the players wish to use those optional rules.
-
----
-
-*(End of cleaned-up document. Let me know if you want further formatting or splitting into sections/files.)*
