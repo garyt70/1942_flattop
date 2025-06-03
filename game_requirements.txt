@@ -1,0 +1,916 @@
+pip-requirements
+2.2 Air Factor counters of the same plane name are treated like change (they are interchangeable).  
+Example: An Air Factor counter could be made up of Val 1 Air Factor counters, Val 2 Air Factor counters, or a combination such as one Val 2 Air and three Val 1 Air Factor counters.
+
+2.3 The counter mix contains some counters that are not used in any of the scenarios included in the game. These counters are for players who wish to make their own scenarios.
+
+---
+
+## 3. PREPARE FOR PLAY
+
+**3.1** Unfold the mapboard and place it between the players with the Japanese player at the North edge and the Allied player at the South edge. Note the hexagonal grid, superimposed on the map, which is used to determine movement. The splits and folds create eight map sectors labelled I–VIII.
+
+**3.2** Punch out the unit counters and place the Time Record Units on the appropriate day and time squares on the Time Record Chart.
+
+**3.3** Players should select the plane and ship counters listed in their respective Order Of Battle sections (OBs) of the scenario to be played, and place them in their appropriate places on their respective Operations Charts.
+
+- **3.3.1** Air Formation counters (numbered 1–35) are placed in the Air Formation boxes on the Air Operation Charts with the corresponding numbers.
+- **3.3.2** Task Force counters (numbered 1–14) are placed in the Task Force boxes on the Air Operations Charts with the corresponding numbers.
+- **3.3.3** Ship counters are placed in the Task Force boxes in any manner within the dictates of rule 4.1 and the scenario OB.
+- **3.3.4** Plane counters are placed in the Task Force boxes and base boxes in any manner within the dictates of rule 4.2 and the scenario OB.
+
+**3.4** Informational counters are placed in any convenient location off-board for use when necessary.
+
+---
+
+## 4. OPERATIONS CHARTS SETUP
+
+**4.1** Ships are placed in Task Forces (TFs) in any manner within the following rules:
+
+- **4.1.1** Allied TFs can contain fifteen or fewer ships. Japanese TFs can contain ten or fewer ships. Even one ship is considered, and must be, a TF. Any ship types may be combined in any TF except for special restrictions on plane-carrying ships (see 4.1.3–4.1.6). All plane-carrying ships must be placed in TFs 1–9. TFs 10+ are for TFs that do not contain plane-carrying ships.
+- **4.1.2** If a player has more than fourteen TFs, they can create others by drawing TF boxes on a separate piece of paper, labelling them as TFs fifteen and up, and placing ships in them.
+- **4.1.3** No more than one CV (or CVL) can be placed in any one TF box. If a TF has more than one CV, the second CV is placed in a second TF box and the second TF counter is placed in the first TF box to show that the second CV is actually part of the first TF (and is not a TF by itself).
+- **4.1.4** No more than one AV (or CAV) can be placed in any one TF box. If a TF has more than one AV, use the same procedure as in 4.1.3.
+- **4.1.5** A TF box can have one CV (or CAV) in it, since the plane types they handle are different and it will be obvious which planes are on which ship.
+- **4.1.6** Japanese BBs can each carry one Air Factor. They may be in any TF box, regardless of whether there is also a CV (or CVL), AV (or CAV), or combination of these ships in the same TF box. The Japanese player should keep track of an Air Factor on a BB in the Notes Section of the Air Record Sheet.
+
+**4.2** Air Factors are placed in TFs and at bases in any manner within the following rules:
+
+- **4.2.1** The number of Air Factors placed on any one ship or at any one base cannot exceed the Maximum Capacity of that ship or base. (See 8.2)
+- **4.2.2** Sea-based planes (carrier planes and float planes) must begin the game on plane-carrying ships within the Plane Handling restrictions. Land-based planes (land planes and sea planes) must begin the game at bases within the Plane Handling restrictions. (See 8.9)
+- **4.2.3** Planes can begin the game in any state of readiness (in any box within the TF or base box they are in). Planes placed in Ready boxes may begin the game armed. (See 8.6 and 8.7)
+
+---
+
+## 5. SEQUENCE OF PLAY
+
+There are ten phases within each turn. Phases may not be skipped or performed out of sequence. Players perform all phases simultaneously except the Plane Movement Phase.
+
+1. **Weather Phase** — Wind direction changes are made and Cloud markers are moved.
+2. **Air Operations Phase** — Planes are readied and placed in Air Formations.
+3. **Task Force Movement Plotting Phase** — Movement for all TFs is logged on the Plot Map.
+4. **Shadowing Phase** — TFs and Air Formations that are shadowing and TFs that are being shadowed are moved on the mapboard.
+5. **Task Force Movement Execution Phase** — TFs which did not move in the Shadowing Phase are moved on the mapboard or on the Plot Map according to their plotted move.
+6. **Initiative Phase** — Players determine which player has the initiative.
+7. **Plane Movement Phase** — The player with the initiative moves all his Air Formations on the mapboard and on the Plot Map, then the player without the initiative does the same.
+8. **Combat Phase** — All combat is resolved, one battle at a time, following the Combat sequence for each battle.
+9. **Repair Phase** — Damaged bases are repaired.
+10. **Time Record Phase** — The passage of one turn is marked on the Time Record Chart.
+
+---
+
+## 6. WEATHER
+
+**6.1** The Weather Phase is the first Phase of each turn, except that there is no Weather Phase on the first turn of any game.
+
+**6.2** Wind Direction
+
+- At the beginning of the game, one Wind Direction marker is placed in each Directional hex on the mapboard; one in each of the eight map sectors. The Wind Direction marker should point in the same direction as the black arrow in the Directional hex.
+- Every sixth turn (0600, 1200, 1800, 2400—noted by a * on the Time Record Chart), players check to see if there is a change in the wind direction in any or all sectors. A die is rolled once for each sector and the Wind Direction Change Table is consulted. If the result is a change of direction, the Wind Direction marker is moved accordingly.
+
+**6.3** Cloud Markers
+
+- Cloud markers are setup at the beginning of the game in one of two ways, as listed in the scenario.
+- **Scattered Clouds:** Place four Cloud markers in each Directional hex. Then, one sector at a time, locate each Cloud marker by rolling one die and moving it a number of hexes equal to the die roll in the direction that equals the die roll; the direction numbers are in the hexes adjacent to the Directional hex.
+- **Cloud Front:** Place three Cloud markers in a row in each sector, running from NE to SW (directions 2 and 5), one in the Directional hex and one on each side of it five hexes from it. Then, one sector at a time, locate the three Cloud markers (as one) by rolling one die and moving all three a number of hexes equal to the die roll in the direction that equals the die roll.
+
+**6.4** Cloud Movement
+
+- During the game, Cloud markers are moved every even-numbered turn, one hex per turn in the current direction of the wind. Cloud markers that enter a hex that is part of two sectors are relocated. Roll one die and consult the Cloud Movement Table to find which sector the Cloud marker moves to. Place the Cloud marker in the Directional hex of that sector and locate it by using the Scattered Clouds procedure (even if the game began with Cloud Front).
+
+**6.5** Cloud Size
+
+- A Cloud marker occupies the hex it is in plus two hexes in all directions from it. Any hex where two Cloud markers overlap is a Storm hex.
+
+**6.6** Movement Effects
+
+- Planes may not enter a Storm hex. If, after the Weather Phase of a turn, an Air Formation is in a newly created Storm hex, it must move out of the Storm hex/es by the most expedient route before being able to move in another direction. Planes landing in a Storm hex use the Night Landing Chart (if it is a night turn, there is a +1 modifier). If a TF begins a turn in a Storm hex, its MF is 0 for that turn. If a TF enters a Storm hex during movement, it must stop and move no further that turn. Non-Storm Cloud markers do not affect movement in any way.
+
+**6.7** Observation Effects
+
+- The Observation Tables contain separate rows for different types of weather. If a unit is in a hex with a Cloud marker, one is added to the Search Table die roll. A unit may not observe anything in a Storm hex under any circumstances. A unit that begins a turn in a Storm hex may not observe anything that turn.
+
+**6.8** Shadowing Effects
+
+- If a TF being shadowed moves into a hex with a Cloud marker, one is added to the Shadow Table die roll. Shadowing is automatically unsuccessful if the TF being shadowed moves into a Storm hex.
+
+**6.9** Combat Effects
+
+- There are additional effects for most types of combat in a hex with a Cloud marker. No combat of any kind is allowed in a Storm hex.
+
+**6.10** Effects On Take Offs From Plane Carrying Ships
+
+- CVs and CVLs must move one hex into the wind (towards the Wind Direction marker) during movement in any turn in which the total number of Air Factors that land and/or take off exceeds the ship's Minimum Launch Factor.
+
+**6.11** Shaded boxes on the Time Record Chart are night turns.
+
+---
+
+## 7. OBSERVATION
+
+**7.1** Players keep track of the positions of hidden units (units that can not currently be observed) on the Plot Map. Units must be observed by the opponent before they are required to be placed on the mapboard. A player may, at his discretion, place unobserved units on the mapboard at any time.
+
+**7.2** Observed units must immediately be placed on the mapboard.
+
+**7.3** During the Plane Movement Phase, before a player moves each Air Formation that is on the mapboard, he must state whether the Air Formation will attempt to observe or not. If an Air Formation will attempt to observe, the player rolls one die and consults the Search Table. Each turn, a player must consult the Search Table once for each Air Formation that attempts to observe.
+
+- **7.3.1** If the result is a 'S', the Air Formation may observe during that turn.
+- **7.3.2** If the result is a 'U', the Air Formation may not observe during that turn, though it may move normally.
+- **7.3.3** If an Air Formation begins the turn in a hex with a Cloud marker, one is added to the Search Table die roll.
+- **7.3.4** If a unit begins the turn in a Storm hex, it may not consult the Search Table or observe anything this turn,
+
+**7.4** A player is never required to use an Air Formation to observe. If he does not wish to consult the Search Table, the Air Formation may not observe that turn but may still move normally. Whether a unit can observe or not has nothing to do with whether it may be observed or not.
+
+**7.5** TFs may always observe. A player is never required to consult the Search Table for a TF.
+
+**7.6** One unit (a TF or an Air Formation that can observe) can observe all enemy units within range in the hex it begins its movement in, each hex it moves into, and the hex it ends its movement in. All units (including bases and coastwatchers) can observe all enemy units that move within their range at any point during either player's portion of the turn.
+
+**7.7** Units on the mapboard at the end of the turn that can no longer be observed may be removed from the mapboard.
+
+**7.8** As a unit (that can observe) enters each hex during its movement, the non-moving player must state if any of his units can be observed. At the same time, units of the non-moving player which are on the mapboard can observe the moving unit as it enters a hex.
+
+Example: The Japanese player states that Air Formation 5 (in hex 
+BB14) will attempt to observe. He rolls a 'I' so the attempt is suc- 
+cessful. The weather in the area is clear. Japanese Air Formation 5 
+(10 Betty Air Factors with GP Bombs and S Zero Air Factors) at 
+low altitude moves into hex BB15. Allied T F 3 (CV Enterprise, BB 
+South Dakota, CA San Francisco, and IODD) is in hex BB17 but is 
+not on the mapboard because it has been unobserved (hidden) un- 
+til now. The Allied player must tell the Japanese player that he has 
+observed T FS (the Condition Number being 1), and then place a 
+T F counter on the mapboard in the hex BB17. The Allied player 
+places TF6 in hex BB17. Since Allied T F 3 (as shown by the TF6 
+counter) is now on the mapboard, it may be used for observation. 
+The Japanese player must tell the Allied player that he has ob- 
+served Air Formations (the Condition Number being 1), even 
+though it may seem obvious since Air Formation 5 is already on 
+the mapboard and is itself searching. The Japanese player then 
+continues the movement of Air Formation 5 by moving it into hex 
+BB16. The Allied player must tell the Japanese player that he has 
+observed one T F with from 7-20 ships (even though the maximum 
+he could have is 15 due to the T F limit) including carriers, capital 
+ships, and small ships (the Condition Number being 2). At the 
+same time the Japanese player must tell the Allied player that he 
+has observed one Air Formation with from 8-22 planes, some 
+armed and some unarmed. The Japanese player then continues 
+the movement of Air Formation 5 by moving it into hex BB17. 
+The Allied player must tell the Japanese player that he has ob- 
+served one T F with 13 ships including one carrier, two capital 
+ships, and ten small ships (the Condition Number being 3). At the 
+same time the Japanese player must tell the Allied player that he 
+has observed one Air Formation with 15 planes, 10 armed and 5 
+unarmed. 
+
+**7.9** Only units that themselves are on the mapboard can be used to observe other units. Bases and coastwatchers are always considered to be on the mapboard, and thus can always be used for observation. Coastwatchers can observe planes over any all-land or partial-land hex of the island their symbol appears in and all-sea hexes adjacent to partial-land hexes of the island. However, Coastwatchers cannot observe planes in a hex with an enemy base.
+
+EXCEPTION: The Japanese Coastwatcher symbol on New Guinea only affects hexes inside the Japanese Coast- 
+watcher Perimeter Line shown on the inapboard by a dot- 
+ted line. The Allied Coastwatcher symbol on New Guinea 
+affects all hexes on the island.
+
+**7.10** Some units (ships and bases) carry radar which in some cases improves observation (in both day and night turns). Radar is unaffected by Cloud markers. However, radar can only observe air units at high altitude; it canno observe planes at low altitude or ships. In addition, al bases and ships with radar may observe enemy air units a high altitude at a distance of three hexes (in both day am night turns); the Condition Number is l, (See 7.13) 
+
+**7.11** To use the Observation Tables, players should fin the type of observing unit, the type of unit being observed and the weather condition of the hex being observed, an cross index this with the distance between the observing unit and the unit being observed. The distance betwee two is measured by counting the hex occupied by the unit being observed but not the hex the observing unit and the unit being observed are in the same hex. Note that there is one table for day turns and one for night turns. 
+
+**7.12** The Condition Numbers.
+
+- **7.12.1** Condition One—The is that something is there, and it is either a plane or TF. He is not told how many Air of 'IT's are present.
+- **7.12.2** Condition Two—The observing player is told how many Air Formations or TFs are present, every class of plane or ship and the total number of ships or Air Factors pttscnt. However, the player with the units being observed may lie about the total number of ships or Air Factors Fy inflating or deflating the number by 500/0 One Air Formation or TF may be reported as one or two. He does not give any specifics about how many of each ship or plane class are there or how many of each ship or plane class are in each TF or Air Formation.
+- **7.12.3** Condition Three—The observing player is told the exact number of Air Formations and T FS present, and the exact number and classes of planes and ships in them, in- cluding how many of each class. He does not disclose ship or plane names.
+
+Important Note: for observation purposes ship and plane classes are as follows:
+
+CVs, CVLs = Carriers
+AVs, CAVs, BBS, CAS, CLS = Capital Ships
+DDS, PGs, AOs, APS, APDs = small Ships
+SSs = Submarines
+Armed planes—Bombers
+Unarmed planes—interceptors
+
+**7.13** When the observing unit does not have radar, planes altitudes are revealed only when the Condition Number is 3, or at the beginning of any type of Air Combat. When the observing unit has radar, the Condition is I or 2, and the observed units include planes at high altitude, the observing player is told only that there are planes at high altitude (he is not told whether there are planes at low altitude as well or how many planes are at each altitude). When the Condition Number is 3, the observing player is told the exact number and class of each plane at each altitude.
+
+**7.14** Planes in TF boxes and base boxes may only be observed if the Condition Number is 3. Only planes in Just Landed boxes or Ready boxes can be observed (planes in Readying boxes can never be observed) and the player doing the observation is then only told that planes are present on the ship.
+
+**7.15** Exact ship and plane names are never revealed dur- ing movement. Ship names and types are only revealed if planes attack them, and then only if at least one plane sur- vives the Air-to-Air Combat Step. If one plane survives, the names of all ships in the hex must be disclosed. Exact Cornoav
+
+**7.15.1** Exact locations of planes and exact numbers of planes in plane carrying ship and base boxes are never revealed, unless necessary during combat resolution. Likewise, the fact that planes are dispersed is never re- vealed unless necessary during combat resolution. (See 21.7) 
+
+**7.15.2** The fact that ships are anchored is not revealed until the beginning of the AA Combat Step. If ships are anchored, the opponent must be told which specific ships are anchored at the beginning of the AA Combat Step.
+
+**7.16** A player does not have to put the correct TF counter or Air Formation counter on the mapboard when units are observed. He can use any one T F or Air Formation counter to represent all the observed units in one hex. The only restriction is that if the unit observed is an Air Forma- tion, an Air Formation counter must be placed on the mapboard and if the unit is a TF, a TF counter must be placed on the mapboard; T F counters and Air Formation counters cannot be used to represent the other. Keep track of the actual TF and Air Formation counters on the Plot Map. If a player has both Air Formations and TFs in a hex, he must put one Air Formation and one TF counter on the map. If during the Shadowing Phase, the Task Force Movement Phase, or the Plane Movement Phase, ships or planes (that were observed at the beginning of the turn and can still be observed) reorganize, the opponent must be told of such changes within the bounds of the appropriate Condition Number.
+
+**7.17** The non-moving player cannot place Air Formations or TFs on the mapboard during the other players Plane Movment Phase to observe units or initiate combat with units as he sees them move within range of his hidden units. Of course, if these units are observed by the moving units, they must be placed on the mapboard, and can then themselves observe enemy units.
+
+**7.18** Observation does not cost any additional movement points.
+
+---
+
+## 8. AIR OPERATIONS
+
+**8.1** Information pertaining to Air Operations for ships and bases for each side is printed on their respective A Air Operations Charts. Information pertaining to Air Opera- tions for planes for each side is printed on the Air Record Sheet (on the reverse side of the Plot Map).
+
+**8.2** Maximum Capacity (hereafter referred to as MC). This number is the maximum number of Air Factors that may be present on a particular plane carrying ship or base at any one time. The infinity symbol indicates that there i: no limit on the number of Air Factors that may be presen at one time.
+
+**8.3** Launch Factor (hereafter referred to as LF). Thes numbers are the number of planes that can take off an land from a particular plane carrying ship or base on ar one turn. Note: LFs can be reduced by damage. (See 14.8)
+
+
+- **8.3.1** Normal Launch Factor. This is the number to the left of the slash mark. It includes any launch that exceeds the Minimum Launch Factor up to the Normal Launch Factor.
+- **8.3.2** Minimum Launch Factor. This is the number to the right of the slash mark. It includes any launch less than the Minimum Launch Factor.
+- **8.3.3** Maximum Launch Factor. This is equal to twice the Normal Launch Factor. It includes any launch that ex- ceeds the Normal Launch Factor up to the Maximum Launch Factor.
+
+Example: CV Yorktown has an LF of I i/ 3. A minimum launch would be from one to three planes. A normal launch would be from four to A maximum launch would be from twelve to twenty-two.
+
+**8.4** Combination of Launch Factors. A player may use a combination of LFs when launching planes. If some planes use a minimum launch and move their full move- ment allowance while others use a normal or maximum launch, they must be placed in more than one Air Forma- tion. However, since the planes are all taking off from the same hex, in a hex where planes can reorganize (See 8. I l), they could form several Air Formations during move- ment, and are not restricted to the original Air Formation organization setup in the Air Operations Phase. Planes that take off from more than one plane carrying ship and/or base within the same hex can combine into one Air Formation, within the restrictions of the launch factors for these plane carrying ships or bases. Their movement on the turn of take off would be restricted by the type of launch the planes used. Plane carrying ships and bases cannot transfer part or all of their LF or Readying Factor to another plane carrying ship or base under any cir- cumstances. The LF of a plane carrying ship or base is numerically the same as its Maximum Launch Factor. (See 14.8 and 14.9) 
+
+Example: CV Yorktown has launched Air Formations 2, 3, and 4. Air Formation 2 (1 Avenger Air Factor) uses a minimum launch and moves its full movement factor. Air Formation 3 (10 Dauntless Air Factors) uses a normal launch and moves half its movement factor. Air Formation 4 (5 Wildcat Air Factors (uses a maximum launch and remains in the take off hex; it cannot move. 
+Note that all these launches are legal because neither the total LF nor any of the individual launch factors (minimum, normal, and maximum) are exceeded. 
+
+**8.5** Air Record Sheet.
+
+- **8.5.1** The Air Record Sheet must be filled out for each Air Formation that is formed during the Air Operations Phase. Once logged on the Air Record Sheet, this Air For- mation must take off that turn during the Plane Move- ment Phase.
+- **8.5.2** Air Factors are placed in any Air Formation box that does not currently have any other Air Factors in it.
+- **8.5.3** The player notes where the Air Formation takes off from by putting the number of the TF or the notation of the base at the top of the numbered column on the Air Record Sheet that corresponds to the Air Formation box the Air Factors are in.
+- **8.5.4** The player puts an X next to the time of the turn of take off in the column opposite the time of the current turn on the Air Record Sheet.
+- **8.5.5** The player then checks the Plane Data Chart to find the correct notation of the planes' names and the Range Factors (hereafter referred to as RFs) of the planes within the Air Formation. He then counts a number of turns equal to the RF of each plane name in the Air Formation down from the turn of take off (including the turn of take off), and writes in the notation for each plane next to the time of the turn that plane name must land.
+
+Example: Air Formation 18 contains 8 P-40 Air Factors and 2 
+Beaufighter Air Factors. The Log Sheet shows that Air Formation I 
+18 took off from Port Moresby at 0800. The 8 P-40s have an RF of 
+5 and must land by 12(1). the 2 Beaufighters have an RF of 6 and 
+must land by 13
+**8.5.6** If some Air Factors of the same plane name in the same Air Formation land while others remain in flight, use different RFs, or join the Air Formation after others have been in flight for one or more turns, players should carefully track which Air Factors must land at which times. Players may use more than one Air Formation box for these cases, using a similar system as described in rule 4.1.3.
+
+**8.6** Readying Factor. This is the maximum number of Air Factors that may be moved from one box to another box on a plane carrying ship or at a base in one turn. A move would be from the Just Landed box to the Readying box, from the Readying box to the Ready box, or from the Ready box to the Air Formation box. All three moves may be combined in one turn in any manner as long as the total number of moves does not exceed the Readying Factor. No Air Factor may make more than one move in any one turn. No Air Factor may be in more than one state of readiness at any one time (in more than one box at any one time).
+
+*Example:*  
+At Port Moresby, the Allied player has ten P-39 Air Factors in the Just Landed box and five B-17 Air Factors in the Readying box. The Port Moresby Readying Factor is 8. The Allied player moves three P-39 Air Factors from the Just Landed box to the Readying box and five B-17 Air Factors from the Readying box to the Ready box. This is a total of eight Readying moves. No more Air Factors may be readied this turn at Port Moresby.
+**8.5.6** If a situation occurs where some Air Factors of the
+same plane name in the same Air Formation land wh 
+others remain in flight, some use an RF while others don't, or join the Air Formation after others have been in night for one turn or more. players should be careful to keep track of which Air Factors must land at which times. 
+The section can be to take notes of this kind. 
+in these players may Air Factors in 
+more than one Air Formation box. using similar system 
+to that described in ruJc 4.1.3. 
+Allied 
+in the Wildcat Air 
+of Air 
+Factor. This is the maximum number of Air 
+(and 
+that may moved from one box to another box 
+on a plane carrying ship or at a base. A move would be 
+from the Just box to the Readying box, from the 
+box to the Ready box, or from the Ready box to 
+the box. All three moves may be combined 
+in one turn in any manner as long as the total number of 
+moves does not exceed the Readying Factor. No Air Fac- 
+tor may make more than one move in any one turn. No Air 
+Factor may be in more than one state of readiness at any 
+one time (in more than one box at any one time). 
+Example: At Port Moresby, the Allied player has ten P-39 Air 
+Factors in the Just Landed box and five B-17 Air Fctors in the 
+Readying box. The Port Moresby Readying Factor is 8. The Allied 
+player moves three P-39 Air Factors from the Just Landed box to 
+the Readying box and five B-17 Air Factors from the Readying 
+box the Ready box. This is a total of eight Readying moves. No 
+more Air Factors may be readied this turn at Port Moresby. 
+**8.7** Arming. Arming an Air Factor is done when the Air 
+Factor moves from the Readying box to the Ready box. 
+Simply place the type of bomb desired on the Air Factor as 
+it is moved into the Ready box. The possible ways an Air 
+Factor can be armed are shown on the Air Hit Tables. If a 
+number appears under the appropriate column (AP, GP, 
+or Torpedo) on the Air Hit Table, the Air Factor can be 
+armed with this type of bomb. An Air Factor may only be 
+armed with one type of bomb at any one time. A plane unit 
+does not have to be armed to be moved into the Ready box. 
+However, if it is unarmed and already in the Ready box, to 
+be armed before it takes off, it must first be moved back 
+into the Readying box and then on a subsequent turn 
+moved back into the Ready box, arming it as it once again 
+advances into the Ready box. The same procedure would 
+have to be followed for an armed Air Factor in the Ready 
+box which requires a change of armament. 
+**8.8** Dispersal. Units at bases in Readying boxes may be 
+dispersed by using one Readying Factor for each Air Fac- 
+tor to be dispersed. Likewise, units that are dispersed may 
+be undispersed by using one Readying Factor for each Air 
+Factor to be undispersed. Units that begin the game in a 
+Readying base box may begin the game dispersed. Dis- 
+persal counts as a move so an Air Factor must begin the 
+turn in the Readying box to be dispersed that turn, and an 
+Air Factor that is undispersed cannot move to the Ready 
+box that turn. Dispersal reduces plane losses. (See 21.3.2) 
+**8.9** Plane Handling (hereafter referred to as PH). An Air 
+Factor can only take off and land on a plane carrying ship 
+or at a base if that ship or base can handle that type of 
+CVs and CVLs may only handle carrier planes 
+(Carrier planes are distinguished from land planes of the 
+sarne plane name by the black dot in the upper right hand 
+corner of the counter.) A Vs, CA Vs, and Japanese BBS 
+rnay only handle float planes. Bases listed as LP 
+handle all carrier planes plus all land planes. Bases listed as 
+SP may handle all sea planes plus all float planes. EXCEP- 
+TION: 12.7.3. 
+
+### 8.9 Plane Handling (PH)
+
+An Air Factor can only take off and land on a plane-carrying ship or at a base if that ship or base can handle that type of plane.
+
+- **8.9.1** CVs and CVLs may only handle carrier planes. (Carrier planes are distinguished from land planes of the same name by the black dot in the upper right corner of the counter.)
+- **8.9.2** AVs, CAVs, and Japanese BBs may only handle float planes.
+- **8.9.3** Bases listed as LP can handle all carrier planes plus all land planes. Bases listed as SP may handle all sea planes plus all float planes.
+
+#### Plane Types
+
+- **Carrier planes:** Avenger, Dauntless, Devastator, Wildcat, Judy, Kate, Val, Zero
+- **Float planes:** Dave, Jake, Pete, Rufe
+- **Land planes:** B-17, A-20, B-26, P-38, P-39, P-40, Beaufighter, Beaufort, Hudson, Avenger, Dauntless, Wildcat, Betty, Nell, Kate, Val, Zero
+- **Sea planes:** Catalina, Emily, Mavis
+
+---
+
+### 8.10 Sequence of Air Operations
+
+Players should perform air operations in the following order:
+
+1. **8.10.1** Move Air Factors from Readying boxes to Ready boxes, arming them where desired. Undisperse Air Factors.
+2. **8.10.2** Form Air Formations by moving Air Factors in Ready boxes into Air Formation boxes (including Air Factors that moved from Readying boxes to Ready boxes this turn).
+3. **8.10.3** Move Air Factors from Just Landed boxes to Readying boxes.
+4. **8.10.4** Move Air Factors from Ready boxes to Readying boxes. Disperse Air Factors.
+
+---
+
+### 8.11 Air Formation Reorganization
+
+Air Formations may only be reorganized in hexes with a friendly base or plane-carrying ship. This reorganization can only take place during the Plane Movement Phase and does not cost any movement points. If two or more (or just one) Air Formations are in a hex where reorganization can take place at the same time, they can reorganize in any manner (combine, split, etc.).
+
+*Example:*  
+Allied Air Formations 18 (10 Wildcat Air Factors), 26 (10 P-40 Air Factors), and 30 (8 B-17 Air Factors) are all in the Port Moresby hex at the beginning of a turn. The Allied player decides to reorganize these Air Formations. The 10 Wildcat Air Factors from Air Formation 18 join Air Formation 30 so Air Formation 18 no longer exists. 5 P-40 Air Factors from Air Formation 26 form another Air Formation; Air Formation 27. The Allied player now has Air Formations 26 (5 P-40 Air Factors), 27 (5 Air Factors), and 30 (8 B-17 Air Factors and 10 Wildcat Air Factors) in the Port Moresby hex.
+
+---
+
+### 8.12 Plane Missions
+
+Only certain planes can perform certain missions.
+
+- **8.12.1** The following planes can always serve as interceptors, escorts, or bombers: Zero, P-38, P-39, P-40, Beaufighter, Wildcat.  
+    The following planes can serve as interceptors and escorts, but not as bombers: Dave, Jake, Pete.  
+    The following planes can serve as bombers, but not as escorts: Avenger, Dauntless, Judy, Val.
+- **8.12.2** If an Air Factor that can serve as an interceptor or escort is in an Air Formation with bombers, it is an escort. If the Air Formation does not have bombers, it is an interceptor.
+- **8.12.3** All other planes can only serve as bombers.
+- **8.12.4** If an Air Factor is armed when it takes off, it is considered to be a bomber until it lands, even after it has performed its bombing mission or jettisoned its bomb. Each armed Air Factor may only make one attack; to make another attack it must land and then rearm again before taking off.
+- **8.12.5** Planes which cannot serve as interceptors or escorts may be in flight unarmed. They cannot initiate combat of any kind.
+
+---
+
+
+**8.9.** Carrier planes: Avenger, Dauntless, Devastator 
+Wildcat, Judy, Kate, Val, and Zero. 
+**8.9.2** Float planes: Dave, Jake, Pete, and Rufe. 
+**8.9.3** Land planes: B-17, A-20, B-26, P-38, P-39, 
+P-40, Beaufighter, Beaufort, Hudson, Avenger, 
+Dauntless, Wildcat, Betty, Nell, Kate, Val, and Zero. 
+**8.9.4** Sea planes: Catalina, Emily, Mavis. 
+**8.10** Sequence Of Air Operations. Players should per- 
+form air operations in the following order: 
+**8.10.1** Move Air Factors from Readying boxes to Ready 
+boxes, arming them where desired. Undisperse Air Fac- 
+tors. 
+**8.10.2** Form Air Formations by moving Air Factors in 
+(but or 
+Aveng 
+**8.12.2** escort 
+If 
+interc 
+**8.12** 
+**8.12** conf 
+perf 
+Eac 
+ma] 
+bef 
+**8.1** co 
+---
+'''
+'''
+## 9. STACKING
+
+There is no limit to the number of counters that may be in any one hex on the mapboard, except those imposed by TF and base box capacities for planes (see 8.2) and TF capacities for ships (see 4.1.1).
+
+---
+
+## 10. TASK FORCE MOVEMENT PLOTTING
+
+**10.1** Movement for each TF is marked on the Plot Map each turn, regardless of whether the TF can be observed or not.
+
+**10.2** Movement on the Plot Map is shown by writing the number of the TF in the hex it occupies at the start of the scenario. Each turn thereafter, movement is shown by drawing an arrow from the hex the TF begins the turn in to the hex the TF ends the turn in and marking this arrow with the turn number. A player writes nothing on the Plot Map for TFs that do not move.
+
+*Example:*  
+Allied TFs 2, 5, and 6 were setup and moved for turns one-three as shown.
+
+---
+
+## 11. SHADOWING
+
+**11.1** Both planes and ships can shadow TFs. Only TFs can be shadowed. Air Formations can never be shadowed.
+
+**11.2** A unit can only shadow a TF if it can observe the TF at the beginning of the Shadowing Phase, and the Condition Number is 2 or 3.
+
+**11.3** At the beginning of the Shadowing Phase both players announce any TFs they are attempting to shadow.
+
+- **11.3.1** The shadowing player announces which unit will attempt to shadow which TF. He then rolls one die and consults the Shadowing Table to see if the unit can shadow. If the result is 'S' the unit can shadow the TF. If the result is 'U' the unit cannot shadow the TF.
+- **11.3.2** If the TF being shadowed has moved into a hex with a Cloud marker, one is added to the Shadow Table die roll. After the die is rolled, the player with the TF simply states whether the attempt has been successful or not; he does not have to state that the TF moved into a hex with a Cloud marker if the attempt is unsuccessful (as this would give away helpful information).
+- **11.3.3** If the TF being shadowed has moved into a hex with a Storm, the shadowing attempt is automatically unsuccessful. After the Shadow Table die is rolled, the player with the TF simply states that the attempt is unsuccessful; he does not have to state that the TF moved into a Storm hex (as this would give away helpful information).
+
+**11.4** Only one unit (one Air Formation or one TF) may attempt to shadow each TF each turn.
+
+**11.5** Any units that are successfully shadowed must move on the mapboard during the Shadowing Phase as plotted during the Task Force Movement Plotting Phase. Then the unit that has successfully shadowed moves.
+
+**11.6** A shadowing unit may move closer to the TF being shadowed, move further away, or even attack, as long as the TF remains observed throughout the unit's movement. If the TF moves out of observation range, then the shadowing unit must move directly towards it until it can observe it again, before making any other type movement.
+
+**11.7** Units that move in the Shadowing Phase may not move in the Task Force Movement Phase or Plane Movement Phase. A unit attempting to shadow a TF that receives a '—' result, cannot move or observe that turn.
+
+**11.8** Movement for a TF that will attempt to shadow an enemy TF must be plotted during the Task Force Movement Plotting Phase. However, the plotted movement is ignored and changed to reflect the actual movement the TF makes during the Shadowing Phase (if the two are different).
+
+**11.9** If two (or more) TFs wish to shadow each other, the player who does not have the initiative moves his TF first.
+
+*Example:*  
+Japanese TF6 and Allied TF4 attempt to shadow each other. The attempt is automatically successful. The Allied player has the initiative, so the Japanese player must move TF6 as shown on his Log Sheet. The Allied player now moves TF4 and erases the move shown on his Log Sheet for this turn (if the two are different).
+
+**11.10** If a player announces that he wishes to shadow a TF and that TF has been plotted to split up into two or more TFs this turn, the observing player must be given any revised information within the limits of rule 7.12 at the beginning of the Shadowing Phase.
+**11.11** If a TF is shadowed, the player with the TF must state whether the TF is anchored or not. If it is anchored, he must state which ships are anchored at the beginning of the Shadowing Phase.
+
+
+
+## 12. TASK FORCE MOVEMENT EXECUTION
+
+12.1 TFs that did not move in the Shadowing Phase now execute their move as plotted. Observed TFs must move on the mapboard. Unobserved TFs can move on the mapboard or on the Log Sheet. They can be placed on the mapboard at the beginning, in the middle, or at the end of their movement if the player so desires. TFs that remain hidden are now assumed to be in their new positions shown on the Log Sheet.
+
+12.2 Each ship has a Movement Factor (MF). Each ship expends one point of its MF for each hex it enters. A unit may move into as many hexes as its MF allows, or may move any number of hexes less than its MF (including none). A unit may never move into more hexes than its MF allows. MFs may be reduced due to damage (see 21.2.1).
+
+12.3 Two or more TFs can combine at any time during the Task Force Movement Phase if in the same hex; there is no movement point cost. Likewise, one or more TFs can break down into two or more TFs, or perform any combination of combining or breaking down as long as all the involved TFs are in the same hex at the same time during the Task Force Movement Phase.
+
+12.4 The MF of a TF is always the MF of the slowest ship in the TF. Unused MFs are lost; they may not be carried over or accumulated from turn to turn, or transferred to another TF.
+
+12.5 Movement may be in any direction or combination of directions. Movement must be from hex to hex; TFs may not skip hexes. TFs may not enter an all-land hex, cross an all-land hexside, or cross a reef hexside. Players should use common sense when moving TFs near land areas. It should be obvious when a TF can move from one hex to another and when such movement is blocked by a land or reef hexside.
+
+12.6 TFs may exit the mapboard along any edge, but are then permanently out of the game and may not return. They are not considered sunk, but Victory Points for any damage they have received are scored at the end of the game.
+
+### 12.7 Anchoring
+
+- **12.7.1** Ships can (only) anchor in any partial land hex. They may not move in the turn they anchor. Place an Anchor marker on ships that are anchored. Anchored ships that wish to up anchor do so by simply removing the Anchor marker; they may not move in the turn they up anchor.
+- **12.7.2** Some ships in a TF can be anchored while others are not. If all ships in a TF are anchored, place an Anchor marker on the TF counter.
+- **12.7.3** AVs and CAVs must anchor to establish a temporary sea plane base (it remains a temporary sea plane base as long as it is anchored). If an AV or CAV does anchor, the temporary sea plane base is established that same turn. A ship that has established a temporary sea plane base has its MC and Maximum LF doubled (its Minimum LF and Normal LF remain the same), and can handle all sea planes as well as float planes.
+- **12.7.4** Transports (APs and APDs) must anchor to unload. Unloading may begin the turn after the transport is anchored. Transports may only unload in hexes specified in each scenario (these are all partial-land hexes). A transport unloads each turn for eight turns (the turns do not have to be consecutive), and the owning player receives Victory Points each turn the transport unloads. The value of the transport, if sunk, is proportionately reduced each turn it unloads as well, as shown on the Victory Points Table.
+
+12.8 TFs of both sides can exist in the same hex without combat occurring, if neither side observes the other. Surface combat can only occur if it is known that both players have TFs in the same hex.
+
+12.9 A player may choose to scuttle a ship during the Task Force Movement Phase. He simply announces that he is scuttling the ship and removes it from the game. Scuttled ships are considered sunk and the opponent does receive Victory Points for them.
+
+
+## 13. INITIATIVE
+
+During the Initiative Phase in the Sequence of Play, both players roll one die. The player with the higher roll gains the initiative for that turn. If the die roll is a tie, the player who did not have the initiative last turn gains the initiative this turn. The player with the initiative will go first during the Plane Movement Phase.
+
+## 14. PLANE MOVEMENT
+
+**14.1** The Plane Movement Phase is the only phase that is not performed simultaneously. The player with the initiative moves all their Air Formations first, then the player without the initiative moves all their Air Formations.
+
+**14.2** Sequence. Players should perform plane movements in the following order:
+
+- **14.2.1** Land all Air Formations and remove the Air Formation counters from the mapboard, Air Record Sheet, or Operations Charts. Remove the Air Factors from the Air Formation boxes and place them in the Just Landed boxes of the plane-carrying ships or bases they have landed at.
+- **14.2.2** Move all Air Formations currently on the mapboard that will remain on the mapboard at the end of the turn.
+- **14.2.3** Plot movement on the Log Sheet for all Air Formations that are currently on the mapboard but will not be at the end of the turn, for all Air Formations that are not currently on the mapboard and will not be on the mapboard at the end of the turn, for all Air Formations that will take off this turn and will not be on the mapboard at the end of the turn, and for all Air Formations that will enter an entry hex from an off-board base this turn but will not be on the mapboard at the end of the turn.
+- **14.2.4** Take off all new Air Formations that will be on the mapboard at the end of the turn and move them on the mapboard. Place or move all Air Formations on the mapboard that were not on the mapboard at the beginning of the turn, but will be at the end of the turn.
+- **14.2.5** Remove all Air Formations that are currently on the mapboard that will not be at the end of the turn and all Air Formations which have left an entry hex on their way to an off-board base. All Air Formations are now considered to have moved, either on the mapboard or on the Log Sheet.
+
+**14.3** Each Air Factor has a Movement Factor (MF). Each Air Factor expends one point of its MF for each hex it enters. A unit may move into as many hexes as its MF allows, or may move any number of hexes less than its MF (including none). A unit may never move into more hexes than its MF allows.
+
+**14.4** The MF of an Air Formation is always the MF of the slowest Air Factor in the Air Formation. Unused MFs are lost; they may not be carried over or accumulated from turn to turn, or transferred to another Air Formation.
+
+**14.5** Movement may be in any direction or combination of directions. Movement must be from hex to hex; Air Formations may not skip hexes.
+
+**14.6** A player may move all, none, or just some of their Air Formations.  
+*Exception:* Air Factors that were put into an Air Formation box during the Air Operations Phase must take off that turn, though they do not have to move out of the take-off hex.
+
+**14.7** An Air Formation may be moved on the mapboard or on the Log Sheet. If moving on the Log Sheet, use the same procedure used for TFs moving on the Log Sheet. An Air Formation moving on the Log Sheet is kept in the appropriate column of the Air Record Sheet, or in the In Flight part of the TF or base box from which it took off.
+
+**14.8** On the turn of take-off or landing, Air Formations may have their MFs reduced, depending on what type of launch is performed:
+- **14.8.1** If using a Minimum Launch, the Air Formation may move its full MF. All Air Factors in an Air Formation must use a minimum launch take-off or landing to use this full movement capability.
+- **14.8.2** If using a Normal Launch, the Air Formation may move half its MF (rounded up). All Air Factors in an Air Formation must use a normal launch take-off or landing to use this half movement capability.
+- **14.8.3** If using a Maximum Launch, the Air Formation may not move that turn; it must remain in the hex if it takes off or must begin in the hex if it lands.
+
+**14.9** The total number of Air Factors that take off and land at a ship or base cannot exceed the LF of that plane-carrying ship or base. Note: LFs can be reduced by damage.
+
+*Example:*  
+CV Yorktown has an LF of 11/3. Air Formations 20 (10 Dauntless Air Factors) using a maximum launch and 21 (8 Avenger Air Factors) using a normal launch have landed this turn. The maximum number of Air Factors that could take off this turn without exceeding either the total LF or the individual launch factors of the CV Yorktown would be four, three by minimum launch and one by maximum launch.
+
+**14.10** Night Landings. For each Air Factor that lands during a night turn, a player must roll one die and consult the Night Landing Chart. If the result is 'OK', the Air Factor lands safely. If the result is 'Elim', the Air Factor is eliminated. Note: there are two columns on the chart, one for landings on plane-carrying ships and one for landings at bases.
+
+**14.11** Entering the Mapboard. The Allied bases New Caledonia and Australia and the Japanese bases Truk and Kavieng are located off-board. An Air Formation that takes off from one of these bases is not placed on the mapboard immediately; it remains in the In Flight box of that base. The Air Formation is placed on the mapboard (or noted on the Log Sheet) in the appropriate Entry Hex after being in flight the indicated number of turns after take-off. On the turn it is placed in the Entry Hex, it may not move. On the turn after being placed in the Entry Hex, it may move normally.
+
+*Example:*  
+Allied Air Formation 2 (1 Catalina Air Factor) takes off from New Caledonia at 0500; it is placed in the New Caledonia In Flight box. At 1000 it is placed in the 5N Entry Hex; it may not move. At 1100, it may move on the mapboard.
+
+**14.12** Exiting the Mapboard. Landing at off-board bases is accomplished by reversing the procedure in rule 14.11. An Air Formation must move to an Entry Hex and stop. The next turn it is placed in the In Flight part of the base box where it will land. A number of turns later equal to the Entry Hex number, the unit lands. Planes may not leave the mapboard at any other locations.
+
+*Example:*  
+Allied Air Formation 8 (5 B-17 Air Factors) reaches the 1A Entry Hex at 1400 and ends its movement. At 1500 it is placed in the Australia In Flight box. At 1600, it may land.
+
+**14.13** Special Interception (Air-to-Air) Combat During Movement. There are two instances where combat is allowed during movement:
+- **14.13.1** If at the beginning of the Plane Movement Phase, a hex (where combat can occur) contains observed Air Formations of both sides, combat can occur before either player moves. Only a player with interceptors can attempt to initiate this combat as per the Air-to-Air Combat rules (See 16). If both players have interceptors, either player can attempt to initiate this type of combat and the other may not avoid it if the attempt is successful. If both players have interceptors and agree to have combat, combat is automatically commenced. Otherwise, the player attempting to initiate the combat consults the Interception Table to resolve the interception attempt. This combat is resolved as a normal Air-to-Air Combat, including interceptor to escort and interceptor to bomber attacks where applicable.
+- **14.13.2** If at any time during movement, Air Formations which are on the mapboard move through enemy Air Formations which are on the mapboard (in a hex where combat can occur), and the enemy Air Formations contain interceptors, the enemy Air Formations may attempt to initiate combat. The player must consult the Interception Table to see if the attempt is successful. If successful, combat is resolved as a normal Air-to-Air Combat, including interceptor to escort and interceptor to bomber attacks where applicable. Note that the opposite of this rule is not true; the moving player may not attempt to initiate interception combat.
+- **14.13.3** In both 14.13.1 and 14.13.2, only opposing planes at the same altitude may intercept or be intercepted. If there is doubt about whether opposing planes are at the same altitude or not, the player attempting the interception states what altitude their planes are at, and the opposing player tells them if interception is possible. Note that it is possible to have two separate interception attempts in the same hex, or have some planes in an Air Formation involved and some not. Planes at one altitude have no effect on planes at the other altitude.
+- **14.13.4** Special Interception Combat may also take place during the Shadowing Phase.
+- **14.13.5** A player may only make one interception attempt in a hex in a turn. An Air Formation receives no penalty for an unsuccessful interception attempt.
+- **14.13.6** If the Air Formation attempting the interception attempt and the Air Formation being intercepted were in Air-to-Air Combat last turn with each other, one is added to the Interception Table die roll.
+
+**14.14** Jettisoning Bombs. Planes armed with bombs may jettison their bombs at any time during the Plane Movement Phase. This does not constitute an attack and no hits can be scored on anything. Planes that land while still armed use the Night Landing Chart (if it is a night turn, there is a +1 modifier). (See 14.10)
+
+**14.15** Air Formations may be at either high or low altitude. Air Formations at low altitude are placed in the Low section of the Air Formation box and planes at high altitude are placed in the High section of the Air Formation box.
+- **14.15.1** Air Factors in an Air Formation may be at different altitudes; some at high and some at low.
+- **14.15.2** Planes may change altitude in each hex they move into after entering the new hex. An Air Factor that remains in the same hex during a turn may change altitude.
+- **14.15.3** Planes may only land if they enter the hex they will land in.
+- **14.15.4** On the turn of take-off, armed planes may not go to high altitude; unarmed planes may.
+- **14.15.5** Planes must be at high altitude to fly over mountain hexsides.
+- **14.15.6** Planes at low altitude may only attack or be attacked by enemy planes at low altitude. Planes at high altitude may only attack or be attacked by enemy planes at high altitude.
+- **14.15.7** Planes at low altitude may not be observed by radar.
+
+**14.16** Escorts must be at the same altitude as the bombers they are in an Air Formation with. If some bombers are at low altitude and some are at high altitude, the escorts with them can all be at either altitude or
+
+---
+## 15. COMBAT
+
+**15.1** Units must occupy the same hex in order to have combat. All combat that occurs in one hex is considered part of the same battle. Observation Condition Numbers are not considered once combat begins. (See 7.15.)
+
+**15.2** Air-to-Air Combat can only occur within two hexes of a plane-carrying ship or base, or in any hex with any ship, and only between observed units. Anti-Aircraft Combat and Air Attack Combat can only occur in a hex with a ship or base, and only between observed units. Surface Attack Combat can occur in any sea or partial-land hex on the mapboard, but only between observed units. Note that combat in general is not mandatory, although certain Combat Steps are once the combat procedure has been initiated.
+
+**15.3** A unit has a Basic Hit Table (hereafter referred to as BHT) for all types of combat it may participate in. In all Combat Steps, players must always announce which enemy units their units are attacking before rolling the die to resolve the combat.
+
+**15.4** Combat in different hexes can be resolved in any order. All combat in one hex (one battle) should be resolved before combat in another hex is begun. Note that one battle may actually contain more than one sequence of Combat Steps in cases such as 14.18, 16.8, and 16.9. Players should skip Combat Steps in battles that do not apply to that battle.
+
+**15.5** Sequence. Players should perform combat in the following order for each battle:
+- 15.5.1 Air-to-Air Combat Step.
+- 15.5.2 Anti-Aircraft Combat Step.
+- 15.5.3 Air Attack Combat Step.
+- 15.5.4 Surface Attack Combat Step.
+
+**15.6** Effect of Combat on RFs. Planes expend RFs during certain types of combat. When a plane expends an RF due to combat, the Air Record Sheet is adjusted. The number of turns the plane expending the RF can remain in flight is reduced by one by crossing out the notation for that plane in the turn it was formerly supposed to land and putting the notation in the turn before this. This is done each turn an RF is expended due to combat.
+
+- **15.6.1** One RF is expended by interceptors and escorts for every turn in which they engage in Air-to-Air Combat. Only one RF is expended each turn, even if an Air Factor engages in more than one Air-to-Air Combat. Interceptors and escorts may choose not to expend an RF in Air-to-Air Combat, but if they do, their BHT for Air-to-Air Combat is reduced by six tables (-6). To avoid expending the RF for the whole turn, Air Factors would have to suffer this six-table reduction for every Air-to-Air Combat in the turn.
+- **15.6.2** Bombers do not expend RFs in Air-to-Air Combat.
+- **15.6.3** One RF is expended by bombers if they make a dive bombing attack, a torpedo bombing attack, or a level bombing attack from low altitude. Bombers that make a level bombing attack from high altitude do not expend RFs.
+
+**15.7** Only one round of all types of combat is allowed in one turn. After one round of Surface Attack Combat has been fought, no more combat can take place in that hex for the rest of the turn. If combatants are still present next turn, the procedure could start over again. In other words, there are no second or subsequent rounds of combat in any turn.
+---
+## 16. AIR-TO-AIR COMBAT
+
+**16.1** Air-to-Air Combat involves only plane units. Only interceptors can initiate Air-to-Air Combat, and the other side may not avoid it; escorts and bombers cannot initiate Air-to-Air Combat. If both sides have interceptors, combat can be initiated by either side and the other side may not avoid it. Otherwise, interceptors may always choose to avoid combat. The Interception Table is never used during the Combat Phase. If one side can, and wishes to, initiate Air-to-Air Combat, it is initiated automatically.  
+*Exception: 14.13.* The player with the interceptors can choose not to use all of his interceptors in a hex (even if they are all in one Air Formation) except when both players have interceptors and one wishes to initiate combat; then both players must use all interceptors in the hex.
+
+**16.2** Planes can be involved in more than one Air-to-Air Combat in one turn, if involved in Special Air-to-Air Combat during the Plane Movement Phase. However, planes can only be involved in one Air-to-Air Combat Step in a battle during the Combat Phase.
+
+**16.3** Air-to-Air Combat is resolved in two parts, in the following sequence:
+- **16.3.1** Interceptor to Escort Combat.
+- **16.3.2** Interceptor to Bomber Combat.
+
+**16.4** The player with the interceptors has the option to divide his interceptors into two groups, one designated to attack the escorts and one designated to attack the bombers. The interceptor to escort combat is resolved first; interceptors designated to attack the bombers take no part in this combat. A player may assign all his interceptors to attack the escorts if he so chooses.
+
+**16.5** Interceptor to Escort Combat
+- **16.5.1** Interceptors must be at the same altitude as the enemy escorts to attack.
+- **16.5.2** The attacker totals the number of interceptors he has in the hex designated to attack the escorts, even if they are in more than one Air Formation. The defender totals the number of escorts he has in the hex, even if they are in more than one Air Formation.
+- **16.5.3** Combat is simultaneous. Each player rolls one die for each attacking plane name, using that plane name's BHT. All hits are removed only after all planes (interceptors and escorts) have attacked.
+- **16.5.4** Each plane name can attack one other plane name, or Air Factors of one plane name can be split up to attack two or more enemy plane names.
+- **16.5.5** After each plane name of both sides has attacked, all Air Factors that were eliminated are removed and the appropriate amount of Victory Points recorded.
+
+**16.6** Interceptor to Bomber Combat
+- **16.6.1** Interceptors must be at the same altitude as enemy bombers to attack them.
+- **16.6.2** After interceptor to escort combat, if the ratio of surviving interceptors (designated to attack the escorts) to escorts is 2:1 or better, the surviving interceptors designated to attack the escorts may join (combine with) the interceptors that were designated to attack the bombers. Follow the procedure detailed in 16.5.2–16.5.5, except that the combat is between all the interceptors and the bombers; the escorts take no part.
+- **16.6.3** After interceptor to escort combat, if the ratio of surviving escorts to the interceptors (designated to attack the escorts) is 2:1 or better, no interceptor to bomber combat is allowed. Air-to-Air Combat is over for all the planes.
+- **16.6.4** If neither the surviving interceptors (designated to attack the escorts) nor escorts have a 2:1 advantage, only the interceptors that were designated to attack the bombers may attack the bombers. Follow the procedure detailed in 16.5.2–16.5.5, except that the combat is between the interceptors designated to attack the bombers and the bombers; the escorts and interceptors designated to attack the escorts take no part.
+- **16.6.5** The player with the interceptors is never required to attack the bombers after interceptor to escort combat just because he is able to do so.
+
+**16.7** Interceptor to interceptor combat is like interceptor to escort combat, except there is no interceptor to bomber combat, and both sides must use all their Air Factors in the hex in combat. If one player has just interceptors while the other has interceptors and bombers, and the player with just the interceptors wishes to attack the bombers, the player with the bombers can require (and initiate) Air-to-Air Combat between his interceptors and the other player's interceptors first. Interceptor to bomber combat would then follow this. (See 14.17 and 14.18.)
+
+**16.8** If some interceptors, escorts, or bombers in the same hex are at high altitude and some are at low altitude, two separate Air-to-Air combat sequences are fought in the one hex, one involving the planes at each altitude. Planes cannot switch altitude during combat and planes at one altitude have no effect on planes at the other altitude during combat.
+
+**16.9** When a battle contains both the situation shown in 14.18 and the situation shown in 16.8, it is possible to have four separate Air-to-Air Combats in the same hex in one turn; two at each altitude, one with each player as the attacker.
+
+**16.10** Modifiers
+- **16.10.1** If interceptors or escorts do not expend an RF, their BHT is reduced by six tables (-6). Bombers never expend RFs in Air-to-Air Combat.
+- **16.10.2** If the combat is taking place in a hex with clouds, the BHT is reduced by one table (-1).
+- **16.10.3** If the combat is taking place at night, the BHT is reduced by two tables (-2).
+- **16.10.4** If any of the following planes are armed, they have their BHT reduced by six tables (-6): Wildcat, P-38, P-39, P-40, Beaufighter, Zero, and Rufe.
+
+*Example of Air-to-Air Combat:*  
+In the hex, the Japanese player has two Air Formations. Air Formation 5 contains 15 unarmed Zero Air Factors, 5 at high altitude and 10 at low altitude. Air Formation 17 contains 4 unarmed Val Air Factors at low altitude.  
+The Allied player has three Air Formations in the hex. Air Formation 1 has 10 armed B-17 Air Factors at high altitude. Air Formation 2 has 9 Wildcats, 3 at high altitude and 6 at low altitude. Air Formation 4 has 2 armed Hudson Air Factors, 2 armed A-20 Air Factors, 10 armed B-26 Air Factors, and 2 unarmed Beaufighter Air Factors at low altitude.
+
+The Japanese player initiates Air-to-Air Combat. The players decide to resolve the combat at high altitude first. The Japanese player designates all his interceptors (5 Zeros) to attack the escorts (3 Wildcats). The BHT for Zeros is 9. The Japanese player rolls a '4'. Two hits are scored. The BHT for Wildcats is 9. The Allied player rolls a '3'. One hit is scored. Two Wildcats and one Zero Air Factor are eliminated.
+
+The ratio of interceptors to escorts is now 4:1, more than the required 2:1, so the interceptors designated to attack the escorts can attack the bombers, and the Japanese player decides to make the attack. The Japanese player rolls a '6'. Three hits are scored. The BHT for B-17s is 8. The Allied player rolls a '2'. One hit is scored. Three B-17s and one Zero are eliminated.
+
+All combat at high altitude is finished, so the players now must resolve combat at low altitude. The Japanese player designates some of his interceptors (4 Vals and 4 Zeros) to attack the escorts and some of his interceptors (6 Zeros) to attack the bombers. The BHT for Vals is 2. The Japanese player states that the Vals will attack the Wildcats. He rolls a '3'. No hits are scored. The Japanese player states that the Zeros will attack the Wildcats. He rolls a '5'. Two hits are scored.
+
+The BHT for Beaufighters is 6. The Allied player states that the Beaufighters will attack the Zeros. He rolls a '4'. No hits are scored. The Allied player states that the Wildcats will attack the Zeros. He rolls a '3'. Three hits are scored. Two Wildcats and three Zeros are eliminated.
+
+The ratio of interceptors to escorts is now 5:6, less than 2:1 for either side, so only the interceptors designated to attack the bombers (6 Zeros) may attack the bombers (2 Hudsons, 2 A-20s, and 10 B-26s). The interceptors designated to attack the escorts and the escorts take no part.
+
+The Japanese player states that the Zeros will attack the B-26s. He rolls a '2'. One hit is scored. The BHT for Hudsons is 3. The Allied player rolls a '3'. No hits are scored. The BHT for A-20s is 3. The Allied player rolls a '5'. One hit is scored. The BHT for B-26s is 4. The Allied player rolls a '3'. No hits are scored. One B-26 and one Zero are eliminated.
+
+All combat at low altitude is finished, and all Air-to-Air Combat in the hex is now over.
+
+17. ANTI-AIRCRAFT COMBAT
+
+17.1 Anti-aircraft fire (AA fire) affects only bombers that are attacking a Task Force (TF) or base. If the bombers do not attack, there is no AA fire. Interceptors and escorts are never subject to AA fire.
+
+17.2 Before AA fire is resolved, the attacker must declare which targets all bombers are attacking. Bombers may attack any enemy units in the hex and may be divided in any manner among targets. Once attacks are
+
+## 18. AIR ATTACK COMBAT
+
+**18.1** The attacker must now execute the attacks they declared before AA fire was resolved. They may have fewer planes than originally stated due to losses from AA fire, but may not change the allocation of planes or call off any attacks.
+
+**18.2** Each attack by each plane name is resolved as a separate attack and die roll.  
+*Exception: See 17.6.* No planes can be lost during Air Attack Combat.
+
+### 18.3 Types of Bombing Attacks
+
+- **18.3.1 Dive Bombing:**  
+    Dive bombers must begin the Combat Phase at high altitude and are at high altitude for Air-to-Air Combat. However, they are assumed to dive to low altitude during the Anti-Aircraft Combat Step and make their bombing attack from low altitude. Dive bombers may attack with GP or AP bombs. Each Air Factor that makes a dive bombing attack expends one RF.
+
+- **18.3.2 Torpedo Bombing:**  
+    Torpedo attacks must be made from low altitude and may only be made by planes that can carry, and are carrying, torpedoes. Each Air Factor that makes a torpedo bombing attack expends one RF.
+
+- **18.3.3 Level Bombing:**  
+    Level bombing can be performed from high or low altitude. Level bombers may attack with GP or AP bombs. Each Air Factor that makes a level bombing attack from low altitude expends one RF. Air Factors that make a bombing attack from high altitude do not expend any RFs.
+
+**18.4** Bases can never be attacked.
+
+### 18.5 Modifiers
+
+- **18.5.1** If the target ship is crippled, the BHT is increased by two tables (+2).
+- **18.5.2** If the target ship is anchored, the BHT is increased by two tables (+2).
+- **18.5.3** If the combat is taking place in a hex with clouds, the BHT is reduced by two tables (-2).
+- **18.5.4** If the combat is taking place at night, the BHT is reduced by four tables (-4).
+
+*Example of Air Attack Combat:*  
+Continuing the example from Anti-Aircraft Combat, the Allied planes (8 Dauntless and 7 Avenger) now attack the CV Shokaku. The 8 Dauntless are making a dive bombing attack with AP bombs. The BHT is 7. The Allied player rolls a '3'. Two hits are scored, but these are doubled because the Japanese player states that there are planes in the Ready box. Four hits are scored.  
+The 6 Avengers are making a torpedo attack. The BHT is 6. The Allied player rolls a '1'. No hits are scored.  
+The Shokaku has taken four hits. In addition, the Japanese player must eliminate four Air Factors from those on the Shokaku. Air Attack Combat is now over.
+
+---
+
+## 19. SURFACE ATTACK COMBAT
+
+**19.1** Surface Attack Combat involves only ship units. Surface Attack Combat is never mandatory. However, if one player initiates it, the other player may not avoid it. All ships present in the hex (even if in more than one TF) where the Surface Attack Combat is taking place must take part in the combat.
+
+**19.2** Both players take all ships in the hex out of their TF boxes and place them in an open area on or to the side of the mapboard. After looking at the exact makeup of each other's force, players then secretly arrange their ships.
+
+**19.3** A ship can be placed in any one of three positions during the initial setup, and is then committed to this position:
+
+- **19.3.1 Gunnery Attack:** Ships placed in the Gunnery Attack position must use their Gunnery Factor in combat. They may not use their Torpedo Factor.
+- **19.3.2 Torpedo Attack:** Ships placed in the Torpedo Attack position must use their Torpedo Factor in combat. They may not use their Gunnery Factor. Place a Torpedo marker on these ships to show they are making Torpedo Attacks.
+- **19.3.3 Screen:** Ships placed in the Screen position may not attack or be attacked in any manner. Place these ships behind the other two groups of ships to show they are being screened. All crippled ships and all anchored ships must be placed in the Screen position.
+
+**19.4** After all ships have been setup, but before their positions are revealed, both players take one die and secretly place it with their ships. The die may have any number showing (any number UP). The total of the two dice will be the BHT for that round of combat. Ship positions and die numbers are then revealed.
+
+**19.5 Gunnery Combat**
+
+- Both players total the Gunnery Factors of all ships in the Gunnery Attack position and then announce how many Gunnery Factors will be used against which enemy ships.
+- **19.5.1** The total Gunnery Factor may be split in any manner; against only one ship, against every ship, or against only several ships.  
+    *Exception:* Only that part of the total Gunnery Factor which is comprised of BB, CA, and CAV Gunnery Factors may be used against enemy BBs.
+- **19.5.2** Attacks are then resolved using the BHT of the dice total. Combat is simultaneous, so both players use their total Gunnery Factor before any damage takes effect.
+- **19.5.3** After both players have attacked, all ships that were sunk are removed and all ships that were damaged have a Damage marker placed on them equal to the number of hits they have received.
+
+**19.6 Torpedo Combat**
+
+- After all Gunnery Combat has been resolved, ships that were placed in the Torpedo Attack position and have survived Gunnery Combat may make Torpedo attacks. Ships sunk during the Gunnery Combat are eliminated before Torpedo Combat; they do not get to make a Torpedo attack.
+- **19.6.1** Torpedo Attacks may only be made if the BHT for that round of combat was 10 or more (if a day turn), or 7 or more (if a night turn). If the BHT is not high enough to allow Torpedo Attacks, no hits may be scored, but torpedoes are still considered to have been fired and expended.
+- **19.6.2** Japanese Torpedo Attacks use a BHT of 15. Allied Torpedo Attacks use a BHT of 10. Combat is simultaneous, so both players use their total Torpedo Factor before any damage takes effect.
+- **19.6.3** Both players total the Torpedo Factors of all ships in the Torpedo Attack position and then announce how many Torpedo Factors will be used against which ships. The total Torpedo Factor may be split in any manner; against only one ship, against every ship, or against only several ships.
+
+**19.7 Breakthrough Combat**
+
+- After Gunnery and Torpedo combat have been resolved, both players count their surviving Gunnery Factors of ships that were in the Gunnery Attack position or Torpedo Attack position. If one side has a ratio of 3:1 over the other, the player with the advantage may announce and execute Breakthrough Combat. If neither side has a 3:1 advantage, no Breakthrough Combat can occur.
+- **19.7.1** In a Breakthrough Combat round, the attacker may use the total Gunnery Factor of all their surviving ships in the Gunnery Attack and Torpedo Attack positions. The defender may only use the total Gunnery Factor of all ships they placed in their Screen.
+- **19.7.2** Breakthrough Combat is resolved like Gunnery Combat using the same BHT that was used in the preceding Gunnery Combat.
+- **19.7.3** The attacker may choose not to use some of their ships that are eligible to attack and these ships would take no part in the Breakthrough Combat (they cannot attack or be attacked). The defender must use all their ships placed in the Screen position in Breakthrough Combat.
+- **19.7.4** No Torpedo Attacks can be made in Breakthrough Combat.
+
+**19.8 Ammunition Record Sheet**
+
+- **19.8.1** Each ship with a Gunnery Factor has an Ammunition Factor. Each ship's beginning Ammunition Factor is listed on the Ammunition Record Sheet (on the reverse side of the Plot Map). It can be kept hidden from the opponent. In each turn of Surface Attack Combat in which a ship uses its Gunnery Factor, a number of Ammunition Factors equal to the BHT in that round of combat are expended. Mark off Ammunition Factors that are expended by crossing out the current Ammunition Factor and writing in the new Ammunition Factor to the right of it on the Ammunition Record Sheet. When a ship has an Ammunition Factor of zero, it may no longer participate in Gunnery Combat. If a ship has Ammunition Factors remaining but the BHT to be used in a round of combat is more than the Ammunition Factor it has remaining, its Gunnery Factor is halved (rounded up) for that round, and its Ammunition Factor is reduced to zero.
+- **19.8.2** Ship's Torpedo Factors are shown on the Ammunition Record Sheet. Each ship with a Torpedo Factor that makes a Torpedo Attack expends its whole supply of torpedoes in this one round of combat. Cross out the Torpedo Factor on the Ammunition Record Sheet. It may not make Torpedo Attacks for the remainder of the game.
+- **19.8.3** DDs and APDs are not listed on the Ammunition Record Sheet. They may use their Gunnery Factor in one turn regardless of the BHT. After being used this once, the DD counter is flipped over to show it has expended its complete Ammunition Factor. DDs also have a Torpedo Factor of 1. Place a Torpedo marker on a DD that has expended its supply of torpedoes.
+
+**19.9 Bombardment Attacks**
+
+- Bombardment Attacks can be made by ships in the same hex as an enemy base. Any ships used in any other type of Surface Attack Combat may not make Bombardment Attacks. If other Surface Attack Combat occurs in a hex where a player wishes to make Bombardment Attacks, ships wishing to participate in the Bombardment Attack must have been placed in the Screen position (and cannot have been involved in Breakthrough Combat). Bombardment Attacks are never mandatory and only the player with the ships can initiate it; the player with the base cannot. If the player with the ships initiates it, the other player may not avoid it.
+- **19.9.1** The BHT used in Bombardment Combat is 8 for all ships and bases. Only CAVs, CAs, and CLs may participate in Bombardment Combat.
+- **19.9.2** In a Bombardment Attack, all participating ships' Gunnery Factors are totalled. No more than one Bombardment Attack can be made per turn. A ship that makes a Bombardment Attack uses eight Ammunition Factors.
+- **19.9.3** A base that has a Surface Factor (SF) may attack any ships making a Bombardment Attack against it. It may divide its SF in any manner against the Bombarding ships. A base with a SF may also attack ships anchored in its hex, even if they do not, or cannot, make Bombardment Attacks. However, a base cannot use its SF against non-Bombarding anchored ships if other ships are making Bombardment Attacks, unless the ships making the Bombardment Attacks are also anchored.
+
+### 19.10 Modifiers
+
+- **19.10.1** If the target ship is crippled, the BHT is increased by one table (+1).
+- **19.10.2** If the target ship is anchored, the BHT is increased by one table (+1).
+
+*Example of Surface Attack Combat:*  
+It is a night turn. Allied TF 12 and Japanese TF 14 are in the same hex. The Allied player initiates Surface Attack Combat.  
+Allied TF 12 contains BB South Dakota, BB Washington, CA Pensacola, and 12 DD. Japanese TF 14 contains BB Haruna, BB Hiei, BB Kirishima, BB Kongo, CA Kumano, and 5 DD.  
+Both players secretly arrange their ships and setup their die. Both players then reveal their arrangement. The Allied player has placed all his ships in the Gunnery Attack position and has a '1' on his die. The Japanese player has placed his 5 DD in the Torpedo Attack position, all the rest of his ships in the Gunnery Attack position, and has a '6' on his die.  
+Gunnery Combat is resolved first. The Allied player has a total Gunnery Factor of 67. However, only 55 Gunnery Factors may be used against the Japanese BBs (the 12 DD Gunnery Factors cannot be used against the Japanese BBs). The Japanese player has a total Gunnery Factor of 54; it may all be used against the Allied BBs.  
+The Gunnery Combat uses a BHT of 7 (because the dice total is 7). The Allied player allocates his Gunnery Factors. He allocates 41 against the Hiei, 11 against the Kongo, and 3 each against 4 DD. Against the Hiei the Allied player rolls a '4'. Ten hits are scored and the Hiei sinks. Against the Kongo the Allied player rolls a '5'. Four hits are scored on the Kongo. Against the 4 DD, the Allied player rolls '1', '6', '3', and '1'. One DD takes three hits, two take one hit and one takes no hits. The DD that took three hits sinks.  
+Now the Japanese player allocates his Gunnery Factors (including the Gunnery Factors of the Hiei and DD that were sunk, as all Gunnery Combat is considered to be simultaneous). He allocates 46 against the Washington, and 8 against the Pensacola. Against the Washington the Japanese player rolls a '6'. Thirteen hits are scored on the Washington. Against the Pensacola the Japanese player rolls a '1'. One hit is scored on the Pensacola.  
+All Gunnery combat is now resolved, so the ships Hiei and one DD are sunk. The remaining ships proceed to Torpedo combat.  
+Torpedo combat is next. The dice total of 7 is high enough to allow Torpedo Attacks at night. The Japanese player has 5 DD for a total Torpedo Factor of 3. The Japanese allocates all 3 against the Washington. Japanese Torpedo Combat uses a BHT of 15. The Japanese player rolls a '5'. The Washington takes two hits, giving it a total of fifteen hits, so it sinks and is removed.  
+All Surface Attack Combat is now over.
+
+---
+
+## 20. COMBAT RESOLUTION
+
+**20.1** All combat is resolved using the Combat Results Table, by cross-indexing the BHT with the number of attacking units. Planes have different BHTs for different types of bombing attacks and targets (bases or TFs).
+
+**20.2** All modifiers for each type of combat are listed on the Combat Modifiers Table. All modifiers that apply are cumulative. These modifiers are added to or subtracted from the BHT. The BHT in any type of combat can never be less than 1 no matter how many negative modifiers are applied. Attacks with a modified BHT of more than 15 are treated as 15.
+
+**20.3** The numbers in the boxes within the columns of the Combat Results Table are the Result Numbers. For each attack, roll one die.  
+- If the die number is '3' or '4', the Result Number is the number of hits scored.  
+- If the die number is '1', the number of hits scored is equal to the Result Number minus two (-2).  
+- If the die number is '2', the number of hits scored is equal to the Result Number minus one (-1).  
+- If the die number is '5', the number of hits scored is equal to the Result Number plus one (+1).  
+- If the die number is '6', the number of hits scored is equal to the Result Number plus two (+2).  
+- If the Result Number is a *, a roll of 6 equals one hit scored and rolls of 1-5 have no effect.
+
+*Example:*  
+If the BHT is 8 and the number of attacking factors is 14, the Result Number is 4. If a '1' is rolled, 2 hits are scored. If a '2' is rolled, 3 hits are scored. If a '3' or '4' is rolled, 4 hits are scored. If a '5' is rolled, 5 hits are scored. If a '6' is rolled, six hits are scored.
+
+---
+
+
+21. DAMAGE 
+21.1 Hits on plane units are recorded by eliminating Air 
+Factors equal to the number of hits scored, If more hits are 
+scored than there are Air Factors, excess hits are lost; they 
+may not be transferred or accumulated. 
+21.2 Hits on ship units are recorded by placing Damage 
+markers on them equal to the number of hits scored. If the 
+number of hits scored equals the ship's Damage Factor, 
+the ship is sunk and eliminated from the game, If the 
+number of hits scored exceeds the ship's Damage Factor, 
+the excess hits are lost; they may not be transferred 
+accumulated. Damage affects ship's capabilities. 
+or 
+21.2.1 When any ship has a number of hits that equals or 
+### 21. DAMAGE
+
+#### 21.1 Hits on Plane Units
+
+Hits on plane units are recorded by eliminating Air Factors equal to the number of hits scored. If more hits are scored than there are Air Factors, excess hits are lost; they may not be transferred or accumulated.
+
+#### 21.2 Hits on Ship Units
+
+Hits on ship units are recorded by placing Damage markers on them equal to the number of hits scored.
+
+- If the number of hits scored equals the ship's Damage Factor, the ship is sunk and eliminated from the game.
+- If the number of hits scored exceeds the ship's Damage Factor, the excess hits are lost; they may not be transferred or accumulated.
+- Damage affects ship capabilities.
+
+##### 21.2.1 Movement Factor Reduction
+
+When any ship has a number of hits that equals or exceeds half its Damage Factor, its MF (Movement Factor) is halved. Ships with an MF of 2 are reduced to 1, and ships with an MF of 1 are reduced to moving 1 hex every other turn, beginning the turn after attaining this level of damage. Note ships with this reduced MF in the Notes Section of the Air Record Sheet by listing if they can move on even or odd numbered turns.
+
+Ships (with a Damage Factor of 3 or more) with a number of hits equal to one less than their Damage Factor have a Cripple marker placed on them. They are dead in the water and cannot move for the rest of the game.
+
+##### 21.2.2 Gunnery and AA Factor Reduction
+
+Each hit on a ship reduces the ship's Gunnery Factor by 1 and the ship's AA Factor by 1. If a ship does not have one of these two Factors, the reduction is ignored. Torpedo Factors are never reduced.
+
+##### 21.2.3 Launch Factor Reduction
+
+- Each hit on a CV reduces its LF by -3/-1.
+- Each hit on a CVL reduces its LF by -2/-1.
+- Each hit on an AV, CAV, or BB reduces its LF by -1/-1.
+
+Planes may not land or take off from a plane-carrying ship with an LF of zero.
+
+##### 21.2.4 Air Factor Elimination
+
+Each hit on any plane-carrying ship eliminates one Air Factor on that ship (if any are present).
+
+##### 21.2.5 Sunk Plane-Carrying Ships
+
+If a plane-carrying ship is sunk, all Air Factors on the ship at the time are lost (eliminated). Victory Points are scored as usual. However, these Air Factors cannot be used as replacements. They are removed immediately and permanently from the game.
+
+#### 21.3 Hits on Bases
+
+Hits on bases are recorded by keeping track of them in the Notes Section of the Air Record Sheet or by placing a Damage marker equal to the number of hits received in the Base box on the Operations Chart, whichever players find easier.
+
+##### 21.3.1 Base Factor Reduction
+
+Each hit reduces the base's LF by -2/-1, the base's AA by 1, and the base's SF (if it has any) by 1.
+
+**Exception:** Each hit on a base with solely SP PH reduces the base's LF by -1/-1, not -2/-1.
+
+##### 21.3.2 Air Factor Elimination at Bases
+
+Each hit on a base eliminates one Air Factor on that base (if any are present).
+
+**Exception:** It takes two hits to eliminate each dispersed Air Factor.
+
+#### 21.4 Factor Minimums
+
+Ship's Gunnery Factors, AA Factors, and LFs can be reduced to zero by damage, but can never be negative numbers. This damage can never be repaired.
+
+#### 21.5 Base Factor Minimums
+
+A base's SF, AA Factors, AAF, and LFs can be reduced to zero by damage, and in effect, can even be reduced to negative numbers. When the number of hits scored on a base reduces the base's LF to zero, additional hits are still recorded. The base would have to repair these hits first, and then repair one more hit to regain a positive LF (AAFs and SFs would be similarly regained each turn the base is repaired beyond the point it was reduced to a negative LF). Victory Points are scored for each turn a base has an LF of zero or less. Planes may not take off from a base with an LF of zero or less.
+
+*Example:*  
+Ciasmata has an LF of 8/4, an AAF of 5, and no SF. It receives five hits on the 1200 turn. Its LF is reduced to -2/-1, and its AAF to 0. It cannot repair its AAF too. On the 1300 turn, it is not attacked and so repairs one hit. Its LF is 0/0 and its AAF is still 1. On the 1400 turn, it is not attacked and so repairs one hit. Its LF is 2/1 and its AAF is 2. Etc.
+
+#### 21.6 Double Damage to Planes
+
+If a plane-carrying ship or base has any plane units in the Ready box and/or Just Landed box when it receives one or more hits from dive bombing or level bombing attacks, these hits are all doubled. Similarly, if a plane-carrying ship has any plane units in the Readying box when it receives one or more hits from torpedo bombing attacks, these hits are all doubled.
+
+#### 21.7 Order of Air Factor Elimination
+
+When plane-carrying ships and bases take hits, Air Factors that are present are eliminated as follows:
+
+- **21.7.1** If it is a day turn, and the hits are scored by dive bombing attacks or level bombing attacks from low altitude, the attacking player chooses which plane name Air Factors (if there is a choice) to eliminate on the ship or base.
+- **21.7.2** If it is a night turn, or the hits are scored by torpedo bombing attack, level bombing attack from high altitude, or from surface combat, the defending player chooses which plane name Air Factors (if there is a choice) to eliminate on the ship or base.
+- **21.7.3** Air Factors must be eliminated from TF or Base boxes in the following order:  
+    1. From the Ready box  
+    2. From the Just Landed box  
+    3. From the Readying box  
+    Dispersed Air Factors are only eliminated after all other Air Factors have been eliminated, and they are eliminated at the rate of one Air Factor per every two hits scored.
+- **21.7.4** The attacking player is never informed how many Air Factors of each plane name are present (See 7.14 and 7.15). The defender just tells him what his choices are when he has a choice; i.e., what plane names he can choose from.
+
+---
+
+#### 21.8 Elimination of Ships and Bases
+
+If a ship or base is eliminated (sunk or destroyed), remove it from play immediately. Any planes on a ship that is sunk are also eliminated and cannot be used as replacements.
+
+---
+
+## 22. REPLACEMENTS
+
+**22.1** All planes lost during a day should be kept in a pile off-board until the 0100 turn of the next day. Each side receives replacements on the 0100 turn of each day, at the beginning of the Air Operations Phase. These planes must be placed in the Just Landed sections of TF and Base boxes. Note: In the shorter versions of some scenarios, no replacements will be taken.
+
+**22.2** The number of replacements received depends on the number lost during the previous day. For every three Air Factors of each plane name eliminated, one may be brought back into play as a replacement; all fractions are lost. Plane name replacements that contain both sea-based and land-based planes must be divided between the two as equally as possible.
+
+*Example:*  
+It is 0100. The Japanese player has lost 22 Zero Air Factors (16 land-based and 6 sea-based), 6 Betty Air Factors, 10 Val Air Factors (8 sea-based and 2 land-based), and 9 Kate (all sea-based) Air Factors on the previous day. He may bring 7 Zero Air Factors (5 sea-based and 2 land-based), 2 Betty Air Factors, 3 Val Air Factors (2 sea-based and 1 land-based), and 3 Kate Air Factors (all sea-based) back into the game as reinforcements. The rest of the Air Factors lost on the previous day are permanently removed from the game.
+
+**22.3** Once replacements have been taken, all other planes eliminated on the previous day are permanently removed from the game.
+
+**22.4** When a plane-carrying ship is sunk, planes on the ship cannot be used as replacements. They are immediately and permanently removed from the game.
+
+**22.5** Ships may never be replaced.
+
+---
+
+## 23. REPAIR
+
+**23.1** Damaged bases may be repaired during the Repair Phase. Each base may repair one point of damage (one hit) per turn, unless otherwise specified in the scenario being played. Simply remove the Damage marker currently in the base box and replace it with a Damage marker worth one less damage point. Each repaired point of damage increases a base's LF by 2/1, its AA Factor by 2, and its SF (if it had any) by 1.
+
+**23.2** A base that was involved in any type of Air Attack Combat or Bombardment Combat may not repair that turn.
+
+**23.3** A base may never be repaired to more than its original specifications as per the scenario being played.
+
+---
+
+## 24. TIME RECORD
+
+During the Time Record Phase, the completion of one turn is recorded on the Time Record Chart.
+
+---
+
+## 25. VICTORY CONDITIONS
+
+**25.1** Players gain points according to the Victory Points Table. Players should keep track of their points as they are scored, using the Point counters on the Point Record Chart on the mapboard.
+
+**25.2** Each scenario has an Automatic Victory Point Level. If at the end of the 2400 turn, the difference between the player's Victory Point totals is equal to or greater than the Automatic Victory Level, the game ends immediately and the player with the more points wins.
+
+**25.3** If neither player gains an automatic victory during the game, the winner is the player with the most Victory Points at the end of the game. However, in all scenarios, a player must have scored at least 50 points to win. If neither player has scored 50 points, the game is a draw.
+
+**25.4** Unnecessary Air Factor Loss. Usually, eliminated Air Factors are worth 2 Victory Points each. However, eliminated Air Factors lost unnecessarily are worth 10 Victory Points each, instead of (not in addition to) the normal 2 Victory Points. This only applies to Air Factors unable to land safely by the turn of landing due to player error or choice. This does not apply to Air Factors that can reach a hex where landing was possible, but is not when they arrive because of hits scored on bases or plane-carrying ships. This does apply to Air Factors in flight at the end of the game; all Air Factors in flight at the end of the game must be able to land safely, if the game were to continue.
+
+**25.5** Victory Points are scored each turn an AP unloads (to a maximum of eight turns). At the same time, in direct proportion, the value of the AP (if sunk) is reduced each turn it unloads.
+
+*Example:*  
+It is 2100. The Japanese player has 1 AP anchored at a Guadalcanal hex. It begins to unload. This turn it unloads 3 Victory Points (it would now be worth 21 Allied Victory Points if sunk). At 2200 it unloads another 3 Victory Points (now worth 18 Allied Victory Points if sunk). At 2300 it unloads another 3 Japanese Victory Points (now worth 15 Allied Victory Points if sunk). At 0400, having unloaded another 3 Japanese Victory Points, it has unloaded the maximum eight turns and cannot unload anymore. It would now be worth 2 Allied Victory Points if sunk.
+
+---
+
+## 26. SCENARIOS
+
+**26.1** It is suggested that players first play the "Rings Around Rabaul" scenario twice, once as each side. This scenario has far fewer ships and planes than the other scenarios and will let players familiarize themselves with the game system before moving on to the bigger, more involved scenarios.
+
+**26.2** Some scenarios have shorter versions included. The OBs and Special Rules apply to all versions of a scenario and the shorter versions only differ in game length and ships' starting positions.
+
+**26.3** Even though the scenario OBs list SSs for both sides, they are not used unless the Submarines Optional Rule is in effect. Likewise, Special Rules listed as OPTIONAL RULES are only used if the players wish to use those optional rules.
+
+---
+
+*(End of cleaned-up document. Let me know if you want further formatting or splitting into sections/files.)*
