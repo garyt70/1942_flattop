@@ -1,0 +1,180 @@
+"""
+
+A Task Force can have multiple ships.
+A Task Force can have a carrier.
+A carrier can have multiple aircraft.
+A base can have multiple aircraft.
+A air formation can have multiple aircraft.
+
+Full requirement are documented in game_requirements.txt
+- **3.3.1** Air Formation counters (numbered 1–35) are placed in the Air Formation boxes on the Air Operation Charts with the corresponding numbers.
+- **3.3.2** Task Force counters (numbered 1–14) are placed in the Task Force boxes on the Air Operations Charts with the corresponding numbers.
+- **3.3.3** Ship counters are placed in the Task Force boxes in any manner within the dictates of rule 4.1 and the scenario OB.
+- **3.3.4** Plane counters are placed in the Task Force boxes and base boxes in any manner within the dictates of rule 4.2 and the scenario OB.
+
+"""
+
+class TaskForce:
+    """
+    Represents a Task Force, which can contain multiple ships (including at most one carrier).
+    """
+    def __init__(self, number, name=None):
+        """
+        Args:
+            number (int): Task Force counter number (1–14).
+            name (str, optional): Optional name for the Task Force.
+        """
+        self.number = number
+        self.name = name or f"Task Force {number}"
+        self.ships = []
+
+    def add_ship(self, ship):
+        if not isinstance(ship, Ship):
+            raise TypeError("Expected a Ship instance")
+        if isinstance(ship, Carrier) and any(isinstance(s, Carrier) for s in self.ships):
+            raise ValueError("A Task Force can only have one carrier.")
+        self.ships.append(ship)
+
+    def get_carriers(self):
+        return [ship for ship in self.ships if isinstance(ship, Carrier)]
+
+    def __repr__(self):
+        return f"TaskForce(number={self.number}, ships={self.ships})"
+
+class AirFormation:
+    """
+    Represents an Air Formation, which can contain multiple aircraft.
+    """
+    def __init__(self, number, name=None):
+        """
+        Args:
+            number (int): Air Formation counter number (1–35).
+            name (str, optional): Optional name for the Air Formation.
+        """
+        self.number = number
+        self.name = name or f"Air Formation {number}"
+        self.aircraft = []
+
+    def add_aircraft(self, aircraft):
+        if not isinstance(aircraft, AirCraft):
+            raise TypeError("Expected an AirCraft instance")
+        self.aircraft.append(aircraft)
+
+    def __repr__(self):
+        return f"AirFormation(number={self.number}, aircraft={self.aircraft})"
+
+
+from flattop import Piece
+
+
+class AirCraft:
+    """
+    Represents an aircraft in the game.
+
+    Attributes:
+        type (str): The type of the aircraft (e.g., "Fighter", "Bomber").
+    """
+    
+    def __init__(self, type):
+        self.type = type
+
+    def __repr__(self):
+        return f"AirCraft(type={self.type})"
+
+class Ship:
+    
+    def __init__(self, type, status):
+        self.type = type
+        self.status = status
+
+    def __repr__(self):
+        return f"Ship(owner={self.status}, type={self.type})"
+
+
+class Carrier(Ship):
+    """
+    Represents a carrier ship in the game.
+
+    Attributes:
+        type (str): The type of the carrier (e.g., "Aircraft Carrier").
+        status (str): The status of the carrier (e.g., "operational", "damaged").
+    """
+    
+    def __init__(self, type, status):
+        super().__init__(type, status)
+        self.air_operations_chart = AirOperationsTracker(name=f"{type} Operations Chart", description=f"Operations chart for {type} carrier")
+
+
+    def __repr__(self):
+        return f"Carrier(type={self.type}, status={self.status})"
+
+
+
+
+class AirOperationsTracker:
+   
+    def __init__(self, name , description):
+        """
+        Initializes an AirOperationsChart object.
+
+        Args:
+            name (str): The name of the chart.
+            description (str): A brief description of the chart. e.g. Allied or Axis operations chart.
+                """
+        self.name = name
+        self.description = description
+        self.in_flight = []
+        self.just_landed = []
+        self.readying = []
+        self.ready = [] 
+
+    def __repr__(self):
+         return f"Piece(owner={self.name}, position={self.desfription})"
+    
+    def __str__(self):
+        return f"AirOperationsChart(name={self.name}, description={self.description})"
+    
+    
+
+    def set_operations_status(self, aircraft, status):
+        """
+        Sets a piece to the appropriate flight status list based on its status.
+        A piece can be aircraft.
+
+
+        Args:
+            piece (aircraft): The piece to add.
+            status (str): The status of the piece. Should be one of 'in_flight', 'just_landed', 'readying', or 'ready'.
+        """
+    
+        if not isinstance(aircraft, AirCraft):
+            raise TypeError("Expected a Piece instance")
+        
+        
+        'TODO: Add a check to ensure that the piece is not already in one of the lists before adding it and then remove it from the previous list if it is.'
+
+        if status == 'in_flight':
+            self.in_flight.append(aircraft)
+        elif status == 'just_landed':
+            self.just_landed.append(aircraft)
+        elif status == 'readying':
+            self.readying.append(aircraft)
+        elif status == 'ready':
+            self.ready.append(aircraft)
+        else:
+            raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
+    
+
+    def add_in_flight(self, piece):
+        """        Adds a piece to the in-flight list.
+        Args:
+            piece (Piece): The piece to add to the in-flight list.
+        """
+        if isinstance(piece, Piece):
+            self.set_operations_status(piece,"in_flight")
+        else:
+            raise TypeError("Expected a Piece instance")
+           
+
+    
+   

@@ -1,4 +1,11 @@
-pip-requirements
+
+1942 Flat Top is a 1980s board wargame simulating the naval battles of the Pacific Theater during World War II, focusing on the Battle of Midway and the Coral Sea. Players control either the Japanese or Allied forces, managing air and naval operations across a hexagonal map.
+more Air Formations are in the same hex, they may reorganize into one Air Formation or split into two or more Air Formations. The new Air Formation must be logged on the Air Record Sheet as a new Air Formation. The new Air Formation may not exceed the Maximum Capacity of the Air Formation box it is placed in.
+
+
+
+
+
 2.2 Air Factor counters of the same plane name are treated like change (they are interchangeable).  
 Example: An Air Factor counter could be made up of Val 1 Air Factor counters, Val 2 Air Factor counters, or a combination such as one Val 2 Air and three Val 1 Air Factor counters.
 
