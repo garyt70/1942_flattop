@@ -312,7 +312,8 @@ class Ship:
         self.move_factor = move_factor  # Default move factor for ships
 
     def __repr__(self):
-        return f"Ship(owner={self.status}, type={self.type})"
+        return f"Ship(name={self.name}, type={self.type}, status={self.status}, " \
+               f"attack_factor={self.attack_factor}, defense_factor={self.defense_factor}, move_factor={self.move_factor})\n"
 
 
 class Carrier(Ship):
@@ -334,9 +335,7 @@ class Carrier(Ship):
     def air_operations(self):
         return self.base.air_operations
 
-
-    def __repr__(self):
-        return f"Carrier(type={self.type}, status={self.status})"
+               
 
 
 class AirOperationsTracker:

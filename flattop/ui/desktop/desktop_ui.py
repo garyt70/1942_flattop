@@ -17,7 +17,7 @@ class HexBoardWidget(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        for y, row in enumerate(self.board.tiles):
+        for y, row in enumerate(self.board.grid):
             for x, cell in enumerate(row):
                 center = self.hex_center(x, y)
                 polygon = self.hex_polygon(center)
@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Hex Board Game Visualizer")
         # Assume hex_board_game_model has a Board class with a 'grid' attribute
-        board = HexBoard(width=10, height=10)
+        board = HexBoard(radius=2)
         p1 = Piece(owner="Player 1", position=Hex(0, 0))
         p2 = Piece(owner="Player 2", position=Hex(1, -1))
         board.add_piece(p1)

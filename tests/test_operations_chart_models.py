@@ -272,6 +272,7 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
         
         print("Japanese Chart:", chartJapanase)
         print("Allied Chart:", chartAllied)
+        print("Allied Task Force 1 Ships:", chartAllied.task_forces[1])
 
 
 

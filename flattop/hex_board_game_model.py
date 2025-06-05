@@ -19,6 +19,10 @@ class Hex:
                       Hex(-1, 0), Hex(-1, 1), Hex(0, 1)]
         return [self + direction for direction in directions]
 
+    def __iter__(self):
+        yield self.q
+        yield self.r
+
     def __repr__(self):
         return f"Hex({self.q}, {self.r})"
 
@@ -60,19 +64,17 @@ class Piece:
         return f"Piece(owner={self.owner}, position={self.position})"
 
 class HexBoard:
-    def __init__(self, radius):
-        self.radius = radius
-        self.tiles = self.generate_board(radius)
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.tiles = set(self.generate_board(width, height))
         self.pieces = []
 
-    def generate_board(self, radius):
-        tiles = set()
-        for q in range(-radius, radius + 1):
-            r1 = max(-radius, -q - radius)
-            r2 = min(radius, -q + radius)
-            for r in range(r1, r2 + 1):
-                tiles.add(Hex(q, r))
-        return tiles
+    def generate_board(self, width, height):
+        # Generates a rectangular grid of hexes using axial coordinates
+        for q in range(width):
+            for r in range(height):
+                yield Hex(q, r)
 
     def is_valid_tile(self, hex_coord):
         return hex_coord in self.tiles
@@ -99,7 +101,7 @@ class HexBoard:
 
 # === Example usage ===
 if __name__ == "__main__":
-    board = HexBoard(radius=2)
+    board = HexBoard(2, 2)
     p1 = Piece(owner="Player 1", position=Hex(0, 0))
     p2 = Piece(owner="Player 2", position=Hex(1, -1))
     board.add_piece(p1)
