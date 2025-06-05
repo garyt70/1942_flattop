@@ -1,18 +1,46 @@
 """
+Requirements Overview:
 
-A Task Force can have multiple ships.
-A Task Force can have a carrier.
-A carrier can have multiple aircraft.
-A base can have multiple aircraft.
-A air formation can have multiple aircraft.
+- A Task Force can have multiple ships, but at most one carrier.
+- A Carrier can have multiple aircraft.
+- A Base can have multiple aircraft.
+- An Air Formation can have multiple aircraft and can be flying at either high or low altitude.
+- An Air Operations Chart has 35 Air Formations and 14 Task Forces.
 
-Full requirement are documented in game_requirements.txt
-- **3.3.1** Air Formation counters (numbered 1–35) are placed in the Air Formation boxes on the Air Operation Charts with the corresponding numbers.
-- **3.3.2** Task Force counters (numbered 1–14) are placed in the Task Force boxes on the Air Operations Charts with the corresponding numbers.
-- **3.3.3** Ship counters are placed in the Task Force boxes in any manner within the dictates of rule 4.1 and the scenario OB.
-- **3.3.4** Plane counters are placed in the Task Force boxes and base boxes in any manner within the dictates of rule 4.2 and the scenario OB.
-
+Rules Reference (from game_requirements.txt):
+- 3.3.1: Air Formation counters (numbered 1–35) are placed in the Air Formation boxes on the Air Operation Charts with the corresponding numbers.
+- 3.3.2: Task Force counters (numbered 1–14) are placed in the Task Force boxes on the Air Operations Charts with the corresponding numbers.
+- 3.3.3: Ship counters are placed in the Task Force boxes in any manner within the dictates of rule 4.1 and the scenario OB.
+- 3.3.4: Plane counters are placed in the Task Force boxes and base boxes in any manner within the dictates of rule 4.2 and the scenario OB.
 """
+
+
+class AirOperationsChart:
+    """
+    Represents an Air Operations Chart containing Air Formations and Task Forces.
+
+    Attributes:
+        air_formations (dict): Mapping from number (1–35) to AirFormation.
+        task_forces (dict): Mapping from number (1–14) to TaskForce.
+        name (str): Optional name for the chart.
+        description (str): Optional description for the chart.
+    """
+    def __init__(self, name=None, description=None):
+        self.name = name or "Air Operations Chart"
+        self.description = description or ""
+        self.air_formations = {i: AirFormation(i) for i in range(1, 36)}
+        self.task_forces = {i: TaskForce(i) for i in range(1, 15)}
+
+    def get_air_formation(self, number):
+        return self.air_formations.get(number)
+
+    def get_task_force(self, number):
+        return self.task_forces.get(number)
+
+    def __repr__(self):
+        return (f"AirOperationsChart(name={self.name}, "
+                f"air_formations={list(self.air_formations.keys())}, "
+                f"task_forces={list(self.task_forces.keys())})")
 
 class TaskForce:
     """
@@ -63,10 +91,6 @@ class AirFormation:
     def __repr__(self):
         return f"AirFormation(number={self.number}, aircraft={self.aircraft})"
 
-
-from flattop import Piece
-
-
 class AirCraft:
     """
     Represents an aircraft in the game.
@@ -102,7 +126,7 @@ class Carrier(Ship):
     
     def __init__(self, type, status):
         super().__init__(type, status)
-        self.air_operations_chart = AirOperationsTracker(name=f"{type} Operations Chart", description=f"Operations chart for {type} carrier")
+        self.air_operations = AirOperationsTracker(name=f"{type} Operations Chart", description=f"Operations chart for {type} carrier")
 
 
     def __repr__(self):
@@ -148,11 +172,36 @@ class AirOperationsTracker:
         """
     
         if not isinstance(aircraft, AirCraft):
-            raise TypeError("Expected a Piece instance")
-        
-        
-        'TODO: Add a check to ensure that the piece is not already in one of the lists before adding it and then remove it from the previous list if it is.'
+            raise TypeError("Expected a Aircraft instance")
+       
+        # Enforce workflow: in_flight -> just_landed -> readying -> ready
+        valid_transitions = {
+            'in_flight': [self.just_landed], 
+            'just_landed': [self.readying],
+            'readying': [self.ready],
+            'ready': [self.in_flight],
+        }
+        # Find current status
+        current_status = None
+        if aircraft in self.in_flight:
+            current_status = 'in_flight'
+        elif aircraft in self.just_landed:
+            current_status = 'just_landed'
+        elif aircraft in self.readying:
+            current_status = 'readying'
+        elif aircraft in self.ready:
+            current_status = 'ready'
 
+        if current_status and status not in valid_transitions:
+            raise ValueError(f"Invalid status transition from {current_status} to {status}")
+
+         # Remove aircraft from all status lists before adding to the new one
+        for status_list in [self.in_flight, self.just_landed, self.readying, self.ready]:
+            if aircraft in status_list:
+                status_list.remove(aircraft)
+
+
+        # Now add to the new status list (handled below)
         if status == 'in_flight':
             self.in_flight.append(aircraft)
         elif status == 'just_landed':
@@ -165,15 +214,6 @@ class AirOperationsTracker:
             raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
     
 
-    def add_in_flight(self, piece):
-        """        Adds a piece to the in-flight list.
-        Args:
-            piece (Piece): The piece to add to the in-flight list.
-        """
-        if isinstance(piece, Piece):
-            self.set_operations_status(piece,"in_flight")
-        else:
-            raise TypeError("Expected a Piece instance")
            
 
     
