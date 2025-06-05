@@ -63,7 +63,7 @@ class Piece:
         """
         return f"Piece(owner={self.owner}, position={self.position})"
 
-class HexBoard:
+class HexBoardModel:
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -101,7 +101,7 @@ class HexBoard:
 
 # === Example usage ===
 if __name__ == "__main__":
-    board = HexBoard(2, 2)
+    board = HexBoardModel(2, 2)
     p1 = Piece(owner="Player 1", position=Hex(0, 0))
     p2 = Piece(owner="Player 2", position=Hex(1, -1))
     board.add_piece(p1)

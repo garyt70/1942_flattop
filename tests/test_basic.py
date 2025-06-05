@@ -1,11 +1,11 @@
 import unittest
 
-from flattop.hex_board_game_model import HexBoard
+from flattop.hex_board_game_model import HexBoardModel
 
 class TestHexBoardGamesModel(unittest.TestCase):
     def test_hex_board_initialization(self):
-        board = HexBoard(radius=11)
-        self.assertEqual(board.radius, 11)
+        board = HexBoardModel(11,11)
+        self.assertEqual(board.width, 11)
         #self.assertTrue(all(len(row) == 11 for row in board.grid))
 """
     def test_player_creation(self):
