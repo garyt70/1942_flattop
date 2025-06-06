@@ -79,6 +79,23 @@ class DesktopUI:
             if isinstance(piece, Piece) and piece.position.q == q and piece.position.r == r:
                 return piece
         return None
+    
+    def render_screen(self):
+        self.screen.fill(BG_COLOR)
+
+        # Draw the hexes on the board
+        for q in range(self.board.width):
+            for r in range(self.board.height):
+                center = self.hex_to_pixel(q, r)
+                self.draw_hex(center, HEX_COLOR, HEX_BORDER)
+
+        # Draw the pieces on the board
+        for piece in self.board.pieces:
+            if isinstance(piece, Piece):
+                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+
+        pygame.display.flip()
 
     def run_with_click_return(self):
         running = True
@@ -116,16 +133,7 @@ class DesktopUI:
 
             self.screen.fill(BG_COLOR)
 
-            # Draw the hexes and pieces on the board
-            for q in range(self.board.width):
-                for r in range(self.board.height):
-                    center = self.hex_to_pixel(q, r)
-                    self.draw_hex(center, HEX_COLOR, HEX_BORDER)
-
-            for piece in self.board.pieces:
-                if isinstance(piece, Piece):
-                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                    pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+            self.render_screen()
 
             pygame.display.flip()
 

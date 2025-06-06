@@ -1,5 +1,6 @@
 import math
-import operations_chart_models
+from flattop import operations_chart_models
+
 
 class Hex:
     def __init__(self, q, r):
@@ -54,7 +55,10 @@ class Piece:
 
     @game_model.setter
     def game_model(self, value):
-        allowed_types = getattr(operations_chart_models, "AirFormation", None), getattr(operations_chart_models, "TaskForce", None)
+        allowed_types = (
+            getattr(operations_chart_models, "AirFormation", None),
+            getattr(operations_chart_models, "TaskForce", None)
+        )
         if value is not None and not isinstance(value, allowed_types):
             raise TypeError("game_model must be an AirFormation or TaskForce instance")
         self._game_model = value
