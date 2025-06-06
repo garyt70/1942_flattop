@@ -6,10 +6,10 @@ from flattop.operations_chart_models import AirOperationsChart, Base, AirOperati
 def scenario_one_setup(hexboard_model):
 
     chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
-    chartJapanase.bases["Rabul"] = Base("Rabul")
     
-    baseRahulJapanese = chartJapanase.bases["Rabul"]
-    baseRahulJapanese.air_operations_configuration = AirOperationsConfiguration(
+    
+    baseRahulJapanese = Base("Rabul")
+    baseRahulJapanese.air_operations_config = AirOperationsConfiguration(
         name="Rabul",
         description="Configuration for air operations at Rabul",
         maximum_capacity=9999,
@@ -23,14 +23,15 @@ def scenario_one_setup(hexboard_model):
     baseRahulJapanese.air_operations.set_operations_status(AirCraft("Mavis", count=8),AircraftStatus.READY)
     baseRahulJapanese.air_operations.set_operations_status(AirCraft("Rufe", count=1),AircraftStatus.READY)
     baseRahulJapanese.air_operations.set_operations_status(AirCraft("Nell", count=12),AircraftStatus.READY)
-
+    
+    chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
+    
     hexboard_model.add_piece(Piece("Japanese Rabul Base", Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
 
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
-    chartAllied.bases["Port Moresby"] = Base("Port Moresby")
-    basePortMoresbyAllied = chartAllied.bases["Port Moresby"]
-    basePortMoresbyAllied.air_operations_configuration = AirOperationsConfiguration(
+    basePortMoresbyAllied = Base("Port Moresby")
+    basePortMoresbyAllied.air_operations_config = AirOperationsConfiguration(
         name="Port Moresby",
         description="Configuration for air operations at Port Moresby",
         maximum_capacity=9999,
@@ -40,7 +41,8 @@ def scenario_one_setup(hexboard_model):
     )
     basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("P-40", count=12),AircraftStatus.READY)
     basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftStatus.READY)
-    
+    chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
+
     hexboard_model.add_piece(Piece("Allied Port Morseby", Hex(5, 3), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
