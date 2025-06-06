@@ -174,6 +174,9 @@ class Base:
         self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}")
         self.air_operations_config = AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
 
+    def __repr__(self):
+        return f"Base(name={self.name}, air_operations={self.air_operations}, air_operations_config={self.air_operations_config})"
+
 class AirOperationsConfiguration:
     """
     Represents configuration parameters for an air operations facility (e.g., carrier, base).

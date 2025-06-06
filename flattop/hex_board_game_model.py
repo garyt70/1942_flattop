@@ -37,7 +37,7 @@ class Piece:
         position (Hex): The current position of the piece on the board.
         games_model (HexBoardModel): The game model this piece belongs to, it can be AirFormation or TaskForce (optional).
     """
-    def __init__(self, owner, position, game_model=None):
+    def __init__(self, owner, position, gameModel=None):
         """
         Initializes a Piece object.
 
@@ -47,7 +47,7 @@ class Piece:
         """
         self.owner = owner
         self.position = position  # A Hex object
-        self.game_model = game_model  # Optional reference to the game model
+        self.game_model = gameModel  # Optional reference to the game model
 
     @property
     def game_model(self):
@@ -57,7 +57,8 @@ class Piece:
     def game_model(self, value):
         allowed_types = (
             getattr(operations_chart_models, "AirFormation", None),
-            getattr(operations_chart_models, "TaskForce", None)
+            getattr(operations_chart_models, "TaskForce", None),
+            getattr(operations_chart_models, "Base", None)
         )
         if value is not None and not isinstance(value, allowed_types):
             raise TypeError("game_model must be an AirFormation or TaskForce instance")
@@ -79,7 +80,12 @@ class Piece:
         Returns:
             str: A string describing the piece's owner and position.
         """
-        return f"Piece(owner={self.owner}, position={self.position})"
+        strValueToReturn = f"Piece(owner={self.owner}, position={self.position})"
+        if self.game_model is not None:
+            strValueToReturn += f", game_model={self.game_model})"
+            
+
+        return strValueToReturn
 
 class HexBoardModel:
     def __init__(self, width, height):

@@ -62,6 +62,7 @@ class DesktopUI:
         pygame.draw.polygon(self.screen, color, points)
         pygame.draw.polygon(self.screen, border_color, points, 2)
 
+
     def hex_to_pixel(self, q, r):
         x = HEX_SIZE * (3/2 * q) + self.origin[0]
         y = HEX_SIZE * math.sqrt(3) * (r + 0.5 * (q % 2)) + self.origin[1]
@@ -88,7 +89,18 @@ class DesktopUI:
             for r in range(self.board.height):
                 center = self.hex_to_pixel(q, r)
                 self.draw_hex(center, HEX_COLOR, HEX_BORDER)
-
+                # Draw the hex coordinate as a number for identification at the top of the hex
+                """                # Uncomment this section if you want to display hex coordinates.
+                                     # the code is very ineefficient, so it is commented out. it causes the sceen to render very slowly.
+                font = pygame.font.SysFont(None, 16)
+                hex_label = f"{q},{r}"
+                text_surface = font.render(hex_label, True, (0, 0, 0))
+                text_rect = text_surface.get_rect()
+                # Position the text at the top of the hex
+                text_rect.midbottom = (center[0], center[1] - HEX_SIZE + 4)
+                self.screen.blit(text_surface, text_rect)
+                """
+                
         # Draw the pieces on the board
         for piece in self.board.pieces:
             if isinstance(piece, Piece):
@@ -96,6 +108,28 @@ class DesktopUI:
                 pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
 
         pygame.display.flip()
+    
+    def render_popup(self, text, pos):
+        # Create a popup surface
+                        font = pygame.font.SysFont(None, 24)
+                        text_surface = font.render(text, True, (255, 255, 255), (50, 50, 50))
+                        popup_rect = text_surface.get_rect()
+                        popup_rect.topleft = pos
+
+                        # Draw popup on the screen
+                        self.screen.blit(text_surface, popup_rect)
+                        pygame.display.flip()
+
+                        # Wait for user to click or press a key to close popup
+                        waiting = True
+                        while waiting:
+                            for popup_event in pygame.event.get():
+                                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                                    waiting = False
+                                    if popup_event.type == pygame.QUIT:
+                                        pygame.quit()
+                                        sys.exit()
+                        # After popup, continue loop
 
     def run_with_click_return(self):
         running = True
@@ -127,9 +161,8 @@ class DesktopUI:
                     # Optional: right-click to print piece info
                     piece = self.get_piece_at_pixel(event.pos)
                     if piece:
-                        print(f"Piece at hex ({piece.position.q}, {piece.position.r}): {piece}")
-                    else:
-                        print("No piece at clicked hex.")
+                        self.render_popup(f"{piece}", event.pos)
+                        
 
             self.screen.fill(BG_COLOR)
 
