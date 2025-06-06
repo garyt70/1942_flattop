@@ -9,7 +9,7 @@ def load_hexboard_model():
     Returns:
         HexBoardModel: An instance of the HexBoardModel class.
     """
-    model = HexBoardModel(10, 10)  # Example dimensions, adjust as needed
+    model = HexBoardModel(100, 200)  # Example dimensions, adjust as needed
     model.add_piece(Piece("Player1", Hex(0, 0)))  # Add a piece for demonstration
     model.add_piece(Piece("Player2", Hex(5, 3)))  # Add another piece for demonstration
     
@@ -23,7 +23,7 @@ def main():
     desktopUI = DesktopUI(boardModel)  # Initialize the DesktopUI with the board model
     desktopUI.initialize()  # Set up the UI
     desktopUI.run()  # Start the UI event loop
-
+    
 
 if __name__ == "__main__":
     main()  # Run the main function to start the application

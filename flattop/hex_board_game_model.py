@@ -1,4 +1,5 @@
 import math
+import operations_chart_models
 
 class Hex:
     def __init__(self, q, r):
@@ -33,8 +34,9 @@ class Piece:
     Attributes:
         owner (str): The owner of the piece (e.g., player name or identifier).
         position (Hex): The current position of the piece on the board.
+        games_model (HexBoardModel): The game model this piece belongs to, it can be AirFormation or TaskForce (optional).
     """
-    def __init__(self, owner, position):
+    def __init__(self, owner, position, game_model=None):
         """
         Initializes a Piece object.
 
@@ -44,6 +46,18 @@ class Piece:
         """
         self.owner = owner
         self.position = position  # A Hex object
+        self.game_model = game_model  # Optional reference to the game model
+
+    @property
+    def game_model(self):
+        return self._game_model
+
+    @game_model.setter
+    def game_model(self, value):
+        allowed_types = getattr(operations_chart_models, "AirFormation", None), getattr(operations_chart_models, "TaskForce", None)
+        if value is not None and not isinstance(value, allowed_types):
+            raise TypeError("game_model must be an AirFormation or TaskForce instance")
+        self._game_model = value
 
     def move(self, target_hex):
         """
