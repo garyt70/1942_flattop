@@ -233,69 +233,27 @@ class DesktopUI:
                     running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        # Check if a piece is under the mouse
-                        piece = self.get_piece_at_pixel(event.pos)
-                        if piece:
-                            moving_piece = piece
-                            mouse_x, mouse_y = event.pos
-                            center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                            moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
-                        else:
-                            # Start panning if no piece is selected
-                            dragging = True
-                            last_mouse_pos = event.pos
-
-                    elif event.button == 3:
-                        # Optional: right-click to print piece info
-                        piece = self.get_piece_at_pixel(event.pos)
-                        if piece:
-                            self.render_popup(f"{piece}", event.pos)
+                    self._handle_mouse_button_down(event, 
+                                                   dragging, 
+                                                   last_mouse_pos, 
+                                                   moving_piece, 
+                                                   moving_piece_offset)
+                    # Update local variables if changed in handler
+                    dragging = getattr(self, '_dragging', dragging)
+                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                    moving_piece = getattr(self, '_moving_piece', moving_piece)
+                    moving_piece_offset = getattr(self, '_moving_piece_offset', moving_piece_offset)
 
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:
-                        if moving_piece:
-                            # Drop the piece at the new hex
-                            mouse_x, mouse_y = event.pos
-                            # Convert pixel to hex coordinates
-                            x = mouse_x - self.origin[0]
-                            y = mouse_y - self.origin[1]
-                            q = int(round((2/3 * x) / HEX_SIZE))
-                            r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
-                            # Convert mouse position to Hex and use Piece.move
-                            hex_coords = self.pixel_to_hex_coord(mouse_x, mouse_y)
-                            self.board.move_piece(moving_piece, hex_coords)
-                            moving_piece = None
-                        else:
-                            # Stop panning
-                            dragging = False
-                            last_mouse_pos = None
+                    self._handle_mouse_button_up(event, moving_piece, dragging, last_mouse_pos)
+                    dragging = getattr(self, '_dragging', dragging)
+                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                    moving_piece = getattr(self, '_moving_piece', moving_piece)
 
                 elif event.type == pygame.MOUSEMOTION:
-                    if moving_piece:
-                        # show the piece following the mouse (visual feedback)
-                        # Redraw the board without the moving piece
-                        self.screen.fill(BG_COLOR)
-                        for q in range(self.board.width):
-                            for r in range(self.board.height):
-                                center = self.hex_to_pixel(q, r)
-                                self.draw_hex(center, HEX_COLOR, HEX_BORDER)
-                        for piece in self.board.pieces:
-                            if isinstance(piece, Piece) and piece != moving_piece:
-                                center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                                pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
-                        # Draw the moving piece at the mouse position
-                        mouse_x, mouse_y = event.pos
-                        pygame.draw.circle(self.screen, (255, 0, 0), (mouse_x - moving_piece_offset[0], mouse_y - moving_piece_offset[1]), HEX_SIZE // 3)
-                        pygame.display.flip()
-                        #pass  # The piece will be drawn at its new hex after drop
-                    elif dragging:
-                        mouse_x, mouse_y = event.pos
-                        last_x, last_y = last_mouse_pos
-                        dx = mouse_x - last_x
-                        dy = mouse_y - last_y
-                        self.origin = (self.origin[0] + dx, self.origin[1] + dy)
-                        last_mouse_pos = event.pos
+                    self._handle_mouse_motion(event, moving_piece, moving_piece_offset, dragging, last_mouse_pos)
+                    dragging = getattr(self, '_dragging', dragging)
+                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
 
             self.screen.fill(BG_COLOR)
             self.render_screen()
@@ -303,6 +261,76 @@ class DesktopUI:
 
         pygame.quit()
         sys.exit()
+
+    def _handle_mouse_button_down(self, event, dragging, last_mouse_pos, moving_piece, moving_piece_offset):
+        if event.button == 1:
+            piece = self.get_piece_at_pixel(event.pos)
+            if piece:
+                self._moving_piece = piece
+                mouse_x, mouse_y = event.pos
+                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+            else:
+                self._dragging = True
+                self._last_mouse_pos = event.pos
+        elif event.button == 3:
+            piece = self.get_piece_at_pixel(event.pos)
+            if piece:
+                self.render_popup(f"{piece}", event.pos)
+        # Save state for run loop
+        if not hasattr(self, '_dragging'):
+            self._dragging = dragging
+        if not hasattr(self, '_last_mouse_pos'):
+            self._last_mouse_pos = last_mouse_pos
+        if not hasattr(self, '_moving_piece'):
+            self._moving_piece = moving_piece
+        if not hasattr(self, '_moving_piece_offset'):
+            self._moving_piece_offset = moving_piece_offset
+
+    def _handle_mouse_button_up(self, event, moving_piece, dragging, last_mouse_pos):
+        if event.button == 1:
+            if moving_piece:
+                mouse_x, mouse_y = event.pos
+                hex_coords = self.pixel_to_hex_coord(mouse_x, mouse_y)
+                self.board.move_piece(moving_piece, hex_coords)
+                self._moving_piece = None
+            else:
+                self._dragging = False
+                self._last_mouse_pos = None
+        # Save state for run loop
+        if not hasattr(self, '_dragging'):
+            self._dragging = dragging
+        if not hasattr(self, '_last_mouse_pos'):
+            self._last_mouse_pos = last_mouse_pos
+        if not hasattr(self, '_moving_piece'):
+            self._moving_piece = moving_piece
+
+    def _handle_mouse_motion(self, event, moving_piece, moving_piece_offset, dragging, last_mouse_pos):
+        if moving_piece:
+            self.screen.fill(BG_COLOR)
+            for q in range(self.board.width):
+                for r in range(self.board.height):
+                    center = self.hex_to_pixel(q, r)
+                    self.draw_hex(center, HEX_COLOR, HEX_BORDER)
+            for piece in self.board.pieces:
+                if isinstance(piece, Piece) and piece != moving_piece:
+                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                    pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+            mouse_x, mouse_y = event.pos
+            pygame.draw.circle(self.screen, (255, 0, 0), (mouse_x - moving_piece_offset[0], mouse_y - moving_piece_offset[1]), HEX_SIZE // 3)
+            pygame.display.flip()
+        elif dragging:
+            mouse_x, mouse_y = event.pos
+            last_x, last_y = last_mouse_pos
+            dx = mouse_x - last_x
+            dy = mouse_y - last_y
+            self.origin = (self.origin[0] + dx, self.origin[1] + dy)
+            self._last_mouse_pos = event.pos
+        # Save state for run loop
+        if not hasattr(self, '_dragging'):
+            self._dragging = dragging
+        if not hasattr(self, '_last_mouse_pos'):
+            self._last_mouse_pos = last_mouse_pos
 
     def run(self):
         """
