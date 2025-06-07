@@ -7,6 +7,7 @@ def scenario_one_setup(hexboard_model):
 
     chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
     
+    #setup Japanese base at Rabul
     
     baseRahulJapanese = Base("Rabul")
     baseRahulJapanese.air_operations_config = AirOperationsConfiguration(
@@ -28,7 +29,8 @@ def scenario_one_setup(hexboard_model):
     
     hexboard_model.add_piece(Piece("Japanese Rabul Base", Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
-
+    ###########################################
+    ## setup Allied base at Port Moresby and Allied Task Force
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
     basePortMoresbyAllied = Base("Port Moresby")
     basePortMoresbyAllied.air_operations_config = AirOperationsConfiguration(
@@ -46,9 +48,20 @@ def scenario_one_setup(hexboard_model):
     hexboard_model.add_piece(Piece("Allied Port Morseby", Hex(5, 3), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
-    taskForce.add_ship(Carrier("Lexington", "CV", "operational",1,4,2))
+    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)
+    carrierLexington.air_operations_config = AirOperationsConfiguration(
+        name="Lexington",
+        description="Configuration for air operations on Lexington",
+        maximum_capacity=20,
+        launch_factors=12,
+        ready_factors=6,
+        plane_handling_type="SP"
+    )
+    carrierLexington.air_operations.set_operations_status(AirCraft("Wildcat", count=8),AircraftStatus.READY)
+    carrierLexington.air_operations.set_operations_status(AirCraft("Dauntless", count=12),AircraftStatus.READY)
+    carrierLexington.air_operations.set_operations_status(AirCraft("Devastator", count=4),AircraftStatus.READY)
 
-
+    taskForce.add_ship(carrierLexington)  # Add the carrier to the task force
     taskForce.add_ship(Ship("Pensecola", "CA", "operational",5,2,2))
     taskForce.add_ship(Ship("Minneapolis", "CA", "operational",4,2,2))
     taskForce.add_ship(Ship("San Francisco", "CA", "operational",4,2,2))

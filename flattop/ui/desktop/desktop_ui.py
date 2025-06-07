@@ -12,11 +12,41 @@ HEX_SPACING = 5  # Space between hexes
 
 # Colors
 BG_COLOR = (30, 30, 30)
-HEX_COLOR = (200, 200, 200)
+HEX_COLOR = (173, 216, 230)  # Light blue
 HEX_BORDER = (100, 100, 100)
 
 class DesktopUI:
-    def __init__(self, board):
+    """
+    DesktopUI provides a graphical user interface for displaying and interacting with a hexagonal board game
+    using the pygame library. It handles rendering the board, pieces, and popups, as well as user interactions
+    such as dragging pieces, panning the board, and displaying information popups.
+    Attributes:
+        board: The game board object containing hex grid and pieces.
+        screen: The pygame display surface.
+        origin: The pixel coordinates of the board's origin (top-left offset).
+        can_pan: Boolean indicating if panning is enabled (when board is larger than window).
+    Methods:
+        __init__(board):
+            Initializes the DesktopUI with the given board.
+        initialize():
+            Initializes pygame, sets up the display window, and determines if panning is needed.
+        draw_hex(center, color, border_color):
+            Draws a single hexagon at the specified center with given fill and border colors.
+        hex_to_pixel(q, r):
+            Converts hex grid coordinates (q, r) to pixel coordinates on the screen.
+        get_piece_at_pixel(pos):
+            Returns the piece located at the given pixel position, or None if no piece is present.
+        render_screen():
+            Renders the entire board, including hexes and pieces, to the screen.
+        render_popup(text, pos):
+            Displays a popup window with the given text at the specified position, and waits for user input to close.
+        run_with_click_return():
+            Main event loop for the UI, handling user input for dragging pieces, panning, and popups.
+        run():
+            Starts the UI event loop.
+    """
+    
+    def __init__(self, board = HexBoardModel(10, 10)):
         self.board = board
         self.screen = None
         self.origin = (HEX_WIDTH // 2 + HEX_SPACING, HEX_HEIGHT // 2 + HEX_SPACING)
@@ -175,43 +205,100 @@ class DesktopUI:
                         pygame.quit()
                         sys.exit()
 
+
+
+
+    def pixel_to_hex_coord(self, x, y):
+        # Convert pixel coordinates to hex grid coordinates and return a Hex object
+        x -= self.origin[0]
+        y -= self.origin[1]
+        q = int(round((2/3 * x) / HEX_SIZE))
+        r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
+        # Ensure q and r are within board bounds
+        if 0 <= q < self.board.width and 0 <= r < self.board.height:
+            return Hex(q, r)
+        return None
+
     def run_with_click_return(self):
         running = True
         dragging = False
         last_mouse_pos = None
 
+        moving_piece = None
+        moving_piece_offset = (0, 0)
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    # Start dragging for panning
-                    dragging = True
-                    last_mouse_pos = event.pos
-                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                    # Stop dragging
-                    dragging = False
-                    last_mouse_pos = None
-                elif event.type == pygame.MOUSEMOTION and dragging:
-                    # Calculate mouse movement and update origin for panning
-                    mouse_x, mouse_y = event.pos
-                    last_x, last_y = last_mouse_pos
-                    dx = mouse_x - last_x
-                    dy = mouse_y - last_y
-                    self.origin = (self.origin[0] + dx, self.origin[1] + dy)
-                    last_mouse_pos = event.pos
 
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                    # Optional: right-click to print piece info
-                    piece = self.get_piece_at_pixel(event.pos)
-                    if piece:
-                        self.render_popup(f"{piece}", event.pos)
-                        
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        # Check if a piece is under the mouse
+                        piece = self.get_piece_at_pixel(event.pos)
+                        if piece:
+                            moving_piece = piece
+                            mouse_x, mouse_y = event.pos
+                            center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                            moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                        else:
+                            # Start panning if no piece is selected
+                            dragging = True
+                            last_mouse_pos = event.pos
+
+                    elif event.button == 3:
+                        # Optional: right-click to print piece info
+                        piece = self.get_piece_at_pixel(event.pos)
+                        if piece:
+                            self.render_popup(f"{piece}", event.pos)
+
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        if moving_piece:
+                            # Drop the piece at the new hex
+                            mouse_x, mouse_y = event.pos
+                            # Convert pixel to hex coordinates
+                            x = mouse_x - self.origin[0]
+                            y = mouse_y - self.origin[1]
+                            q = int(round((2/3 * x) / HEX_SIZE))
+                            r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
+                            # Convert mouse position to Hex and use Piece.move
+                            hex_coords = self.pixel_to_hex_coord(mouse_x, mouse_y)
+                            self.board.move_piece(moving_piece, hex_coords)
+                            moving_piece = None
+                        else:
+                            # Stop panning
+                            dragging = False
+                            last_mouse_pos = None
+
+                elif event.type == pygame.MOUSEMOTION:
+                    if moving_piece:
+                        # show the piece following the mouse (visual feedback)
+                        # Redraw the board without the moving piece
+                        self.screen.fill(BG_COLOR)
+                        for q in range(self.board.width):
+                            for r in range(self.board.height):
+                                center = self.hex_to_pixel(q, r)
+                                self.draw_hex(center, HEX_COLOR, HEX_BORDER)
+                        for piece in self.board.pieces:
+                            if isinstance(piece, Piece) and piece != moving_piece:
+                                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                                pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+                        # Draw the moving piece at the mouse position
+                        mouse_x, mouse_y = event.pos
+                        pygame.draw.circle(self.screen, (255, 0, 0), (mouse_x - moving_piece_offset[0], mouse_y - moving_piece_offset[1]), HEX_SIZE // 3)
+                        pygame.display.flip()
+                        #pass  # The piece will be drawn at its new hex after drop
+                    elif dragging:
+                        mouse_x, mouse_y = event.pos
+                        last_x, last_y = last_mouse_pos
+                        dx = mouse_x - last_x
+                        dy = mouse_y - last_y
+                        self.origin = (self.origin[0] + dx, self.origin[1] + dy)
+                        last_mouse_pos = event.pos
 
             self.screen.fill(BG_COLOR)
-
             self.render_screen()
-
             pygame.display.flip()
 
         pygame.quit()
