@@ -168,7 +168,7 @@ Text from rule book
         table = "Name           Type   Status      Attack  Defense  Move\n"
         table += "-" * 55 + "\n"
         for ship in self.ships:
-            table += f"{ship.name:<15} {ship.type:<6} {ship.status:<10} {ship.attack_factor:<3} {ship.defense_factor:<3} {ship.move_factor:<3}\n"
+            table += f"{ship.name:<15} {ship.type:<6} {ship.status:<10} {ship.attack_factor:<7} {ship.defense_factor:<8} {ship.move_factor:<4}\n"
         return header + table
 
 class Base:
