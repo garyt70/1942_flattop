@@ -47,7 +47,7 @@ class Piece:
         """
         self.owner = owner
         self.position = position  # A Hex object
-        self.game_model = gameModel  # Optional reference to the game model
+        self.game_model = gameModel  # Optional reference to the game model, which can be an AirFormation or TaskForce, Base, etc.
 
     @property
     def game_model(self):
@@ -64,6 +64,18 @@ class Piece:
             raise TypeError("game_model must be an AirFormation or TaskForce instance")
         self._game_model = value
 
+    @property
+    def can_move(self):
+        """
+        Determines if the piece can move based on its game model type.
+
+        Returns:
+            bool: True if the piece can move, False otherwise.
+        """
+        can_move = isinstance(self.game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce))
+
+        return can_move
+
     def move(self, target_hex):
         """
         Moves the piece to a new position.
@@ -71,7 +83,10 @@ class Piece:
         Args:
             target_hex (Hex): The target position to move the piece to.
         """
-        self.position = target_hex
+
+        #only AirFormation and TaskForce can move
+        if self.can_move:
+           self.position = target_hex
 
     def __repr__(self):
         """

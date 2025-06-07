@@ -263,13 +263,24 @@ class DesktopUI:
         sys.exit()
 
     def _handle_mouse_button_down(self, event, dragging, last_mouse_pos, moving_piece, moving_piece_offset):
+        # Handles mouse interaction for selecting and dragging pieces on a hex grid.
+        # If a piece exists at the mouse event position, it prepares the piece for moving by:
+        #   - Storing the piece as '_moving_piece'
+        #   - Calculating the offset between the mouse position and the center of the piece (using hex_to_pixel)
+        #     so the piece follows the cursor smoothly during dragging.
+        # If no piece is present, it starts a generic drag operation (e.g., for panning the board)
+        #   - Sets '_dragging' to True and records the last mouse position.
         if event.button == 1:
             piece = self.get_piece_at_pixel(event.pos)
             if piece:
-                self._moving_piece = piece
-                mouse_x, mouse_y = event.pos
-                center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                if piece.can_move:
+                    self._moving_piece = piece
+                    mouse_x, mouse_y = event.pos
+                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                    self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                else:
+                    self._moving_piece = None
+                    self._moving_piece_offset = None
             else:
                 self._dragging = True
                 self._last_mouse_pos = event.pos

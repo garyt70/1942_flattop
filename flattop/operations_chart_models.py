@@ -162,7 +162,14 @@ Text from rule book
         return [ship for ship in self.ships if isinstance(ship, Carrier)]
 
     def __repr__(self):
-        return f"TaskForce(number={self.number}, ships={self.ships})"
+        header = f"Task Force {self.number}: {self.name}\n"
+        if not self.ships:
+            return header + "(No ships assigned)"
+        table = "Name           Type   Status      Attack  Defense  Move\n"
+        table += "-" * 55 + "\n"
+        for ship in self.ships:
+            table += f"{ship.name:<15} {ship.type:<6} {ship.status:<10} {ship.attack_factor:<3} {ship.defense_factor:<3} {ship.move_factor:<3}\n"
+        return header + table
 
 class Base:
     def __init__(self, name=None):
