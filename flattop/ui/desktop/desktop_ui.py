@@ -321,10 +321,31 @@ class DesktopUI:
                     moving_piece_offset = getattr(self, '_moving_piece_offset', moving_piece_offset)
 
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    self._handle_mouse_button_up(event, moving_piece, dragging, last_mouse_pos)
-                    dragging = getattr(self, '_dragging', dragging)
-                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
-                    moving_piece = getattr(self, '_moving_piece', moving_piece)
+                    # Before moving, check if the move is within the piece's movement_factor
+                    if moving_piece and event.button == 1:
+                        mouse_x, mouse_y = event.pos
+                        dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
+                        if dest_hex:
+                            start_hex = moving_piece.position
+                            # Calculate hex distance (using axial coordinates)
+                            dq = abs(dest_hex.q - start_hex.q)
+                            dr = abs(dest_hex.r - start_hex.r)
+                            ds = abs((-dest_hex.q - dest_hex.r) - (-start_hex.q - start_hex.r))
+                            distance = max(dq, dr, ds)
+                            max_move = moving_piece.movement_factor
+                            if distance <= max_move:
+                                self.board.move_piece(moving_piece, dest_hex)
+                            # else: ignore move (could add feedback)
+                        self._moving_piece = None
+                        # Save state for run loop
+                        dragging = getattr(self, '_dragging', dragging)
+                        last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                        moving_piece = getattr(self, '_moving_piece', moving_piece)
+                    else:
+                        self._handle_mouse_button_up(event, moving_piece, dragging, last_mouse_pos)
+                        dragging = getattr(self, '_dragging', dragging)
+                        last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                        moving_piece = getattr(self, '_moving_piece', moving_piece)
 
                 elif event.type == pygame.MOUSEMOTION:
                     self._handle_mouse_motion(event, moving_piece, moving_piece_offset, dragging, last_mouse_pos)

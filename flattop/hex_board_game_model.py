@@ -66,6 +66,18 @@ class Piece:
         self._game_model = value
 
     @property
+    def movement_factor(self):
+        """
+        Returns the movement factor for the piece's game_model if available.
+
+        Returns:
+            int or float or None: The movement factor if the game_model has it, otherwise None.
+        """
+        if hasattr(self._game_model, "movement_factor"):
+            return self._game_model.movement_factor
+        return 0
+
+    @property
     def can_move(self):
         """
         Determines if the piece can move based on its game model type.

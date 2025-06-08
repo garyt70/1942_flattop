@@ -169,13 +169,16 @@ Text from rule book
     def get_av_cav(self):
         return [ship for ship in self.ships if getattr(ship, "type", None) in {"AV", "CAV"}]
 
-    def __repr__(self):
-        return (f"TaskForce(number={self.number}, side={self.side}, ships={self.ships}, "
-                f"japanese_bb_air_factors={self.japanese_bb_air_factors})")
-    
-    
-    def get_carriers(self):
-        return [ship for ship in self.ships if isinstance(ship, Carrier)]
+    @property
+    def movement_factor(self):
+        """
+        Returns the movement factor of the Task Force, which is the lowest movement factor among all ships.
+        Returns None if there are no ships in the Task Force.
+        """
+        max_move = 0
+        if self.ships:
+            max_move = min(getattr(ship, "move_factor", 0) for ship in self.ships)
+        return max_move
 
     def __repr__(self):
         header = f"Task Force {self.number}: {self.name}\n"
@@ -329,7 +332,6 @@ class AirFormation:
             raise TypeError("Expected an AirCraft instance")
         self.aircraft.append(aircraft)
 
-    
     def remove_aircraft(self, aircraft):
         """
         Removes an aircraft from the Air Formation.
@@ -343,6 +345,18 @@ class AirFormation:
         if aircraft not in self.aircraft:
             raise ValueError("This aircraft is not in the Air Formation.")
         self.aircraft.remove(aircraft)
+
+    @property
+    def movement_factor(self):
+        """
+        Returns the maximum movement factor for the AirFormation,
+        which is the lowest movement factor among all aircraft in the formation.
+        Returns 0 if there are no aircraft.
+        """
+        max_move = 0
+        if self.aircraft:
+            max_move = min(ac.move_factor for ac in self.aircraft)
+        return max_move
 
     def __repr__(self):
         header = f"Air Formation {self.number}: {self.name}\n"
@@ -362,12 +376,13 @@ class AirCraft:
         type (str): The type of the aircraft (e.g., "Fighter", "Bomber").
     """
     
-    def __init__(self, type, count=1):
+    def __init__(self, type, count=1, move_factor=5):
         self.type = type
         self.count = count  # Number of aircraft of this type
+        self.move_factor = move_factor  # Movement factor for the aircraft
 
     def __repr__(self):
-        return f"AirCraft(type={self.type}, count={self.count})"
+        return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
 
 class Ship:
     
