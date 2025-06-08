@@ -15,6 +15,70 @@ BG_COLOR = (30, 30, 30)
 HEX_COLOR = (173, 216, 230)  # Light blue
 HEX_BORDER = (100, 100, 100)
 
+
+class PieceImageFactory:
+    """
+    Generates pygame.Surface images for AirFormation, Base, and TaskForce pieces.
+    Each image is a colored shape (circle, triangle, or square) with a simple icon drawn in the center.
+    """
+
+    @staticmethod
+    def airformation_image(color, size=HEX_SIZE):
+        # Circle with a simple "plane" icon (horizontal line and tail)
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        radius = size // 1.5 #3
+        pygame.draw.circle(surf, color, center, radius)
+        # Draw a simple plane: a line with a tail
+        pygame.draw.line(surf, (255, 255, 255), (center[0] - radius//2, center[1]), (center[0] + radius//2, center[1]), 2)
+        pygame.draw.line(surf, (255, 255, 255), (center[0], center[1]), (center[0], center[1] + radius//2), 2)
+        return surf
+
+    @staticmethod
+    def base_image(color, size=HEX_SIZE):
+        # Triangle with a simple "building" icon (rectangle and door)
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        tri_size = size #// 2
+        points = [
+            (center[0], center[1] - tri_size//2),
+            (center[0] - tri_size//2, center[1] + tri_size//2),
+            (center[0] + tri_size//2, center[1] + tri_size//2)
+        ]
+        pygame.draw.polygon(surf, color, points)
+        # Draw a simple building: rectangle and door
+        rect_w, rect_h = tri_size//2, tri_size//3
+        rect_x = center[0] - rect_w//2
+        rect_y = center[1]
+        pygame.draw.rect(surf, (255, 255, 255), (rect_x, rect_y, rect_w, rect_h))
+        # Door
+        door_w, door_h = rect_w//3, rect_h//2
+        door_x = center[0] - door_w//2
+        door_y = rect_y + rect_h - door_h
+        pygame.draw.rect(surf, (100, 100, 100), (door_x, door_y, door_w, door_h))
+        return surf
+
+    @staticmethod
+    def taskforce_image(color, size=HEX_SIZE):
+        # Square with a simple "ship" icon (rectangle and mast)
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        sq_size = size #// 2
+        rect = pygame.Rect(center[0] - sq_size//2, center[1] - sq_size//2, sq_size, sq_size)
+        pygame.draw.rect(surf, color, rect)
+        # Draw a simple ship: hull and mast
+        hull_w, hull_h = sq_size, sq_size//4
+        hull_x = center[0] - hull_w//2
+        hull_y = center[1] + sq_size//4
+        pygame.draw.rect(surf, (255, 255, 255), (hull_x, hull_y, hull_w, hull_h))
+        # Mast
+        mast_x = center[0]
+        mast_y1 = center[1] - sq_size//4
+        mast_y2 = center[1] + sq_size//4
+        pygame.draw.line(surf, (255, 255, 255), (mast_x, mast_y1), (mast_x, mast_y2), 2)
+        return surf
+
+
 class DesktopUI:
     """
     DesktopUI provides a graphical user interface for displaying and interacting with a hexagonal board game
@@ -133,31 +197,21 @@ class DesktopUI:
                 
         # Draw the pieces on the board
         for piece in self.board.pieces:
-            if isinstance(piece, Piece):
-                #a TaskForce, Base, or AirFormation have a side and this determines the color of the piece
-                color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
-                center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                # AirFormations are drawn as a circle, bases as a triangle, and TaskForce as a square
-                if piece.game_model.__class__.__name__ == "AirFormation":
-                    pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
-                elif piece.game_model.__class__.__name__ == "Base":
-                    # Draw triangle (pointing up)
-                    size = HEX_SIZE // 2
-                    points = [
-                        (center[0], center[1] - size),
-                        (center[0] - size, center[1] + size),
-                        (center[0] + size, center[1] + size)
-                    ]
-                    pygame.draw.polygon(self.screen, color, points)
-                elif piece.game_model.__class__.__name__ == "TaskForce":
-                    # Draw square
-                    size = HEX_SIZE // 2
-                    rect = pygame.Rect(center[0] - size, center[1] - size, size * 2, size * 2)
-                    pygame.draw.rect(self.screen, color, rect)
-                else:
-                    # Default to circle if unknown type
-                    pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
-                pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
+            # Determine color by side
+            color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
+            center = self.hex_to_pixel(piece.position.q, piece.position.r)
+            # Select image based on piece type
+            if piece.game_model.__class__.__name__ == "AirFormation":
+                image = PieceImageFactory.airformation_image(color)
+            elif piece.game_model.__class__.__name__ == "Base":
+                image = PieceImageFactory.base_image(color)
+            elif piece.game_model.__class__.__name__ == "TaskForce":
+                image = PieceImageFactory.taskforce_image(color)
+            else:
+                image = PieceImageFactory.airformation_image(color)  # Default to circle
+            # Blit image centered on hex
+            rect = image.get_rect(center=center)
+            self.screen.blit(image, rect)
 
         pygame.display.flip()
     
