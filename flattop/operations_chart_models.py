@@ -32,8 +32,8 @@ class AirOperationsChart:
         self.name = name or "Air Operations Chart"
         self.description = description or ""
         self.side = side
-        self.air_formations = {i: AirFormation(i) for i in range(1, 36)}
-        self.task_forces = {i: TaskForce(i,side=side) for i in range(1, 15)}
+        self.air_formations = {i: AirFormation(i, side=side) for i in range(1, 36)}
+        self.task_forces = {i: TaskForce(i, side=side) for i in range(1, 15)}
         self.bases = dict()  # Mapping from base name to Base instance
 
     def get_air_formation(self, number):
@@ -41,6 +41,22 @@ class AirOperationsChart:
 
     def get_task_force(self, number):
         return self.task_forces.get(number)
+
+    def get_empty_formation_number(self):
+        """
+        Returns the number of the first AirFormation that has no aircraft assigned,
+        or None if all are occupied.
+        """
+        for num, formation in self.air_formations.items():
+            if not formation.aircraft:
+                return num
+        return None
+
+    def get_all_empty_formation_numbers(self):
+        """
+        Returns a list of all AirFormation numbers that have no aircraft assigned.
+        """
+        return [num for num, formation in self.air_formations.items() if not formation.aircraft]
 
     def __repr__(self):
         return (f"AirOperationsChart(name={self.name}, "
@@ -181,6 +197,38 @@ class Base:
         self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}")
         self.air_operations_config = AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
         self.side = side  # "Allied" or "Japanese"
+
+    """
+    #create a AirFormation for this base. To create an AirFormation the AirOperationsTracker status for the aircraft must be set to READY.
+    - AirCraft must be in the READY status to be assigned to an AirFormation.
+    - The AirFormation can be assigned to a specific AirFormation number (1–35).
+    - The number of AirCraft, by type, in the AirFormation is determined by the count of each type of aircraft in the READY status.
+    - The number of AirCraft, allocated to the AirFormation, is subtracted from the READY status in the AirOperationsTracker for the plane type.
+    """
+    def create_air_formation(self, number):
+        """
+        Creates an AirFormation for this base.
+
+        Args:
+            number (int): Air Formation counter number (1–35).
+
+        Returns:
+            AirFormation: The created AirFormation with aircraft from the READY status.
+        """
+        if number < 1 or number > 35:
+            raise ValueError("Air Formation number must be between 1 and 35.")
+
+        air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
+
+        # Move aircraft from READY status to the new AirFormation
+        for ac in self.air_operations.ready:
+            air_formation.add_aircraft(ac)
+        # Clear the READY status in the AirOperationsTracker
+        self.air_operations.ready.clear()
+        
+        return air_formation
+
+
 
     def __repr__(self):
         return f"Base(name={self.name}, air_operations={self.air_operations}, air_operations_config={self.air_operations_config}, side={self.side})"
