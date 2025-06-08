@@ -134,8 +134,10 @@ class DesktopUI:
         # Draw the pieces on the board
         for piece in self.board.pieces:
             if isinstance(piece, Piece):
+                #a TaskForce, Base, or AirFormation have a side and this determines the color of the piece
+                color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
                 center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+                pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
 
         pygame.display.flip()
     

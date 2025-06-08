@@ -172,7 +172,7 @@ Text from rule book
         return header + table
 
 class Base:
-    def __init__(self, name=None):
+    def __init__(self, name=None, side="Allied"):
         """
         Args:
             name (str, optional): Optional name for the Base.
@@ -180,9 +180,11 @@ class Base:
         self.name = name or "Base"
         self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}")
         self.air_operations_config = AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
+        self.side = side  # "Allied" or "Japanese"
 
     def __repr__(self):
-        return f"Base(name={self.name}, air_operations={self.air_operations}, air_operations_config={self.air_operations_config})"
+        return f"Base(name={self.name}, air_operations={self.air_operations}, air_operations_config={self.air_operations_config}, side={self.side})"
+    
 
 class AirOperationsConfiguration:
     """
@@ -263,7 +265,7 @@ class AirFormation:
     """
     Represents an Air Formation, which can contain multiple aircraft.
     """
-    def __init__(self, number, name=None):
+    def __init__(self, number, name=None, side="Allied"):
         """
         Args:
             number (int): Air Formation counter number (1–35).
@@ -272,6 +274,7 @@ class AirFormation:
         self.number = number
         self.name = name or f"Air Formation {number}"
         self.aircraft = []
+        self.side = side  # "Allied" or "Japanese"
 
     def add_aircraft(self, aircraft):
         if not isinstance(aircraft, AirCraft):
@@ -294,7 +297,14 @@ class AirFormation:
         self.aircraft.remove(aircraft)
 
     def __repr__(self):
-        return f"AirFormation(number={self.number}, aircraft={self.aircraft})"
+        header = f"Air Formation {self.number}: {self.name}\n"
+        if not self.aircraft:
+            return header + "(No aircraft assigned)"
+        table = "Type           Count\n"
+        table += "-" * 22 + "\n"
+        for ac in self.aircraft:
+            table += f"{ac.type:<15} {ac.count}\n"
+        return header + table
 
 class AirCraft:
     """

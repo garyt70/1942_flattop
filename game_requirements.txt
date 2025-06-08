@@ -254,70 +254,30 @@ At Port Moresby, the Allied player has ten P-39 Air Factors in the Just Landed b
 **8.5.6** If a situation occurs where some Air Factors of the
 same plane name in the same Air Formation land wh 
 others remain in flight, some use an RF while others don't, or join the Air Formation after others have been in night for one turn or more. players should be careful to keep track of which Air Factors must land at which times. 
-The section can be to take notes of this kind. 
-in these players may Air Factors in 
-more than one Air Formation box. using similar system 
-to that described in ruJc 4.1.3. 
-Allied 
-in the Wildcat Air 
-of Air 
-Factor. This is the maximum number of Air 
-(and 
-that may moved from one box to another box 
-on a plane carrying ship or at a base. A move would be 
-from the Just box to the Readying box, from the 
-box to the Ready box, or from the Ready box to 
-the box. All three moves may be combined 
-in one turn in any manner as long as the total number of 
-moves does not exceed the Readying Factor. No Air Fac- 
-tor may make more than one move in any one turn. No Air 
-Factor may be in more than one state of readiness at any 
-one time (in more than one box at any one time). 
-Example: At Port Moresby, the Allied player has ten P-39 Air 
-Factors in the Just Landed box and five B-17 Air Fctors in the 
-Readying box. The Port Moresby Readying Factor is 8. The Allied 
-player moves three P-39 Air Factors from the Just Landed box to 
-the Readying box and five B-17 Air Factors from the Readying 
-box the Ready box. This is a total of eight Readying moves. No 
-more Air Factors may be readied this turn at Port Moresby. 
-**8.7** Arming. Arming an Air Factor is done when the Air 
-Factor moves from the Readying box to the Ready box. 
-Simply place the type of bomb desired on the Air Factor as 
-it is moved into the Ready box. The possible ways an Air 
-Factor can be armed are shown on the Air Hit Tables. If a 
-number appears under the appropriate column (AP, GP, 
-or Torpedo) on the Air Hit Table, the Air Factor can be 
-armed with this type of bomb. An Air Factor may only be 
-armed with one type of bomb at any one time. A plane unit 
-does not have to be armed to be moved into the Ready box. 
-However, if it is unarmed and already in the Ready box, to 
-be armed before it takes off, it must first be moved back 
-into the Readying box and then on a subsequent turn 
-moved back into the Ready box, arming it as it once again 
-advances into the Ready box. The same procedure would 
-have to be followed for an armed Air Factor in the Ready 
-box which requires a change of armament. 
-**8.8** Dispersal. Units at bases in Readying boxes may be 
-dispersed by using one Readying Factor for each Air Fac- 
-tor to be dispersed. Likewise, units that are dispersed may 
-be undispersed by using one Readying Factor for each Air 
-Factor to be undispersed. Units that begin the game in a 
-Readying base box may begin the game dispersed. Dis- 
-persal counts as a move so an Air Factor must begin the 
-turn in the Readying box to be dispersed that turn, and an 
-Air Factor that is undispersed cannot move to the Ready 
-box that turn. Dispersal reduces plane losses. (See 21.3.2) 
-**8.9** Plane Handling (hereafter referred to as PH). An Air 
-Factor can only take off and land on a plane carrying ship 
-or at a base if that ship or base can handle that type of 
-CVs and CVLs may only handle carrier planes 
-(Carrier planes are distinguished from land planes of the 
-sarne plane name by the black dot in the upper right hand 
-corner of the counter.) A Vs, CA Vs, and Japanese BBS 
-rnay only handle float planes. Bases listed as LP 
-handle all carrier planes plus all land planes. Bases listed as 
-SP may handle all sea planes plus all float planes. EXCEP- 
-TION: 12.7.3. 
+The section can be used to take notes of this kind. 
+Players may have Air Factors in more than one Air Formation box, using a similar system to that described in rule 4.1.3.
+
+**8.6 Readying Factor**  
+This is the maximum number of Air Factors that may be moved from one box to another box on a plane-carrying ship or at a base in one turn. A move would be from the Just Landed box to the Readying box, from the Readying box to the Ready box, or from the Ready box to the Air Formation box. All three moves may be combined in one turn in any manner as long as the total number of moves does not exceed the Readying Factor. No Air Factor may make more than one move in any one turn. No Air Factor may be in more than one state of readiness at any one time (in more than one box at any one time).
+
+*Example:*  
+At Port Moresby, the Allied player has ten P-39 Air Factors in the Just Landed box and five B-17 Air Factors in the Readying box. The Port Moresby Readying Factor is 8. The Allied player moves three P-39 Air Factors from the Just Landed box to the Readying box and five B-17 Air Factors from the Readying box to the Ready box. This is a total of eight Readying moves. No more Air Factors may be readied this turn at Port Moresby.
+
+**8.7 Arming**  
+Arming an Air Factor is done when the Air Factor moves from the Readying box to the Ready box. Simply place the type of bomb desired on the Air Factor as it is moved into the Ready box. The possible ways an Air Factor can be armed are shown on the Air Hit Tables. If a number appears under the appropriate column (AP, GP, or Torpedo) on the Air Hit Table, the Air Factor can be armed with this type of bomb. An Air Factor may only be armed with one type of bomb at any one time. A plane unit does not have to be armed to be moved into the Ready box. However, if it is unarmed and already in the Ready box, to be armed before it takes off, it must first be moved back into the Readying box and then on a subsequent turn moved back into the Ready box, arming it as it once again advances into the Ready box. The same procedure would have to be followed for an armed Air Factor in the Ready box which requires a change of armament.
+
+**8.8 Dispersal**  
+Units at bases in Readying boxes may be dispersed by using one Readying Factor for each Air Factor to be dispersed. Likewise, units that are dispersed may be undispersed by using one Readying Factor for each Air Factor to be undispersed. Units that begin the game in a Readying base box may begin the game dispersed. Dispersal counts as a move, so an Air Factor must begin the turn in the Readying box to be dispersed that turn, and an Air Factor that is undispersed cannot move to the Ready box that turn. Dispersal reduces plane losses. (See 21.3.2)
+
+**8.9 Plane Handling (PH)**  
+An Air Factor can only take off and land on a plane-carrying ship or at a base if that ship or base can handle that type of plane.
+
+- CVs and CVLs may only handle carrier planes (carrier planes are distinguished from land planes of the same name by the black dot in the upper right corner of the counter).
+- AVs, CAVs, and Japanese BBs may only handle float planes.
+- Bases listed as LP can handle all carrier planes plus all land planes.
+- Bases listed as SP may handle all sea planes plus all float planes.
+
+*Exception: 12.7.3*
 
 ### 8.9 Plane Handling (PH)
 
@@ -371,18 +331,12 @@ Only certain planes can perform certain missions.
 ---
 
 
-**8.9.** Carrier planes: Avenger, Dauntless, Devastator 
-Wildcat, Judy, Kate, Val, and Zero. 
+**8.9.** Carrier planes: Avenger, Dauntless, Devastator Wildcat, Judy, Kate, Val, and Zero. 
 **8.9.2** Float planes: Dave, Jake, Pete, and Rufe. 
-**8.9.3** Land planes: B-17, A-20, B-26, P-38, P-39, 
-P-40, Beaufighter, Beaufort, Hudson, Avenger, 
-Dauntless, Wildcat, Betty, Nell, Kate, Val, and Zero. 
+**8.9.3** Land planes: B-17, A-20, B-26, P-38, P-39, P-40, Beaufighter, Beaufort, Hudson, Avenger, Dauntless, Wildcat, Betty, Nell, Kate, Val, and Zero. 
 **8.9.4** Sea planes: Catalina, Emily, Mavis. 
-**8.10** Sequence Of Air Operations. Players should per- 
-form air operations in the following order: 
-**8.10.1** Move Air Factors from Readying boxes to Ready 
-boxes, arming them where desired. Undisperse Air Fac- 
-tors. 
+**8.10** Sequence Of Air Operations. Players should perform air operations in the following order: 
+**8.10.1** Move Air Factors from Readying boxes to Ready boxes, arming them where desired. Undisperse Air Factors. 
 **8.10.2** Form Air Formations by moving Air Factors in 
 (but or 
 Aveng 

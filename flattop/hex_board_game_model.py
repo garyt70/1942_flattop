@@ -37,7 +37,7 @@ class Piece:
         position (Hex): The current position of the piece on the board.
         games_model (HexBoardModel): The game model this piece belongs to, it can be AirFormation or TaskForce (optional).
     """
-    def __init__(self, owner, position, gameModel=None):
+    def __init__(self, name, side="Allied", position=Hex(0,0), gameModel=None):
         """
         Initializes a Piece object.
 
@@ -45,9 +45,10 @@ class Piece:
             owner (str): The owner of the piece.
             position (Hex): The initial position of the piece on the board.
         """
-        self.owner = owner
+        self.name = name  # Name or identifier for the piece
+        self.side = side
         self.position = position  # A Hex object
-        self.game_model = gameModel  # Optional reference to the game model, which can be an AirFormation or TaskForce, Base, etc.
+        self._game_model = gameModel  # Optional reference to the game model, which can be an AirFormation or TaskForce, Base, etc.
 
     @property
     def game_model(self):
@@ -72,7 +73,7 @@ class Piece:
         Returns:
             bool: True if the piece can move, False otherwise.
         """
-        can_move = isinstance(self.game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce))
+        can_move = isinstance(self._game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce))
 
         return can_move
 
@@ -95,9 +96,9 @@ class Piece:
         Returns:
             str: A string describing the piece's owner and position.
         """
-        strValueToReturn = f"Piece(owner={self.owner}, position={self.position})"
-        if self.game_model is not None:
-            strValueToReturn += f", game_model={self.game_model})"
+        strValueToReturn = f"Piece(owner={self.side}, position={self.position})"
+        if self._game_model is not None:
+            strValueToReturn += f", game_model={self._game_model})"
             
 
         return strValueToReturn
@@ -141,8 +142,8 @@ class HexBoardModel:
 # === Example usage ===
 if __name__ == "__main__":
     board = HexBoardModel(2, 2)
-    p1 = Piece(owner="Player 1", position=Hex(0, 0))
-    p2 = Piece(owner="Player 2", position=Hex(1, -1))
+    p1 = Piece(side="Player 1", position=Hex(0, 0))
+    p2 = Piece(side="Player 2", position=Hex(1, -1))
     board.add_piece(p1)
     board.add_piece(p2)
 

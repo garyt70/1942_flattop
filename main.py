@@ -9,7 +9,7 @@ def scenario_one_setup(hexboard_model):
     
     #setup Japanese base at Rabul
     
-    baseRahulJapanese = Base("Rabul")
+    baseRahulJapanese = Base("Rabul",side="Japanese")  # Create a base for the Japanese side
     baseRahulJapanese.air_operations_config = AirOperationsConfiguration(
         name="Rabul",
         description="Configuration for air operations at Rabul",
@@ -27,12 +27,12 @@ def scenario_one_setup(hexboard_model):
     
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
-    hexboard_model.add_piece(Piece("Japanese Rabul Base", Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
     ###########################################
     ## setup Allied base at Port Moresby and Allied Task Force
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
-    basePortMoresbyAllied = Base("Port Moresby")
+    basePortMoresbyAllied = Base("Port Moresby",side="Allied")  # Create a base for the Allied side
     basePortMoresbyAllied.air_operations_config = AirOperationsConfiguration(
         name="Port Moresby",
         description="Configuration for air operations at Port Moresby",
@@ -45,7 +45,7 @@ def scenario_one_setup(hexboard_model):
     basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftStatus.READY)
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
 
-    hexboard_model.add_piece(Piece("Allied Port Morseby", Hex(5, 3), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
+    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(5, 3), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
     carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)
@@ -70,7 +70,7 @@ def scenario_one_setup(hexboard_model):
         taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2))
     
     chartAllied.task_forces[1] = taskForce
-    hexboard_model.add_piece(Piece("Allied Task Force 1", Hex(3, 2), gameModel=taskForce))  # Add a piece for Allied Task Force
+    hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(3, 2), gameModel=taskForce))  # Add a piece for Allied Task Force
 
 
     print("Japanese Chart:", chartJapanase)
