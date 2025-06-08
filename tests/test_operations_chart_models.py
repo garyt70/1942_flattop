@@ -10,7 +10,7 @@ from flattop.operations_chart_models import (
     Carrier,
     AirOperationsTracker,
     Base,
-    AircraftStatus  # Add this import if AircraftStatus is defined in operations_chart_models
+    AircraftStatus
 )
 
 class TestAirOperationsChart(unittest.TestCase):
@@ -24,7 +24,6 @@ class TestAirOperationsChart(unittest.TestCase):
         chart1 = AirOperationsChart(name="Test Chart", description="Test Desc", side="Axis")
         self.assertEqual(chart1.side, "Axis")
 
-
     def test_get_air_formation(self):
         chart = AirOperationsChart()
         af = chart.get_air_formation(1)
@@ -37,6 +36,12 @@ class TestAirOperationsChart(unittest.TestCase):
         self.assertIsInstance(tf, TaskForce)
         self.assertEqual(tf.number, 1)
 
+    def test_bases_dict(self):
+        chart = AirOperationsChart()
+        base = Base("TestBase")
+        chart.bases["TestBase"] = base
+        self.assertIn("TestBase", chart.bases)
+        self.assertIs(chart.bases["TestBase"], base)
 
 class TestTaskForce(unittest.TestCase):
     def test_add_ship(self):
@@ -48,7 +53,7 @@ class TestTaskForce(unittest.TestCase):
     def test_add_carrier_limit(self):
         tf = TaskForce(1)
         carrier1 = Carrier("Enterprise", "CV", "operational")
-        carrier2 = Carrier("Hornet","CVL", "operational")
+        carrier2 = Carrier("Hornet", "CVL", "operational")
         tf.add_ship(carrier1)
         with self.assertRaises(ValueError):
             tf.add_ship(carrier2)
@@ -89,6 +94,9 @@ class TestAirFormation(unittest.TestCase):
         af.remove_aircraft(ac)
         self.assertNotIn(ac, af.aircraft)
 
+    def test_airformation_repr(self):
+        af = AirFormation(1)
+        self.assertIn("Air Formation", repr(af))
 
 class TestAirOperationsTracker(unittest.TestCase):
     def setUp(self):
@@ -113,8 +121,8 @@ class TestAirOperationsTracker(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.tracker.set_operations_status(self.ac, 'invalid_status')
 
-    
-
+   
+   
 class TestCarrier(unittest.TestCase):
     def test_carrier_init(self):
         carrier = Carrier("Enterprise", "CV", "operational")
@@ -127,6 +135,7 @@ class TestCarrier(unittest.TestCase):
         ac = AirCraft("Fighter")
         carrier.air_operations.set_operations_status(ac, 'ready')
         self.assertIn(ac, carrier.air_operations.ready)
+
 
 class TestAirOperationsConfiguration(unittest.TestCase):
     def test_default_init(self):
@@ -214,7 +223,6 @@ class TestAirOperationsConfiguration(unittest.TestCase):
         with self.assertRaises(ValueError):
             AirOperationsConfiguration(ready_factors=-10)
 
-
 class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
     def test_scenario_setup(self):
         chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
@@ -237,7 +245,6 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
         baseRahulJapanese.air_operations.set_operations_status(AirCraft("Rufe", count=1),AircraftStatus.READY)
         baseRahulJapanese.air_operations.set_operations_status(AirCraft("Nell", count=12),AircraftStatus.READY)
         
-
         self.assertIsInstance(baseRahulJapanese, Base)
         self.assertEqual(baseRahulJapanese.name, "Rabul")
         self.assertIsInstance(chartJapanase, AirOperationsChart)
@@ -268,13 +275,14 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
         for i in range(10):
             chartAllied.task_forces[1].add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2))
 
+        self.assertEqual(len(chartAllied.task_forces[1].ships), 15)
+        self.assertIsInstance(chartAllied.task_forces[1].ships[0], Carrier)
+        self.assertIsInstance(chartAllied.task_forces[1].ships[1], Ship)
 
-        
+        # Print statements for manual inspection (optional)
         print("Japanese Chart:", chartJapanase)
         print("Allied Chart:", chartAllied)
         print("Allied Task Force 1 Ships:", chartAllied.task_forces[1])
-
-
 
 if __name__ == "__main__":
     unittest.main()

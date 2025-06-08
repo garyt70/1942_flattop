@@ -137,6 +137,26 @@ class DesktopUI:
                 #a TaskForce, Base, or AirFormation have a side and this determines the color of the piece
                 color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
                 center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                # AirFormations are drawn as a circle, bases as a triangle, and TaskForce as a square
+                if piece.game_model.__class__.__name__ == "AirFormation":
+                    pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
+                elif piece.game_model.__class__.__name__ == "Base":
+                    # Draw triangle (pointing up)
+                    size = HEX_SIZE // 2
+                    points = [
+                        (center[0], center[1] - size),
+                        (center[0] - size, center[1] + size),
+                        (center[0] + size, center[1] + size)
+                    ]
+                    pygame.draw.polygon(self.screen, color, points)
+                elif piece.game_model.__class__.__name__ == "TaskForce":
+                    # Draw square
+                    size = HEX_SIZE // 2
+                    rect = pygame.Rect(center[0] - size, center[1] - size, size * 2, size * 2)
+                    pygame.draw.rect(self.screen, color, rect)
+                else:
+                    # Default to circle if unknown type
+                    pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
                 pygame.draw.circle(self.screen, color, center, HEX_SIZE // 3)
 
         pygame.display.flip()
