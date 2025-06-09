@@ -1,10 +1,34 @@
 from flattop.ui.desktop.desktop_ui import DesktopUI # Import the DesktopUI class from the module
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, AirCraft, AircraftStatus, TaskForce, Carrier, Ship
+from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, AirCraft, AircraftStatus, TaskForce, Carrier, Ship, AirFormation
 
 
-def scenario_one_setup(hexboard_model):
+def scenario_one_setup():
 
+
+
+    """
+    Set up the first scenario for the hexagonal board game model.
+    This function initializes the game model with specific bases, air formations, and task forces for both Japanese and Allied sides.
+    Returns:
+        HexBoardModel: An instance of the HexBoardModel class with the scenario set up.
+    """
+    
+
+    ###########################################
+    ## setup the land hexes for the scenario
+    land_hexes =  {
+        (0, 0), (0, 1), 0, (0, 2), (1, 0), (1, 1), (1, 2), 
+        (2, 0), (2, 1), (2, 2), (3, 0), (3, 1), (3, 2),
+        (4, 0), (4, 1), (4, 2), (5, 0), (5, 1), (5, 2),
+        (6, 0), (6, 1), (6, 2), (7, 0), (7, 1), (7, 2)
+        }  # Example land hexes, adjust as needed
+
+    hexboard_model = HexBoardModel(60, 30, land_hexes)  # Example dimensions, adjust as needed   
+
+
+    ####################
+    ## setup Japanese base at Rabul and Japanese Air Formation
     chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
     
     #setup Japanese base at Rabul
@@ -29,6 +53,15 @@ def scenario_one_setup(hexboard_model):
     
     hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
+    #add a test AirFormation to the Japanese chart
+    airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
+    airFormationOneJapanese.add_aircraft(AirCraft("Zero", count=6))
+    airFormationOneJapanese.add_aircraft(AirCraft("Val", count=4))
+
+    chartJapanase.air_formations[1] = airFormationOneJapanese  # Add the air formation to the Japanese chart
+
+    hexboard_model.add_piece(Piece(name="Japanese Air Formation 1", side="Japanese", position=Hex(10, 10), gameModel=airFormationOneJapanese))  # Add a piece for Japanese Air Formation
+
     ###########################################
     ## setup Allied base at Port Moresby and Allied Task Force
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
@@ -45,7 +78,7 @@ def scenario_one_setup(hexboard_model):
     basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftStatus.READY)
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
 
-    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(5, 3), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
+    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(20, 25), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
     carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)
@@ -70,12 +103,14 @@ def scenario_one_setup(hexboard_model):
         taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2))
     
     chartAllied.task_forces[1] = taskForce
-    hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(3, 2), gameModel=taskForce))  # Add a piece for Allied Task Force
+    hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(30, 20), gameModel=taskForce))  # Add a piece for Allied Task Force
 
 
     print("Japanese Chart:", chartJapanase)
     print("Allied Chart:", chartAllied)
     print("Allied Task Force 1 Ships:", chartAllied.task_forces[1])
+
+    return hexboard_model  # Return the hexagonal board model with the scenario set up
 
 def load_hexboard_model():
     """
@@ -83,9 +118,8 @@ def load_hexboard_model():
     
     Returns:
         HexBoardModel: An instance of the HexBoardModel class.
-    """
-    model = HexBoardModel(60, 30)  # Example dimensions, adjust as needed    
-    scenario_one_setup(model)  # Set up the scenario on the board model
+    """ 
+    model = scenario_one_setup()  # Set up the scenario on the board model
 
     return model 
 

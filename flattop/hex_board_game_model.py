@@ -3,18 +3,19 @@ from flattop import operations_chart_models
 
 
 class Hex:
-    def __init__(self, q, r):
+    def __init__(self, q, r, terrain="sea"):
         self.q = q  # axial q coordinate
         self.r = r  # axial r coordinate
+        self.terrain = terrain  # "sea" or "land"
 
     def __eq__(self, other):
-        return self.q == other.q and self.r == other.r
+        return self.q == other.q and self.r == other.r and self.terrain == other.terrain
 
     def __hash__(self):
-        return hash((self.q, self.r))
+        return hash((self.q, self.r, self.terrain))
 
     def __add__(self, other):
-        return Hex(self.q + other.q, self.r + other.r)
+        return Hex(self.q + other.q, self.r + other.r, self.terrain)
 
     def neighbors(self):
         directions = [Hex(1, 0), Hex(1, -1), Hex(0, -1),
@@ -26,7 +27,7 @@ class Hex:
         yield self.r
 
     def __repr__(self):
-        return f"Hex({self.q}, {self.r})"
+        return f"Hex({self.q}, {self.r}, terrain={self.terrain})"
 
 class Piece:
     """
@@ -116,9 +117,10 @@ class Piece:
         return strValueToReturn
 
 class HexBoardModel:
-    def __init__(self, width, height):
+    def __init__(self, width, height, land_hexes=None):
         self.width = width
         self.height = height
+        self.land_hexes = set(land_hexes) if land_hexes else set()
         self.tiles = set(self.generate_board(width, height))
         self.pieces = []
 
@@ -126,10 +128,20 @@ class HexBoardModel:
         # Generates a rectangular grid of hexes using axial coordinates
         for q in range(width):
             for r in range(height):
-                yield Hex(q, r)
+                terrain = "land" if (q, r) in self.land_hexes else "sea"
+                yield Hex(q, r, terrain=terrain)
+
+    def get_hex(self, q, r):
+        """
+        Returns the Hex object at the given (q, r) coordinates, or None if not found.
+        """
+        for tile in self.tiles:
+            if tile.q == q and tile.r == r:
+                return tile
+        return None
 
     def is_valid_tile(self, hex_coord):
-        return hex_coord in self.tiles
+        return any(tile.q == hex_coord.q and tile.r == hex_coord.r for tile in self.tiles)
 
     def add_piece(self, piece):
         if self.is_valid_tile(piece.position):
@@ -142,10 +154,18 @@ class HexBoardModel:
         return None
 
     def move_piece(self, piece, target_hex):
-        if self.is_valid_tile(target_hex) and self.get_piece_at(target_hex) is None:
+        is_valid_tile = self.is_valid_tile(target_hex)
+        is_empyt_tile = self.get_piece_at(target_hex) is None
+        if is_valid_tile and is_empyt_tile:
             piece.move(target_hex)
             return True
         return False
+
+    def get_terrain(self, hex_coord):
+        for tile in self.tiles:
+            if tile.q == hex_coord.q and tile.r == hex_coord.r:
+                return tile.terrain
+        return None
 
     def display(self):
         for piece in self.pieces:
@@ -153,7 +173,10 @@ class HexBoardModel:
 
 # === Example usage ===
 if __name__ == "__main__":
-    board = HexBoardModel(2, 2)
+    # Define which hexes are land
+    land_hexes = {Hex(0, 0), Hex(1, 1)}
+    board = HexBoardModel(3, 3, land_hexes=land_hexes)
+
     p1 = Piece(side="Player 1", position=Hex(0, 0))
     p2 = Piece(side="Player 2", position=Hex(1, -1))
     board.add_piece(p1)
@@ -166,3 +189,7 @@ if __name__ == "__main__":
     move_success = board.move_piece(p1, Hex(1, 0))
     print(f"Move success: {move_success}")
     board.display()
+
+    # Check terrain
+    print(board.get_terrain(Hex(0, 0)))  # "land"
+    print(board.get_terrain(Hex(0, 1)))  # "sea"
