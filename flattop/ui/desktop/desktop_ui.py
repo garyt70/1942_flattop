@@ -312,6 +312,25 @@ class DesktopUI:
         if 0 <= q < self.board.width and 0 <= r < self.board.height:
             return Hex(q, r)
         return None
+    
+    def get_distance(self, start_hex, dest_hex):
+        # Calculate distance using offset coordinates (odd-q vertical layout)
+        # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
+        # Convert offset (odd-q) coordinates to cube coordinates for accurate distance calculation
+        def offset_to_cube(q, r):
+            # Odd-q vertical layout
+            x = q
+            z = r - (q - (q & 1)) // 2
+            y = -x - z
+            return (x, y, z)
+        start_cube = offset_to_cube(start_hex.q, start_hex.r)
+        dest_cube = offset_to_cube(dest_hex.q, dest_hex.r)
+        dx = dest_cube[0] - start_cube[0]
+        dy = dest_cube[1] - start_cube[1]
+        dz = dest_cube[2] - start_cube[2]
+        distance = max(abs(dx), abs(dy), abs(dz))
+        print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
+        return distance
 
     def run_with_click_return(self):
         running = True
@@ -345,24 +364,7 @@ class DesktopUI:
                         dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
                         if dest_hex:
                             start_hex = moving_piece.position
-                            # Calculate distance using offset coordinates (odd-q vertical layout)
-                            # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
-                            # Convert offset (odd-q) coordinates to cube coordinates for accurate distance calculation
-                            def offset_to_cube(q, r):
-                                # Odd-q vertical layout
-                                x = q
-                                z = r - (q - (q & 1)) // 2
-                                y = -x - z
-                                return (x, y, z)
-                            start_cube = offset_to_cube(start_hex.q, start_hex.r)
-                            dest_cube = offset_to_cube(dest_hex.q, dest_hex.r)
-                            dx = dest_cube[0] - start_cube[0]
-                            dy = dest_cube[1] - start_cube[1]
-                            dz = dest_cube[2] - start_cube[2]
-                            distance = max(abs(dx), abs(dy), abs(dz))
-                            print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
- 
-                           
+                            distance = self.get_distance(start_hex, dest_hex)
                             max_move = moving_piece.movement_factor
                             if distance <= max_move:
                                 self.board.move_piece(moving_piece, dest_hex)
