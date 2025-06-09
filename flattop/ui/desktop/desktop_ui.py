@@ -347,44 +347,21 @@ class DesktopUI:
                             start_hex = moving_piece.position
                             # Calculate distance using offset coordinates (odd-q vertical layout)
                             # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
-                            col1, row1 = start_hex.q, start_hex.r
-                            col2, row2 = dest_hex.q, dest_hex.r
-                            if col1 % 2 == 0:
-                                dx = col2 - col1
-                                dy = row2 - row1 - ((col2 - col1) // 2)
-                            else:
-                                dx = col2 - col1
-                                dy = row2 - row1 - ((col2 - col1 + (1 if dx > 0 else 0)) // 2)
-                            distance = max(abs(dx), abs(dy), abs(dx + dy))
-                            print(f"Offset distance from {start_hex} to {dest_hex}: {distance}")
-                            
-                            
-                            
-                            # Calculate hex distance (using axial coordinates)
-                            #max(abs(aq - bq), abs(ar - br), abs((-aq - ar) - (-bq - br)))
-                            dq = dest_hex.q - start_hex.q
-                            dr = dest_hex.r - start_hex.r
-                            ds = (-dest_hex.q - dest_hex.r) - (-start_hex.q - start_hex.r)
-                            distance = max(abs(dq), abs(dr), abs(dq+dr))
-                            
-                            print(f"Distance A from {start_hex} to {dest_hex}: {distance}")
-
-                            # Using axial coordinates for hex distance calculation
-                            """
-                            https://www.redblobgames.com/grids/hexagons/
-                            function axial_subtract(a, b):
-                                return Hex(a.q - b.q, a.r - b.r)
-
-                            function axial_distance(a, b):
-                                var vec = axial_subtract(a, b)
-                                return (abs(vec.q)
-                                    + abs(vec.q + vec.r)
-                                    + abs(vec.r)) / 2
-                            """
-                            vec = Hex(dest_hex.q - start_hex.q, dest_hex.r - start_hex.r)
-                            distance = (abs(vec.q) + abs(vec.q + vec.r) + abs(vec.r)) // 2
-                            print(f"Distance B from {start_hex} to {dest_hex}, vec {vec}: {distance}")
-                           
+                            # Convert offset (odd-q) coordinates to cube coordinates for accurate distance calculation
+                            def offset_to_cube(q, r):
+                                # Odd-q vertical layout
+                                x = q
+                                z = r - (q - (q & 1)) // 2
+                                y = -x - z
+                                return (x, y, z)
+                            start_cube = offset_to_cube(start_hex.q, start_hex.r)
+                            dest_cube = offset_to_cube(dest_hex.q, dest_hex.r)
+                            dx = dest_cube[0] - start_cube[0]
+                            dy = dest_cube[1] - start_cube[1]
+                            dz = dest_cube[2] - start_cube[2]
+                            distance = max(abs(dx), abs(dy), abs(dz))
+                            print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
+ 
                            
                             max_move = moving_piece.movement_factor
                             if distance <= max_move:
