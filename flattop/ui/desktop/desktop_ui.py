@@ -181,11 +181,29 @@ class DesktopUI:
         # Draw the hexes on the board
         for q in range(self.board.width):
             for r in range(self.board.height):
+                hex_obj = self.board.get_hex(q, r)
+                # Determine color based on terrain attribute
+                if hasattr(hex_obj, "terrain"):
+                    terrain = hex_obj.terrain
+                    if terrain == "sea":
+                        color = (173, 216, 230)  # Light blue
+                    elif terrain == "land":
+                        color = (34, 139, 34)    # Forest green
+                    elif terrain == "mountain":
+                        color = (139, 137, 137)  # Gray
+                    elif terrain == "base":
+                        color = (255, 215, 0)    # Gold
+                    else:
+                        color = HEX_COLOR        # Default color
+                else:
+                    color = HEX_COLOR
                 center = self.hex_to_pixel(q, r)
-                self.draw_hex(center, HEX_COLOR, HEX_BORDER)
+                self.draw_hex(center, color, HEX_BORDER)
+                
                 # Draw the hex coordinate as a number for identification at the top of the hex
-                """                # Uncomment this section if you want to display hex coordinates.
-                                     # the code is very ineefficient, so it is commented out. it causes the sceen to render very slowly.
+                 # commented out to avoid cluttering the UI and because of performance issues when rendering
+                # Uncomment to show hex coordinates
+                """
                 font = pygame.font.SysFont(None, 16)
                 hex_label = f"{q},{r}"
                 text_surface = font.render(hex_label, True, (0, 0, 0))
@@ -327,11 +345,47 @@ class DesktopUI:
                         dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
                         if dest_hex:
                             start_hex = moving_piece.position
+                            # Calculate distance using offset coordinates (odd-q vertical layout)
+                            # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
+                            col1, row1 = start_hex.q, start_hex.r
+                            col2, row2 = dest_hex.q, dest_hex.r
+                            if col1 % 2 == 0:
+                                dx = col2 - col1
+                                dy = row2 - row1 - ((col2 - col1) // 2)
+                            else:
+                                dx = col2 - col1
+                                dy = row2 - row1 - ((col2 - col1 + (1 if dx > 0 else 0)) // 2)
+                            distance = max(abs(dx), abs(dy), abs(dx + dy))
+                            print(f"Offset distance from {start_hex} to {dest_hex}: {distance}")
+                            
+                            
+                            
                             # Calculate hex distance (using axial coordinates)
-                            dq = abs(dest_hex.q - start_hex.q)
-                            dr = abs(dest_hex.r - start_hex.r)
-                            ds = abs((-dest_hex.q - dest_hex.r) - (-start_hex.q - start_hex.r))
-                            distance = max(dq, dr, ds)
+                            #max(abs(aq - bq), abs(ar - br), abs((-aq - ar) - (-bq - br)))
+                            dq = dest_hex.q - start_hex.q
+                            dr = dest_hex.r - start_hex.r
+                            ds = (-dest_hex.q - dest_hex.r) - (-start_hex.q - start_hex.r)
+                            distance = max(abs(dq), abs(dr), abs(dq+dr))
+                            
+                            print(f"Distance A from {start_hex} to {dest_hex}: {distance}")
+
+                            # Using axial coordinates for hex distance calculation
+                            """
+                            https://www.redblobgames.com/grids/hexagons/
+                            function axial_subtract(a, b):
+                                return Hex(a.q - b.q, a.r - b.r)
+
+                            function axial_distance(a, b):
+                                var vec = axial_subtract(a, b)
+                                return (abs(vec.q)
+                                    + abs(vec.q + vec.r)
+                                    + abs(vec.r)) / 2
+                            """
+                            vec = Hex(dest_hex.q - start_hex.q, dest_hex.r - start_hex.r)
+                            distance = (abs(vec.q) + abs(vec.q + vec.r) + abs(vec.r)) // 2
+                            print(f"Distance B from {start_hex} to {dest_hex}, vec {vec}: {distance}")
+                           
+                           
                             max_move = moving_piece.movement_factor
                             if distance <= max_move:
                                 self.board.move_piece(moving_piece, dest_hex)
