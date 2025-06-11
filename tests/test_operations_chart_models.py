@@ -10,7 +10,9 @@ from flattop.operations_chart_models import (
     Carrier,
     AirOperationsTracker,
     Base,
-    AircraftStatus
+    AircraftOperationsStatus,
+    AirCraftType,
+    AircraftFactory
 )
 
 class TestAirOperationsChart(unittest.TestCase):
@@ -42,6 +44,11 @@ class TestAirOperationsChart(unittest.TestCase):
         chart.bases["TestBase"] = base
         self.assertIn("TestBase", chart.bases)
         self.assertIs(chart.bases["TestBase"], base)
+
+class TestAircraftFactory(unittest.TestCase):
+    def test_type(self):
+        test_aircraft = AircraftFactory.create_aircraft(AirCraftType.A20, 19)
+        self.assertTrue(test_aircraft.type , "A20")
 
 class TestTaskForce(unittest.TestCase):
     def test_add_ship(self):
@@ -100,7 +107,7 @@ class TestAirFormation(unittest.TestCase):
 
 class TestAirOperationsTracker(unittest.TestCase):
     def setUp(self):
-        self.tracker = AirOperationsTracker("Test Tracker", "Test Desc")
+        self.tracker = AirOperationsTracker("Test Tracker", "Test Desc", AirOperationsConfiguration(("Test")))
         self.ac = AirCraft("Fighter")
 
     def test_set_operations_status(self):
@@ -238,12 +245,12 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
             ready_factors=7,
             plane_handling_type="Base"
         )
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Zero", count=10),AircraftStatus.READY)
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Val", count=8),AircraftStatus.READY)
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Kate", count=10),AircraftStatus.READY)
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Mavis", count=8),AircraftStatus.READY)
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Rufe", count=1),AircraftStatus.READY)
-        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Nell", count=12),AircraftStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Zero", count=10),AircraftOperationsStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Val", count=8),AircraftOperationsStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Kate", count=10),AircraftOperationsStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Mavis", count=8),AircraftOperationsStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Rufe", count=1),AircraftOperationsStatus.READY)
+        baseRahulJapanese.air_operations.set_operations_status(AirCraft("Nell", count=12),AircraftOperationsStatus.READY)
         
         self.assertIsInstance(baseRahulJapanese, Base)
         self.assertEqual(baseRahulJapanese.name, "Rabul")
@@ -263,8 +270,8 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
             ready_factors=8,
             plane_handling_type="LP"
         )
-        basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("P-40", count=12),AircraftStatus.READY)
-        basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftStatus.READY)
+        basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("P-40", count=12),AircraftOperationsStatus.READY)
+        basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftOperationsStatus.READY)
 
         chartAllied.task_forces[1] = TaskForce(1)
         chartAllied.task_forces[1].add_ship(Carrier("Lexington", "CV", "operational",1,4,2))

@@ -197,8 +197,8 @@ class Base:
             name (str, optional): Optional name for the Base.
         """
         self.name = name or "Base"
-        self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}")
         self.air_operations_config = AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
+        self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
 
     """
@@ -316,16 +316,19 @@ class AirFormation:
     """
     Represents an Air Formation, which can contain multiple aircraft.
     """
-    def __init__(self, number, name=None, side="Allied"):
+    def __init__(self, number, name=None, side="Allied", launch_hour=0):
         """
         Args:
             number (int): Air Formation counter number (1–35).
             name (str, optional): Optional name for the Air Formation.
+            side
+            launch_time = 1-24, represents 24 hour clock.
         """
         self.number = number
         self.name = name or f"Air Formation {number}"
         self.aircraft = []
         self.side = side  # "Allied" or "Japanese"
+        self.launch_hour = launch_hour
 
     def add_aircraft(self, aircraft):
         if not isinstance(aircraft, AirCraft):
@@ -376,13 +379,111 @@ class AirCraft:
         type (str): The type of the aircraft (e.g., "Fighter", "Bomber").
     """
     
-    def __init__(self, type, count=1, move_factor=5):
+    def __init__(self, type, count=1, move_factor=5, range_factor=5):
         self.type = type
         self.count = count  # Number of aircraft of this type
         self.move_factor = move_factor  # Movement factor for the aircraft
+        self.range_factor = range_factor # The number of hours a plan can stay in tha air for.
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
+
+class AircraftFactory:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def create_aircraft(type, count=1):
+        match type:
+            case AirCraftType.A20:
+                return AirCraft(type, count, 9, 6)
+            case AirCraftType.AVENGER:
+                return AirCraft(type, count, 7,8)
+            case AirCraftType.BEAUFIGHTER:
+                return AirCraft(type, count, 9, 6)
+            case AirCraftType.BEUFORT:
+                return AirCraft(type, count, 7, 8)
+            case AirCraftType.B17:
+                return AirCraft(type, count, 8, 12)
+            case AirCraftType.B25:
+                return AirCraft(type, count, 9, 7)
+            case AirCraftType.B26:
+                return AirCraft(type, count, 10, 6)
+            case AirCraftType.CATALINA:
+                return AirCraft(type, count, 6, 20)
+            case AirCraftType.DAUNTLESS:
+                return AirCraft(type, count, 9, 6)
+            case AirCraftType.DEVASTATOR:
+                return AirCraft(type, count, 6, 5)
+            case AirCraftType.HUDESON:
+                return AirCraft(type, count, 7, 10)
+            case AirCraftType.P38:
+                return AirCraft(type, count, 12, 5)
+            case AirCraftType.P39:
+                return AirCraft(type, count, 11, 5)
+            case AirCraftType.P40:
+                return AirCraft(type, count, 11, 5)
+            case AirCraftType.WILDCAT:
+                return AirCraft(type, count, 8, 6)
+            #japanese
+            case AirCraftType.BETTY:
+                return AirCraft(type, count, 9, 10)
+            case AirCraftType.DAVE:
+                return AirCraft(type, count, 4, 6)
+            case AirCraftType.EMILY:
+                return AirCraft(type, count, 9, 24)
+            case AirCraftType.JUDY:
+                return AirCraft(type, count, 11, 6)
+            case AirCraftType.JAKE:
+                return AirCraft(type, count, 5, 9)
+            case AirCraftType.KATE:
+                return AirCraft(type, count, 7, 7)
+            case AirCraftType.MAVIS:
+                return AirCraft(type, count, 8, 23)
+            case AirCraftType.NELL:
+                return AirCraft(type, count, 8, 8)
+            case AirCraftType.PETE:
+                return AirCraft(type, count, 4, 6)
+            case AirCraftType.RUFE:
+                return AirCraft(type, count, 9, 6)
+            case AirCraftType.VAL:
+                return AirCraft(type, count, 9, 7)
+            case AirCraftType.ZERO:
+                return AirCraft(type, count, 10, 8)
+        return None
+            
+
+class AirCraftType(Enum):
+    #Allied
+    A20 = "A-20"
+    AVENGER = "Avenger"
+    BEAUFIGHTER = "Beaufigher"
+    BEUFORT = "Beaufort"
+    B17 = "B-17"
+    B25 ="B-25"
+    B26 = "B-26"
+    CATALINA = "Catalina"
+    DAUNTLESS = "Dauntless"
+    DEVASTATOR = "Devastator"
+    HUDESON = "Hudson"
+    P38 = "P-38"
+    P39 = "P-39"
+    P40 = "P-40"
+    WILDCAT = "Wildcat"
+    #Japanese
+    BETTY = "Betty"
+    DAVE = "Dave"
+    EMILY = "Emily"
+    JUDY = "Judy"
+    JAKE = "Jake"
+    KATE = "Kate"
+    MAVIS = "Mavis"
+    NELL = "Nell"
+    PETE = "Pete"
+    RUFE = "Rufe"
+    VAL = "Val"
+    ZERO = "Zero"
+
 
 class Ship:
     
@@ -422,14 +523,18 @@ class Carrier(Ship):
 
 
 class AirOperationsTracker:
+    """
+    The AirOperationTracker is used to manage plans at a Base.
+    """
    
-    def __init__(self, name , description):
+    def __init__(self, name , description, op_config):
         """
         Initializes an AirOperationsChart object.
 
         Args:
             name (str): The name of the chart.
             description (str): A brief description of the chart. e.g. Allied or Axis operations chart.
+            op_config: AirOperationsConfiguration for the Tracker.
                 """
         self.name = name
         self.description = description
@@ -437,6 +542,7 @@ class AirOperationsTracker:
         self.just_landed = []
         self.readying = []
         self.ready = [] 
+        self.air_op_config=op_config
 
     def __repr__(self):
          return f"Piece(owner={self.name}, position={self.desfription})"
@@ -466,11 +572,11 @@ class AirOperationsTracker:
             raise TypeError("Expected an AirCraft instance")
 
         # Accept both enum and string for status
-        if isinstance(status, AircraftStatus):
+        if isinstance(status, AircraftOperationsStatus):
             status_value = status.value
         elif isinstance(status, str):
             try:
-                status_value = AircraftStatus(status).value
+                status_value = AircraftOperationsStatus(status).value
             except ValueError:
                 raise ValueError(f"Invalid status string: {status}")
         else:
@@ -482,18 +588,18 @@ class AirOperationsTracker:
                 status_list.remove(aircraft)
 
         # Add to the appropriate status list
-        if status_value == AircraftStatus.IN_FLIGHT.value:
+        if status_value == AircraftOperationsStatus.IN_FLIGHT.value:
             self.in_flight.append(aircraft)
-        elif status_value == AircraftStatus.JUST_LANDED.value:
+        elif status_value == AircraftOperationsStatus.JUST_LANDED.value:
             self.just_landed.append(aircraft)
-        elif status_value == AircraftStatus.READYING.value:
+        elif status_value == AircraftOperationsStatus.READYING.value:
             self.readying.append(aircraft)
-        elif status_value == AircraftStatus.READY.value:
+        elif status_value == AircraftOperationsStatus.READY.value:
             self.ready.append(aircraft)
         else:
             raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
     
-class AircraftStatus(Enum):
+class AircraftOperationsStatus(Enum):
         IN_FLIGHT = "in_flight"
         JUST_LANDED = "just_landed"
         READYING = "readying"
