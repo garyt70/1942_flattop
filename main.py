@@ -32,9 +32,13 @@ def scenario_one_setup():
         (0, 20), (1, 21), (2, 21), (3, 21), (4, 21), (5, 21), (6, 21),
         (0, 21), (1, 22), (2, 22), (3, 22), (4, 22), (5, 22), (6, 22), (7, 22), (8, 22), (9, 22), (10, 22),
         (0, 22), (1, 23), (2, 23), (3, 23), (4, 23), (5, 23), (6, 23), (7, 23), (8, 23), (9, 23),
-        (0, 23), (1, 24), (2, 24), (3, 24), (4, 24), (5, 24), (6, 24), (7, 24), (8, 24), (9, 24), (9, 25),
-        (0, 24), (1, 25), (2, 25), (3, 25), (4, 25), (5, 25), (6, 25), (7, 25), (8, 25), (9, 25), (10, 25), (11, 25), (12, 25), (13, 25), (14, 25), (15, 25), (16, 25), (17, 25), (18, 25), (19, 25),
-        (0, 25), (1, 26), (2, 26), (3, 26), (4, 26), (5, 26), (6, 26), (7, 26), (8, 26), (9, 26), (10, 26), (11, 26), (12, 26), (13, 26), (14, 26), (15, 26), (16, 26), (17, 26), (18, 26), 
+        (0, 23), (1, 24), (2, 24), (3, 24), (4, 24), (5, 24), (6, 24), (7, 24), (8, 24), (9, 24), (10, 24), (11,14),
+                                    (3,25), (4, 25), (5, 25), (6, 25), (7, 25), (8, 25), (9, 25), (10, 25), (11, 25), (12, 25), (13, 25),
+                                            (4, 26), (5, 26), (6, 26), (7, 26), (8, 26), (9, 26), (10, 26), (11, 26), (12, 26),   
+                                             (4, 27), (5, 27), (6, 27), (7, 27), (8, 27), (9, 27), (10, 27), (11, 27), (12, 27), (13, 27), (14, 27), (15, 27), (16, 27), (17, 27), (18, 27), (19, 27), (20, 27),
+                                                             (6, 28), (7, 28), (8, 28), (9, 28), (10, 28), (11, 28), (12, 28), (13, 28), (14, 28), (15, 28), (16, 28), (17, 28), (18, 28), (19, 28), (20, 28),
+
+    
         }  # Example land hexes, adjust as needed
 
     hexboard_model = HexBoardModel(44, 50, land_hexes)  # Example dimensions, adjust as needed   
@@ -64,7 +68,7 @@ def scenario_one_setup():
     
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
-    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(0, 0), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(20, 4), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
     #add a test AirFormation to the Japanese chart
     airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
@@ -91,7 +95,7 @@ def scenario_one_setup():
     basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftOperationsStatus.READY)
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
 
-    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(20, 25), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
+    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
     carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)

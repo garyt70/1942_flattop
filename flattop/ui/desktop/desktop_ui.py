@@ -385,7 +385,7 @@ class DesktopUI:
                     dragging = getattr(self, '_dragging', dragging)
                     last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
 
-            self.screen.fill(BG_COLOR)
+            #self.screen.fill(BG_COLOR)
             self.render_screen()
             pygame.display.flip()
 
@@ -448,15 +448,8 @@ class DesktopUI:
 
     def _handle_mouse_motion(self, event, moving_piece, moving_piece_offset, dragging, last_mouse_pos):
         if moving_piece:
-            self.screen.fill(BG_COLOR)
-            for q in range(self.board.width):
-                for r in range(self.board.height):
-                    center = self.hex_to_pixel(q, r)
-                    self.draw_hex(center, HEX_COLOR, HEX_BORDER)
-            for piece in self.board.pieces:
-                if isinstance(piece, Piece) and piece != moving_piece:
-                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                    pygame.draw.circle(self.screen, (255, 0, 0), center, HEX_SIZE // 3)
+            # If a piece is being moved, draw it at the mouse position with an offset
+            # This allows the piece to follow the cursor smoothly
             mouse_x, mouse_y = event.pos
             pygame.draw.circle(self.screen, (255, 0, 0), (mouse_x - moving_piece_offset[0], mouse_y - moving_piece_offset[1]), HEX_SIZE // 3)
             pygame.display.flip()
