@@ -155,8 +155,19 @@ class HexBoardModel:
 
     def move_piece(self, piece, target_hex):
         is_valid_tile = self.is_valid_tile(target_hex)
-        is_empyt_tile = self.get_piece_at(target_hex) is None
-        if is_valid_tile and is_empyt_tile:
+        is_empty_tile = self.get_piece_at(target_hex) is None
+
+        # Prevent TaskForce from moving into land hex
+        is_task_force = (
+            hasattr(piece, "game_model") and
+            getattr(operations_chart_models, "TaskForce", None) is not None and
+            isinstance(piece.game_model, operations_chart_models.TaskForce)
+        )
+        is_land_hex = self.get_terrain(target_hex) == "land"
+        if is_task_force and is_land_hex:
+            return False
+
+        if is_valid_tile and is_empty_tile:
             piece.move(target_hex)
             return True
         return False
