@@ -234,7 +234,7 @@ class Base:
 
 
     def __repr__(self):
-        return f"Base(name={self.name}, air_operations={self.air_operations}, air_operations_config={self.air_operations_config}, side={self.side})"
+        return f"Base(name={self.name}, side={self.side} \n {self.air_operations}, \n {self.air_operations_config})"
     
 
 class AirOperationsConfiguration:
@@ -306,11 +306,11 @@ class AirOperationsConfiguration:
         self._maximum_capacity = value
 
     def __repr__(self):
-        return (f"AirOperationsConfiguration(name={self.name}, "
-                f"maximum_capacity={self.maximum_capacity}, "
-                f"launch_factors={self.launch_factors}, "
-                f"ready_factors={self.ready_factors}, "
-                f"plane_handling_type={self.plane_handling_type})")
+        return (f"{self.name} Air Operations Configuration, "
+                f"\n Max Capacity={self.maximum_capacity}, "
+                f" Launch Factor={self.launch_factors}, "
+                f" Ready Factor={self.ready_factors}, "
+                f" Planes Handled={self.plane_handling_type}")
   
 class AirFormation:
     """
@@ -524,7 +524,7 @@ class Carrier(Ship):
 
 class AirOperationsTracker:
     """
-    The AirOperationTracker is used to manage plans at a Base.
+    The AirOperationTracker is used to manage planes at a Base.
     """
    
     def __init__(self, name , description, op_config):
@@ -545,10 +545,30 @@ class AirOperationsTracker:
         self.air_op_config=op_config
 
     def __repr__(self):
-         return f"Piece(owner={self.name}, position={self.desfription})"
+         return f"Piece(owner={self.name}, position={self.description})"
     
     def __str__(self):
-        return f"AirOperationsChart(name={self.name}, description={self.description})"
+        header = f"{self.name}\n{self.description}\n"
+        table = "-" * 50 + "\n"
+        
+        # Add each status section
+        table += "IN FLIGHT:\n"
+        for ac in self.in_flight:
+            table += f"  {ac.type:<15} Count: {ac.count}\n"
+            
+        table += "\nJUST LANDED:\n" 
+        for ac in self.just_landed:
+            table += f"  {ac.type:<15} Count: {ac.count}\n"
+            
+        table += "\nREADYING:\n"
+        for ac in self.readying:
+            table += f"  {ac.type:<15} Count: {ac.count}\n"
+            
+        table += "\nREADY:\n"
+        for ac in self.ready:
+            table += f"  {ac.type:<15} Count: {ac.count}\n"
+            
+        return header + table
     
     def total_aircraft_count(self):
         """

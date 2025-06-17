@@ -237,34 +237,16 @@ class DesktopUI:
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
         # Calculate maximum popup size (20% of display area, but allow up to 90% of height)
         win_width, win_height = self.screen.get_size()
-        max_popup_width = int(win_width * 0.2)
-        max_popup_height = int(win_height * 0.9)  # Allow up to 90% of display height
         margin = 10
 
-        # Prepare font and wrap text to fit popup
+        # Prepare font
         font = pygame.font.SysFont(None, 24)
-        words = text.split()
-        lines = []
-        line = ""
-        for word in words:
-            test_line = f"{line} {word}".strip()
-            test_surface = font.render(test_line, True, (255, 255, 255))
-            if test_surface.get_width() > max_popup_width - 2 * margin and line:
-                lines.append(line)
-                line = word
-            else:
-                line = test_line
-            
-            #if line:
-            #    lines.append(line)
+        lines = text.split('\n')
+        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
 
-        # Calculate popup size based on text
-        line_height = font.get_height()
-        popup_width = min(
-            max([font.render(l, True, (255, 255, 255)).get_width() for l in lines]) + 2 * margin,
-            max_popup_width
-        )
-        popup_height = min(len(lines) * line_height + 2 * margin, max_popup_height)
+        # Calculate popup size based on the widest line and total height
+        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
 
         # Position popup at top right
         popup_rect = pygame.Rect(
@@ -280,12 +262,11 @@ class DesktopUI:
 
         # Render each line of text
         y = popup_rect.top + margin
-        for l in lines:
-            text_surface = font.render(l, True, (255, 255, 255))
-            text_rect = text_surface.get_rect()
+        for ts in text_surfaces:
+            text_rect = ts.get_rect()
             text_rect.topleft = (popup_rect.left + margin, y)
-            self.screen.blit(text_surface, text_rect)
-            y += line_height
+            self.screen.blit(ts, text_rect)
+            y += ts.get_height() + margin // 2
 
         pygame.display.flip()
 
