@@ -77,7 +77,7 @@ def scenario_one_setup():
         maximum_capacity=9999,
         launch_factor_min=6,
         launch_factor_normal=12,
-        launch_factor_max=24
+        launch_factor_max=24,
         ready_factors=7,
         plane_handling_type="Base"
     )
