@@ -60,22 +60,34 @@ class PieceImageFactory:
 
     @staticmethod
     def taskforce_image(color, size=HEX_SIZE):
-        # Square with a simple "ship" icon (rectangle and mast)
+        # Draw a fleet of 4 ships (rectangles) in formation, top-down view, on a square playing piece with background color
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
-        center = (size // 2, size // 2)
-        sq_size = size #// 2
-        rect = pygame.Rect(center[0] - sq_size//2, center[1] - sq_size//2, sq_size, sq_size)
-        pygame.draw.rect(surf, color, rect)
-        # Draw a simple ship: hull and mast
-        hull_w, hull_h = sq_size, sq_size//4
-        hull_x = center[0] - hull_w//2
-        hull_y = center[1] + sq_size//4
-        pygame.draw.rect(surf, (255, 255, 255), (hull_x, hull_y, hull_w, hull_h))
-        # Mast
-        mast_x = center[0]
-        mast_y1 = center[1] - sq_size//4
-        mast_y2 = center[1] + sq_size//4
-        pygame.draw.line(surf, (255, 255, 255), (mast_x, mast_y1), (mast_x, mast_y2), 2)
+        # Draw the square playing piece background
+        bg_color = color  # Board background color, adjust as needed
+        pygame.draw.rect(surf, bg_color, (0, 0, size, size), border_radius=6)
+        pygame.draw.rect(surf, (200, 200, 200), (0, 0, size, size), 2, border_radius=6)
+
+        ship_w = size // 3
+        ship_h = size // 8
+        spacing = size // 10
+        # Arrange ships in two rows of two
+        start_x = (size - (2 * ship_w + spacing)) // 2
+        start_y = (size - (2 * ship_h + spacing)) // 2
+        ship_color = color
+        outline_color = (255, 255, 255)
+        for row in range(2):
+            for col in range(2):
+                x = start_x + col * (ship_w + spacing)
+                y = start_y + row * (ship_h + spacing)
+                rect = pygame.Rect(x, y, ship_w, ship_h)
+                pygame.draw.rect(surf, ship_color, rect)
+                pygame.draw.rect(surf, outline_color, rect, 2)
+                # Draw a small bridge on each ship (a small square at the front)
+                bridge_w = ship_w // 5
+                bridge_h = ship_h // 2
+                bridge_x = x + ship_w // 2 - bridge_w // 2
+                bridge_y = y
+                pygame.draw.rect(surf, outline_color, (bridge_x, bridge_y, bridge_w, bridge_h))
         return surf
 
 
@@ -389,6 +401,15 @@ class DesktopUI:
                     mouse_x, mouse_y = event.pos
                     center = self.hex_to_pixel(piece.position.q, piece.position.r)
                     self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                    # Show movement range as a light gray circle overlay
+                    max_move = piece.movement_factor
+                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                    radius = int(HEX_SIZE * max_move * 1.5)  # Adjust radius based on movement factor
+                    # Create a semi-transparent overlay for the movement range
+                    overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+                    pygame.draw.circle(overlay, (200, 200, 200, 100), center, radius)
+                    self.screen.blit(overlay, (0, 0))
+                    pygame.display.flip()
                 else:
                     self._moving_piece = None
                     self._moving_piece_offset = None
