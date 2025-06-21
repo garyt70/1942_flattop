@@ -37,9 +37,29 @@ def scenario_one_setup():
                                             (4, 25), (5, 25), (6, 25), (7, 25), (8, 25), (9, 25), (10, 25), (11, 25), (12, 25),   
                                              (4, 26), (5, 26), (6, 26), (7, 26), (8, 26), (9, 26), (10, 26), (11, 26), (12, 26), (13, 26), (14, 26), (15, 26), (16, 26), (17, 26), (18, 26), (19, 26), (20, 26),
                                                                (6, 28), (7, 27), (8, 27), (9, 27), (10, 27), (11, 27), (12, 27), (13, 27), (14, 27), (15, 27), (16, 27), (17, 27), (18, 27), (19, 27), (20, 27),
+        (3,7),                                                (13,6),
+        (22,0), (23,0), (23,1), (24,2), (25,2), (25,3), (25,4), (26,3), (26,4), 
+                                                                                                                        (21,3),       ( 23,3),
+                                                                                                                        (21,4), (22,4), (23,4),       
+        (4,8), (5,8),                                          (14,5),                                                   (21,5), (22,5), (2,5),
+                                                       (14,6),                                                   (21,6), (22,6), (23,6),
+                (7,7), (8,7),                       (12,7), (13,7), (14,7), (15,7), (16,7), (17,7), (18,7),(19,7),(20,7), (21,7),(22,7), (23,7), 
+        (6,8), (7,8), (8,8), (9,8), (10,8), (11,8), (12,8), (13,8), (14,8), (15,8), (16,8), (17,8), (18,8), (19,8),(20,8), (21,8), (22,8),
+                       (8,9), (9,9), (10,9), (11,9), (12,9), (13,9), (14,9), (15,9), (16,9),(17,9),(18,9), (19,9), (20,9),(21,9),  (22,9),
+                              (9,10), (10,10), (11,10), (12,10), (13,10), (14,10), (15,10), (16,10), 
+                       
 
-    
-        }  # Example land hexes, adjust as needed
+        (33,6), 
+        (33,7),
+            (34,8),
+            (34,9), (35,9),
+            (34,10), (35,10),
+            (34,11), (35,11), (36,11), 
+            (34,12), (35,12), (36,12), 
+                     (35,13), (36,13), (37,13), 
+                    (35,14), (36,14), (37,14),
+    }  # Example land hexes; adjust as needed
+
 
     hexboard_model = HexBoardModel(44, 50, land_hexes)  # Example dimensions, adjust as needed   
 
@@ -68,7 +88,7 @@ def scenario_one_setup():
     
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
-    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(20, 4), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
     #add a test AirFormation to the Japanese chart
     airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
