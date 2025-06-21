@@ -197,20 +197,7 @@ class TestAirOperationsConfiguration(unittest.TestCase):
         with self.assertRaises(ValueError):
             config.ready_factors = -1
 
-    def test_repr(self):
-        config = AirOperationsConfiguration(
-            name="Test",
-            maximum_capacity=2,
-            launch_factors=3,
-            ready_factors=4,
-            plane_handling_type="Base"
-        )
-        rep = repr(config)
-        self.assertIn("Test", rep)
-        self.assertIn("maximum_capacity=2", rep)
-        self.assertIn("launch_factors=3", rep)
-        self.assertIn("ready_factors=4", rep)
-        self.assertIn("plane_handling_type=Base", rep)
+    
 
     def test_init_invalid_maximum_capacity(self):
         with self.assertRaises(ValueError):

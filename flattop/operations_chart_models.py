@@ -371,6 +371,71 @@ class AirFormation:
             table += f"{ac.type:<15} {ac.count}\n"
         return header + table
 
+class AircraftCombatData:
+    """
+    An aircraft combat data class that holds information about aircraft combat capabilities.
+    The combat types are air-to-air, level_bombing_high, level_bombing_low, dive_bombing and torpedo_bombing.
+    Further, there are different attributes for attacks against ships and bases.
+    Finally, there are general purpose bombs and armour piercing bombs.
+    """
+
+    def __init__(
+        self,
+        air_to_air=0,
+        level_bombing_high_base_gp=0,
+        level_bombing_high_base_ap=0,
+        level_bombing_low_base_gp=0,
+        level_bombing_low_base_ap=0,
+        dive_bombing_base_gp=0,
+        dive_bombing_base_ap=0,
+        level_bombing_high_ship_gp=0,
+        level_bombing_high_ship_ap=0,
+        level_bombing_low_ship_gp=0,
+        level_bombing_low_ship_ap=0,
+        dive_bombing_ship_gp=0,
+        dive_bombing_ship_ap=0,
+        torpedo_bombing_ship=0
+    ):
+        self.air_to_air = air_to_air
+
+        # Level bombing (high altitude)
+        self.level_bombing_high_ship_gp = level_bombing_high_ship_gp
+        self.level_bombing_high_ship_ap = level_bombing_high_ship_ap
+        self.level_bombing_high_base_gp = level_bombing_high_base_gp
+        self.level_bombing_high_base_ap = level_bombing_high_base_ap
+
+        # Level bombing (low altitude)
+        self.level_bombing_low_ship_gp = level_bombing_low_ship_gp
+        self.level_bombing_low_ship_ap = level_bombing_low_ship_ap
+        self.level_bombing_low_base_gp = level_bombing_low_base_gp
+        self.level_bombing_low_base_ap = level_bombing_low_base_ap
+
+        # Dive bombing
+        self.dive_bombing_ship_gp = dive_bombing_ship_gp
+        self.dive_bombing_ship_ap = dive_bombing_ship_ap
+        self.dive_bombing_base_gp = dive_bombing_base_gp
+        self.dive_bombing_base_ap = dive_bombing_base_ap
+
+        # Torpedo bombing (ships only)
+        self.torpedo_bombing_ship = torpedo_bombing_ship
+
+    def __repr__(self):
+        return (
+            f"AircraftCombatData("
+            f"air_to_air={self.air_to_air}, "
+            f"level_bombing_high_ship_gp={self.level_bombing_high_ship_gp}, "
+            f"level_bombing_high_ship_ap={self.level_bombing_high_ship_ap}, "
+            f"level_bombing_high_base={self.level_bombing_high_base}, "
+            f"level_bombing_low_ship_gp={self.level_bombing_low_ship_gp}, "
+            f"level_bombing_low_ship_ap={self.level_bombing_low_ship_ap}, "
+            f"level_bombing_low_base={self.level_bombing_low_base}, "
+            f"dive_bombing_ship_gp={self.dive_bombing_ship_gp}, "
+            f"dive_bombing_ship_ap={self.dive_bombing_ship_ap}, "
+            f"dive_bombing_base={self.dive_bombing_base}, "
+            f"torpedo_bombing_ship={self.torpedo_bombing_ship})"
+        )
+
+
 class AirCraft:
     """
     Represents an aircraft in the game.
@@ -379,11 +444,12 @@ class AirCraft:
         type (str): The type of the aircraft (e.g., "Fighter", "Bomber").
     """
     
-    def __init__(self, type, count=1, move_factor=5, range_factor=5):
+    def __init__(self, type, count=1, move_factor=5, range_factor=5, acd=AircraftCombatData()):
         self.type = type
         self.count = count  # Number of aircraft of this type
         self.move_factor = move_factor  # Movement factor for the aircraft
         self.range_factor = range_factor # The number of hours a plan can stay in tha air for.
+        self.combat_data = acd  # Aircraft Combat Data instance
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
@@ -394,63 +460,165 @@ class AircraftFactory:
 
     @staticmethod
     def create_aircraft(type, count=1):
+        aircraft: AirCraft = None
+        acd: AircraftCombatData = None
         match type:
             case AirCraftType.A20:
-                return AirCraft(type, count, 9, 6)
+                acd = AircraftCombatData(
+                    air_to_air=3,
+                    level_bombing_high_base_gp=5,
+                    level_bombing_high_base_ap=2,
+                    level_bombing_low_base_gp=8,
+                    level_bombing_low_base_ap=3,
+                    dive_bombing_base_gp=0,
+                    dive_bombing_base_ap=0,
+                    level_bombing_high_ship_gp=0,
+                    level_bombing_high_ship_ap=1,
+                    level_bombing_low_ship_gp=2,
+                    level_bombing_low_ship_ap=5,
+                    dive_bombing_ship_gp=0,
+                    dive_bombing_ship_ap=0,
+                    torpedo_bombing_ship=0
+                )
+                aircraft = AirCraft(type, count, 9, 6, acd)
             case AirCraftType.AVENGER:
-                return AirCraft(type, count, 7,8)
+                acd = AircraftCombatData(
+                    air_to_air=3,
+                    level_bombing_high_base_gp=4,
+                    level_bombing_high_base_ap=2,
+                    level_bombing_low_base_gp=6,
+                    level_bombing_low_base_ap=2,
+                    dive_bombing_base_gp=0,
+                    dive_bombing_base_ap=0,
+                    level_bombing_high_ship_gp=0,
+                    level_bombing_high_ship_ap=1,
+                    level_bombing_low_ship_gp=2,
+                    level_bombing_low_ship_ap=5,
+                    dive_bombing_ship_gp=0,
+                    dive_bombing_ship_ap=0,
+                    torpedo_bombing_ship=6
+                )
+                aircraft = AirCraft(type, count, 7, 8, acd)
             case AirCraftType.BEAUFIGHTER:
-                return AirCraft(type, count, 9, 6)
+                acd = AircraftCombatData(
+                    air_to_air=6,
+                    level_bombing_high_base_gp=0,
+                    level_bombing_high_base_ap=0,
+                    level_bombing_low_base_gp=5,
+                    level_bombing_low_base_ap=0,
+                    dive_bombing_base_gp=0,
+                    dive_bombing_base_ap=0,
+                    level_bombing_high_ship_gp=0,
+                    level_bombing_high_ship_ap=0,
+                    level_bombing_low_ship_gp=1,
+                    level_bombing_low_ship_ap=3,
+                    dive_bombing_ship_gp=0,
+                    dive_bombing_ship_ap=0,
+                    torpedo_bombing_ship=0
+                )
+                aircraft = AirCraft(type, count, 9, 6, acd)
             case AirCraftType.BEUFORT:
-                return AirCraft(type, count, 7, 8)
+                acd = AircraftCombatData(
+                    air_to_air=3,
+                    level_bombing_high_base_gp=4,
+                    level_bombing_high_base_ap=2,
+                    level_bombing_low_base_gp=6,
+                    level_bombing_low_base_ap=2,
+                    dive_bombing_base_gp=0,
+                    dive_bombing_base_ap=0,
+                    level_bombing_high_ship_gp=0,
+                    level_bombing_high_ship_ap=1,
+                    level_bombing_low_ship_gp=2,
+                    level_bombing_low_ship_ap=6,
+                    dive_bombing_ship_gp=0,
+                    dive_bombing_ship_ap=0,
+                    torpedo_bombing_ship=7
+                )
+                aircraft = AirCraft(type, count, 7, 8)
             case AirCraftType.B17:
-                return AirCraft(type, count, 8, 12)
+                acd= AircraftCombatData(8,13,5,0,0,0,0,0,2,0,0,0,0,0)
+                # B-17 has high air-to-air and level bombing capabilities
+                aircraft = AirCraft(type, count, 8, 12, acd)
             case AirCraftType.B25:
-                return AirCraft(type, count, 9, 7)
+                acd= AircraftCombatData(4,8,3,11,5,0,0,0,1,3,7,0,0,0)
+                aircraft = AirCraft(type, count, 9, 7, acd)
             case AirCraftType.B26:
-                return AirCraft(type, count, 10, 6)
+                acd= AircraftCombatData(4,6,2,10,4,0,0,0,1,2,5,0,0,5)
+                aircraft = AirCraft(type, count, 10, 6,acd)
             case AirCraftType.CATALINA:
-                return AirCraft(type, count, 6, 20)
+                acd= AircraftCombatData(4,6,2,9,3,0,0,0,1,2,7,0,0,10)
+                aircraft = AirCraft(type, count, 6, 20, acd)
             case AirCraftType.DAUNTLESS:
-                return AirCraft(type, count, 9, 6)
+                acd= AircraftCombatData(3,3,1,5,1,6,2,0,0,2,5,2,7,0)
+                aircraft = AirCraft(type, count, 9, 6, acd)
             case AirCraftType.DEVASTATOR:
-                return AirCraft(type, count, 6, 5)
+                acd= AircraftCombatData(2,3,1,5,2,0,0,0,0,1,5,0,0,6)
+                aircraft = AirCraft(type, count, 6, 5, acd)
             case AirCraftType.HUDESON:
-                return AirCraft(type, count, 7, 10)
+                acd= AircraftCombatData(3,3,1,6,2,0,0,0,1,1,4,0,0,0)
+                aircraft = AirCraft(type, count, 7, 10, acd)
             case AirCraftType.P38:
-                return AirCraft(type, count, 12, 5)
+                acd= AircraftCombatData(7,0,0,5,0,0,0,0,0,1,0,0,0,0)   
+                aircraft = AirCraft(type, count, 12, 5, acd)
             case AirCraftType.P39:
-                return AirCraft(type, count, 11, 5)
+                acd= AircraftCombatData(6,0,0,5,0,0,0,0,0,1,0,0,0,0)  
+                aircraft = AirCraft(type, count, 11, 5, acd)
             case AirCraftType.P40:
-                return AirCraft(type, count, 11, 5)
+                acd= AircraftCombatData(7,0,0,4,0,0,0,0,0,1,0,0,0,0)  
+                aircraft = AirCraft(type, count, 11, 5, acd)
             case AirCraftType.WILDCAT:
-                return AirCraft(type, count, 8, 6)
+                acd= AircraftCombatData(9,0,0,4,0,0,0,0,0,1,0,0,0,0)  
+                aircraft = AirCraft(type, count, 8, 6, acd)
             #japanese
+            # Betty is a bomber, so it has a different range factor)
             case AirCraftType.BETTY:
-                return AirCraft(type, count, 9, 10)
+                acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,5,0,0,9)
+                aircraft = AirCraft(type, count, 9, 10 , acd)
+            # Dave is a float plane, so it has a different range factor)
             case AirCraftType.DAVE:
-                return AirCraft(type, count, 4, 6)
+                acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
+                aircraft = AirCraft(type, count, 4, 6, acd)
+            # Emily is a flying boat, so it has a different range factor)
             case AirCraftType.EMILY:
-                return AirCraft(type, count, 9, 24)
+                acd= AircraftCombatData(6,8,3,9,4,0,0,0,1,3,7,0,0,15)
+                aircraft = AirCraft(type, count, 9, 24, acd)
+            # Judy is a dive bomber)
             case AirCraftType.JUDY:
-                return AirCraft(type, count, 11, 6)
+                acd= AircraftCombatData(3,2,1,3,1,4,2,0,0,1,5,2,7,0)
+                aircraft = AirCraft(type, count, 11, 6, acd)
+            # Jake is a float plane, 
             case AirCraftType.JAKE:
-                return AirCraft(type, count, 5, 9)
+                acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
+                aircraft = AirCraft(type, count, 5, 9, acd)
+            # Kate is a torpedo bomber
             case AirCraftType.KATE:
-                return AirCraft(type, count, 7, 7)
+                acd= AircraftCombatData(2,4,2,6,2,0,0,0,1,2,6,0,0,10)
+                aircraft = AirCraft(type, count, 7, 7, acd)
+            # Mavis is a flying boat, 
             case AirCraftType.MAVIS:
-                return AirCraft(type, count, 8, 23)
+                acd= AircraftCombatData(5,6,2,7,3,0,0,0,1,2,6,0,0,15)
+                aircraft = AirCraft(type, count, 8, 23, acd)
+            # Nell is a bomber, 
             case AirCraftType.NELL:
-                return AirCraft(type, count, 8, 8)
+                acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,4,0,0,9)
+                aircraft = AirCraft(type, count, 8, 8 , acd)
+            # Pete is a float plane, 
             case AirCraftType.PETE:
-                return AirCraft(type, count, 4, 6)
+                acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
+                aircraft = AirCraft(type, count, 4, 6, acd)
+            # Rufe is a float plane,
             case AirCraftType.RUFE:
-                return AirCraft(type, count, 9, 6)
+                acd= AircraftCombatData(6,0,0,3,0,0,0,0,0,1,0,0,0,0)
+                aircraft = AirCraft(type, count, 9, 6, acd)
+            # Val is a dive bomber
             case AirCraftType.VAL:
-                return AirCraft(type, count, 9, 7)
+                acd= AircraftCombatData(2,2,1,3,1,4,2,0,0,1,5,2,7,0)
+                aircraft = AirCraft(type, count, 9, 7, acd)
+            # Zero is a fighter, 
             case AirCraftType.ZERO:
-                return AirCraft(type, count, 10, 8)
-        return None
+                acd= AircraftCombatData(9,0,0,3,0,0,0,0,0,1,0,0,0,0)
+                aircraft = AirCraft(type, count, 10, 8, acd)
+        return aircraft
             
 
 class AirCraftType(Enum):
