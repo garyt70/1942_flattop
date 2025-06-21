@@ -159,7 +159,7 @@ class TestAirOperationsConfiguration(unittest.TestCase):
             name="Custom Config",
             description="Test config",
             maximum_capacity=5,
-            launch_factors=3,
+            launch_factor_normal=3,
             ready_factors=2,
             plane_handling_type="Base"
         )
@@ -207,9 +207,9 @@ class TestAirOperationsConfiguration(unittest.TestCase):
 
     def test_init_invalid_launch_factors(self):
         with self.assertRaises(ValueError):
-            AirOperationsConfiguration(launch_factors=0)
+            AirOperationsConfiguration(launch_factor_normal=0)
         with self.assertRaises(ValueError):
-            AirOperationsConfiguration(launch_factors=-3)
+            AirOperationsConfiguration(launch_factor_normal=-3)
 
     def test_init_invalid_ready_factors(self):
         with self.assertRaises(ValueError):
@@ -228,7 +228,7 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
             name="Rabul",
             description="Configuration for air operations at Rabul",
             maximum_capacity=9999,
-            launch_factors=12,
+            launch_factor_normal=12,
             ready_factors=7,
             plane_handling_type="Base"
         )
@@ -253,7 +253,7 @@ class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
             name="Port Moresby",
             description="Configuration for air operations at Port Moresby",
             maximum_capacity=9999,
-            launch_factors=20,
+            launch_factor_normal=20,
             ready_factors=8,
             plane_handling_type="LP"
         )

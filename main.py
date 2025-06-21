@@ -75,7 +75,9 @@ def scenario_one_setup():
         name="Rabul",
         description="Configuration for air operations at Rabul",
         maximum_capacity=9999,
-        launch_factors=12,
+        launch_factor_min=6,
+        launch_factor_normal=12,
+        launch_factor_max=24
         ready_factors=7,
         plane_handling_type="Base"
     )
@@ -107,7 +109,9 @@ def scenario_one_setup():
         name="Port Moresby",
         description="Configuration for air operations at Port Moresby",
         maximum_capacity=9999,
-        launch_factors=20,
+        launch_factor_min=10,
+        launch_factor_normal=20,
+        launch_factor_max=40,
         ready_factors=8,
         plane_handling_type="LP"
     )
@@ -123,7 +127,9 @@ def scenario_one_setup():
         name="Lexington",
         description="Configuration for air operations on Lexington",
         maximum_capacity=20,
-        launch_factors=12,
+        launch_factor_min=6,
+        launch_factor_normal=12,
+        launch_factor_max=24,
         ready_factors=6,
         plane_handling_type="SP"
     )

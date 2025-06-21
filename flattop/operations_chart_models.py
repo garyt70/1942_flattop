@@ -255,14 +255,18 @@ class AirOperationsConfiguration:
         name=None,
         description=None,
         maximum_capacity=1,
-        launch_factors=1,
+        launch_factor_min=1,
+        launch_factor_normal=1,
+        launch_factor_max=1,
         ready_factors=1,
         plane_handling_type="CV"  # e.g., "CV", "AV", "Base", "SP", "LP"
     ):
         self.name = name or "Air Operations Configuration"
         self.description = description or ""
         self.maximum_capacity = maximum_capacity  # Use property setter
-        self.launch_factors = launch_factors
+        self.launch_factor_min = launch_factor_min
+        self.launch_factors = launch_factor_normal
+        self.launch_factor_max = launch_factor_max
         self.ready_factors = ready_factors
         self.plane_handling_type = plane_handling_type
 
@@ -316,7 +320,7 @@ class AirFormation:
     """
     Represents an Air Formation, which can contain multiple aircraft.
     """
-    def __init__(self, number, name=None, side="Allied", launch_hour=0):
+    def __init__(self, number, name=None, side="Allied", launch_hour=0, height="High"):
         """
         Args:
             number (int): Air Formation counter number (1–35).
@@ -329,6 +333,7 @@ class AirFormation:
         self.aircraft = []
         self.side = side  # "Allied" or "Japanese"
         self.launch_hour = launch_hour
+        self.height = "High"  # Default height, can be "High" or "Low"
 
     def add_aircraft(self, aircraft):
         if not isinstance(aircraft, AirCraft):
