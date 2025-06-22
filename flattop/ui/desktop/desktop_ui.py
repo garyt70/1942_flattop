@@ -90,6 +90,30 @@ class PieceImageFactory:
                 pygame.draw.rect(surf, outline_color, (bridge_x, bridge_y, bridge_w, bridge_h))
         return surf
 
+    @staticmethod
+    def stack_image(color, count, size=HEX_SIZE):
+        """
+        Draws a stack indicator for multiple pieces in a hex.
+        """
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        # Draw a stack of circles, offset for each piece
+        offset = 4
+        for i in range(min(count, 4)):  # Show up to 4 in stack
+            alpha = 255 - i * 60
+            c = color if isinstance(color, tuple) else (0, 0, 255)
+            pygame.draw.circle(
+                surf,
+                c + (alpha,),
+                (size // 2 + i * offset, size // 2 + i * offset),
+                size // 2 - 2,
+            )
+        # Draw a number if more than 4
+        if count > 4:
+            font = pygame.font.SysFont(None, 18)
+            text = font.render(str(count), True, (255, 255, 255))
+            surf.blit(text, (size // 2, size // 2))
+        return surf
+
 
 class DesktopUI:
     """
@@ -126,6 +150,11 @@ class DesktopUI:
         self.board = board
         self.screen = None
         self.origin = (HEX_WIDTH // 2 + HEX_SPACING, HEX_HEIGHT // 2 + HEX_SPACING)
+        
+        self._dragging = False
+        self._last_mouse_pos = None
+        self._moving_piece = None
+        self._moving_piece_offset = (0, 0)
 
     def initialize(self):
         pygame.init()
@@ -211,37 +240,36 @@ class DesktopUI:
                     color = HEX_COLOR
                 center = self.hex_to_pixel(q, r)
                 self.draw_hex(center, color, HEX_BORDER)
-                
-                # Draw the hex coordinate as a number for identification at the top of the hex
-                 # commented out to avoid cluttering the UI and because of performance issues when rendering
-                # Uncomment to show hex coordinates
-                """
-                font = pygame.font.SysFont(None, 16)
-                hex_label = f"{q},{r}"
-                text_surface = font.render(hex_label, True, (0, 0, 0))
-                text_rect = text_surface.get_rect()
-                # Position the text at the top of the hex
-                text_rect.midbottom = (center[0], center[1] - HEX_SIZE + 4)
-                self.screen.blit(text_surface, text_rect)
-                """
-                
+
         # Draw the pieces on the board
+        hex_piece_map = {}
         for piece in self.board.pieces:
-            # Determine color by side
-            color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
-            center = self.hex_to_pixel(piece.position.q, piece.position.r)
-            # Select image based on piece type
-            if piece.game_model.__class__.__name__ == "AirFormation":
-                image = PieceImageFactory.airformation_image(color)
-            elif piece.game_model.__class__.__name__ == "Base":
-                image = PieceImageFactory.base_image(color)
-            elif piece.game_model.__class__.__name__ == "TaskForce":
-                image = PieceImageFactory.taskforce_image(color)
+            pos = (piece.position.q, piece.position.r)
+            if pos not in hex_piece_map:
+                hex_piece_map[pos] = []
+            hex_piece_map[pos].append(piece)
+
+        for (q, r), pieces in hex_piece_map.items():
+            center = self.hex_to_pixel(q, r)
+            if len(pieces) == 1:
+                piece = pieces[0]
+                color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
+                if piece.game_model.__class__.__name__ == "AirFormation":
+                    image = PieceImageFactory.airformation_image(color)
+                elif piece.game_model.__class__.__name__ == "Base":
+                    image = PieceImageFactory.base_image(color)
+                elif piece.game_model.__class__.__name__ == "TaskForce":
+                    image = PieceImageFactory.taskforce_image(color)
+                else:
+                    image = PieceImageFactory.airformation_image(color)
+                rect = image.get_rect(center=center)
+                self.screen.blit(image, rect)
             else:
-                image = PieceImageFactory.airformation_image(color)  # Default to circle
-            # Blit image centered on hex
-            rect = image.get_rect(center=center)
-            self.screen.blit(image, rect)
+                # Render stack image for multiple pieces
+                color = (128, 0, 128)  # Purple for stack
+                image = PieceImageFactory.stack_image(color, len(pieces))
+                rect = image.get_rect(center=center)
+                self.screen.blit(image, rect)
 
         pygame.display.flip()
     
@@ -327,56 +355,19 @@ class DesktopUI:
 
     def run_with_click_return(self):
         running = True
-        dragging = False
-        last_mouse_pos = None
-
-        moving_piece = None
-        moving_piece_offset = (0, 0)
-
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self._handle_mouse_button_down(event, 
-                                                   dragging, 
-                                                   last_mouse_pos, 
-                                                   moving_piece, 
-                                                   moving_piece_offset)
-                    # Update local variables if changed in handler
-                    dragging = getattr(self, '_dragging', dragging)
-                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
-                    moving_piece = getattr(self, '_moving_piece', moving_piece)
-                    moving_piece_offset = getattr(self, '_moving_piece_offset', moving_piece_offset)
+                    self._handle_mouse_button_down(event)
 
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    # Before moving, check if the move is within the piece's movement_factor
-                    if moving_piece and event.button == 1:
-                        mouse_x, mouse_y = event.pos
-                        dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
-                        if dest_hex:
-                            start_hex = moving_piece.position
-                            distance = self.get_distance(start_hex, dest_hex)
-                            max_move = moving_piece.movement_factor
-                            if distance <= max_move:
-                                self.board.move_piece(moving_piece, dest_hex)
-                            # else: ignore move (could add feedback)
-                        self._moving_piece = None
-                        # Save state for run loop
-                        dragging = getattr(self, '_dragging', dragging)
-                        last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
-                        moving_piece = getattr(self, '_moving_piece', moving_piece)
-                    else:
-                        self._handle_mouse_button_up(event, moving_piece, dragging, last_mouse_pos)
-                        dragging = getattr(self, '_dragging', dragging)
-                        last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
-                        moving_piece = getattr(self, '_moving_piece', moving_piece)
+                    self._handle_mouse_button_up(event)
 
                 elif event.type == pygame.MOUSEMOTION:
-                    self._handle_mouse_motion(event, moving_piece, moving_piece_offset, dragging, last_mouse_pos)
-                    dragging = getattr(self, '_dragging', dragging)
-                    last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                    self._handle_mouse_motion(event)
 
             #self.screen.fill(BG_COLOR)
             self.render_screen()
@@ -385,7 +376,7 @@ class DesktopUI:
         pygame.quit()
         sys.exit()
 
-    def _handle_mouse_button_down(self, event, dragging, last_mouse_pos, moving_piece, moving_piece_offset):
+    def _handle_mouse_button_down(self, event):
         # Handles mouse interaction for selecting and dragging pieces on a hex grid.
         # If a piece exists at the mouse event position, it prepares the piece for moving by:
         #   - Storing the piece as '_moving_piece'
@@ -393,17 +384,30 @@ class DesktopUI:
         #     so the piece follows the cursor smoothly during dragging.
         # If no piece is present, it starts a generic drag operation (e.g., for panning the board)
         #   - Sets '_dragging' to True and records the last mouse position.
+
+        # Save state for run loop. This is required to maintain state across multiple events and important when
+        # multiple Pieces are in a Hex.
+        mouse_x, mouse_y = event.pos
+        self._dragging = False
+
+        pieces = self.get_pieces_at_pixel(event.pos)
+        if len(pieces) == 1:
+            piece = pieces[0]
+        elif len(pieces) > 1:
+            piece = self.render_piece_selection_popup(pieces, event.pos)
+        else:
+            piece = None
+
         if event.button == 1:
-            piece = self.get_piece_at_pixel(event.pos)
             if piece:
+                self._dragging = False
+                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
                 if piece.can_move:
                     self._moving_piece = piece
-                    mouse_x, mouse_y = event.pos
-                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                    self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                    
                     # Show movement range as a light gray circle overlay
                     max_move = piece.movement_factor
-                    center = self.hex_to_pixel(piece.position.q, piece.position.r)
                     radius = int(HEX_SIZE * max_move * 1.5)  # Adjust radius based on movement factor
                     # Create a semi-transparent overlay for the movement range
                     overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -421,6 +425,7 @@ class DesktopUI:
             if piece:
                 self.render_popup(f"{piece}", event.pos)
         # Save state for run loop
+        """
         if not hasattr(self, '_dragging'):
             self._dragging = dragging
         if not hasattr(self, '_last_mouse_pos'):
@@ -429,26 +434,43 @@ class DesktopUI:
             self._moving_piece = moving_piece
         if not hasattr(self, '_moving_piece_offset'):
             self._moving_piece_offset = moving_piece_offset
-
-    def _handle_mouse_button_up(self, event, moving_piece, dragging, last_mouse_pos):
+        """
+    def _handle_mouse_button_up(self, event):
+        moving_piece = self._moving_piece
         if event.button == 1:
-            if moving_piece:
+            self._dragging = False
+            # Before moving, check if the move is within the piece's movement_factor
+            if moving_piece and event.button == 1:
                 mouse_x, mouse_y = event.pos
-                hex_coords = self.pixel_to_hex_coord(mouse_x, mouse_y)
-                self.board.move_piece(moving_piece, hex_coords)
+                dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
+                if dest_hex:
+                    start_hex = moving_piece.position
+                    distance = self.get_distance(start_hex, dest_hex)
+                    max_move = moving_piece.movement_factor
+                    if distance <= max_move:
+                        self.board.move_piece(moving_piece, dest_hex)
+                    # else: ignore move (could add feedback)
                 self._moving_piece = None
-            else:
-                self._dragging = False
-                self._last_mouse_pos = None
+                # Save state for run loop
+                #dragging = getattr(self, '_dragging', dragging)
+                #last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
+                #moving_piece = getattr(self, '_moving_piece', moving_piece)
         # Save state for run loop
+        """
         if not hasattr(self, '_dragging'):
             self._dragging = dragging
         if not hasattr(self, '_last_mouse_pos'):
             self._last_mouse_pos = last_mouse_pos
         if not hasattr(self, '_moving_piece'):
             self._moving_piece = moving_piece
+        """
 
-    def _handle_mouse_motion(self, event, moving_piece, moving_piece_offset, dragging, last_mouse_pos):
+    def _handle_mouse_motion(self, event):
+        moving_piece = self._moving_piece
+        moving_piece_offset = self._moving_piece_offset
+        dragging = self._dragging
+        last_mouse_pos = self._last_mouse_pos
+
         if moving_piece:
             # If a piece is being moved, draw it at the mouse position with an offset
             # This allows the piece to follow the cursor smoothly
@@ -463,10 +485,70 @@ class DesktopUI:
             self.origin = (self.origin[0] + dx, self.origin[1] + dy)
             self._last_mouse_pos = event.pos
         # Save state for run loop
-        if not hasattr(self, '_dragging'):
-            self._dragging = dragging
-        if not hasattr(self, '_last_mouse_pos'):
-            self._last_mouse_pos = last_mouse_pos
+        #if not hasattr(self, '_dragging'):
+        #    self._dragging = dragging
+        #if not hasattr(self, '_last_mouse_pos'):
+        #    self._last_mouse_pos = last_mouse_pos
+
+    def get_pieces_at_pixel(self, pos):
+        # Return all pieces at the hex under the given pixel
+        x, y = pos
+        x -= self.origin[0]
+        y -= self.origin[1]
+        q = int(round((2/3 * x) / HEX_SIZE))
+        r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
+        return [piece for piece in self.board.pieces if piece.position.q == q and piece.position.r == r]
+
+    def render_piece_selection_popup(self, pieces, pos):
+        # Display a popup with a list of pieces and let the user select one
+        win_width, win_height = self.screen.get_size()
+        margin = 10
+        font = pygame.font.SysFont(None, 24)
+        # Show: Piece name, type, and side
+        lines = [
+            f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
+            for i, piece in enumerate(pieces)
+        ]
+        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        popup_rect = pygame.Rect(
+            win_width // 2 - popup_width // 2,
+            win_height // 2 - popup_height // 2,
+            popup_width,
+            popup_height
+        )
+        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+        y = popup_rect.top + margin
+        for ts in text_surfaces:
+            text_rect = ts.get_rect()
+            text_rect.topleft = (popup_rect.left + margin, y)
+            self.screen.blit(ts, text_rect)
+            y += ts.get_height() + margin // 2
+        pygame.display.flip()
+
+        # Wait for user to click on a line or press a number key
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if pygame.K_1 <= event.key <= pygame.K_9:
+                        idx = event.key - pygame.K_1
+                        if idx < len(pieces):
+                            return pieces[idx]
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = event.pos
+                    if popup_rect.collidepoint(mx, my):
+                        rel_y = my - popup_rect.top - margin
+                        line_height = text_surfaces[0].get_height() + margin // 2
+                        idx = rel_y // line_height
+                        if 0 <= idx < len(pieces):
+                            return pieces[idx]
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return None
 
     def run(self):
         """

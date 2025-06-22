@@ -153,9 +153,8 @@ class HexBoardModel:
                 return piece
         return None
 
-    def move_piece(self, piece, target_hex):
+    def move_piece(self, piece : Piece, target_hex : Hex):
         is_valid_tile = self.is_valid_tile(target_hex)
-        is_empty_tile = self.get_piece_at(target_hex) is None
 
         # Prevent TaskForce from moving into land hex
         is_task_force = (
@@ -167,7 +166,7 @@ class HexBoardModel:
         if is_task_force and is_land_hex:
             return False
 
-        if is_valid_tile and is_empty_tile:
+        if is_valid_tile and piece.can_move:
             piece.move(target_hex)
             return True
         return False
