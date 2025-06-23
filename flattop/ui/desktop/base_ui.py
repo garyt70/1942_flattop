@@ -5,7 +5,7 @@ import pygame
 # Ensure the parent directory is in sys.path for module discovery
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
-from flattop.operations_chart_models import AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType
+from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType
 
 class AirOperationsTrackerDisplay:
     def __init__(self, tracker: AirOperationsTracker, surface, pos=(10, 90)):
@@ -170,14 +170,27 @@ class AirOperationsConfigurationDisplay:
 
 
 class BaseUIDisplay:
-    def __init__(self, tracker: AirOperationsTracker, config: AirOperationsConfiguration, surface):
-        self.config_display = AirOperationsConfigurationDisplay(config, surface)
-        self.tracker_display = AirOperationsTrackerDisplay(tracker, surface)
+    def __init__(self, base:Base, surface):
+        self.surface = surface
+        self.config_display = AirOperationsConfigurationDisplay(base.air_operations_config, surface)
+        self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, surface)
         
 
     def draw(self):
+        self.surface.fill((0, 0, 40))
         self.config_display.draw()
         self.tracker_display.draw()
+
+        pygame.display.flip()
+
+        waiting = True
+        while waiting:
+            for popup_event in pygame.event.get():
+                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                    waiting = False
+                    if popup_event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
 
 # Example usage:
 if __name__ == "__main__":
@@ -194,8 +207,9 @@ if __name__ == "__main__":
     tracker.set_operations_status(AircraftFactory.create(AircraftType.CATALINA, count=4),AircraftOperationsStatus.READY)
     tracker.set_operations_status(AircraftFactory.create(AircraftType.B17, count=6),AircraftOperationsStatus.READYING)
 
+    base = Base("Test Base", "Test Description", tracker, config)
 
-    ui = BaseUIDisplay(tracker, config, screen)
+    ui = BaseUIDisplay(base, screen)
 
     running = True
     while running:
@@ -203,7 +217,6 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 running = False
 
-        screen.fill((0, 0, 40))
         ui.draw()
         pygame.display.flip()
         clock.tick(30)

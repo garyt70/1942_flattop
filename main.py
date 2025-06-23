@@ -1,6 +1,6 @@
 from flattop.ui.desktop.desktop_ui import DesktopUI # Import the DesktopUI class from the module
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation
+from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
 
 
 def scenario_one_setup():
@@ -81,13 +81,13 @@ def scenario_one_setup():
         ready_factors=7,
         plane_handling_type="Base"
     )
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Zero", count=10),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Val", count=8),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Kate", count=10),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Mavis", count=8),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Rufe", count=1),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations.set_operations_status(AirCraft("Nell", count=12),AircraftOperationsStatus.READY)
-    
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=10),AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.VAL, count=8),AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=8),AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=12),AircraftOperationsStatus.READY)
+
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
     hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
@@ -115,8 +115,8 @@ def scenario_one_setup():
         ready_factors=8,
         plane_handling_type="LP"
     )
-    basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("P-40", count=12),AircraftOperationsStatus.READY)
-    basePortMoresbyAllied.air_operations.set_operations_status(AirCraft("Catalina", count=4),AircraftOperationsStatus.READY)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.P40, count=12),AircraftOperationsStatus.READY)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.CATALINA, count=4),AircraftOperationsStatus.READY)
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
 
     hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
@@ -133,9 +133,9 @@ def scenario_one_setup():
         ready_factors=6,
         plane_handling_type="SP"
     )
-    carrierLexington.air_operations.set_operations_status(AirCraft("Wildcat", count=8),AircraftOperationsStatus.READY)
-    carrierLexington.air_operations.set_operations_status(AirCraft("Dauntless", count=12),AircraftOperationsStatus.READY)
-    carrierLexington.air_operations.set_operations_status(AirCraft("Devastator", count=4),AircraftOperationsStatus.READY)
+    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=8),AircraftOperationsStatus.READY)
+    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DAUNTLESS, count=12),AircraftOperationsStatus.READY)
+    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DEVASTATOR, count=4),AircraftOperationsStatus.READY)
 
     taskForce.add_ship(carrierLexington)  # Add the carrier to the task force
     taskForce.add_ship(Ship("Pensecola", "CA", "operational",5,2,2))

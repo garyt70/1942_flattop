@@ -3,6 +3,8 @@ import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
+from flattop.operations_chart_models import AirFormation, Base, TaskForce  # Adjust import as needed
+from flattop.ui.desktop.base_ui import BaseUIDisplay
 
 # Hexagon settings
 HEX_SIZE = 20  # Radius of hex
@@ -281,40 +283,52 @@ class DesktopUI:
 
         pygame.display.flip()
     
-    def render_popup(self, text, pos):
+    def render_popup(self, piece:Piece, pos):
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
         # Calculate maximum popup size (20% of display area, but allow up to 90% of height)
         win_width, win_height = self.screen.get_size()
         margin = 10
 
-        # Prepare font
-        font = pygame.font.SysFont(None, 24)
-        lines = text.split('\n')
-        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        if piece.game_model.__class__.__name__ == "Base":
+            # If the piece is a Base, use the BaseUIDisplay to render it
+            # This allows for a more detailed and interactive display of the Base piece
+            try:
+                BaseUIDisplay( piece.game_model, self.screen).draw()
+                return
+            except ImportError:
+                pass  # Fallback to default popup if import fails
+        else:
+            # Prepare text for popup
+            text= f"{piece}"
 
-        # Calculate popup size based on the widest line and total height
-        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
-        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+            # Prepare font
+            font = pygame.font.SysFont(None, 24)
+            lines = text.split('\n')
+            text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
 
-        # Position popup at top right
-        popup_rect = pygame.Rect(
-            win_width - popup_width - margin,
-            margin,
-            popup_width,
-            popup_height
-        )
+            # Calculate popup size based on the widest line and total height
+            popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+            popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
 
-        # Draw popup background and border
-        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
-        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+            # Position popup at top right
+            popup_rect = pygame.Rect(
+                win_width - popup_width - margin,
+                margin,
+                popup_width,
+                popup_height
+            )
 
-        # Render each line of text
-        y = popup_rect.top + margin
-        for ts in text_surfaces:
-            text_rect = ts.get_rect()
-            text_rect.topleft = (popup_rect.left + margin, y)
-            self.screen.blit(ts, text_rect)
-            y += ts.get_height() + margin // 2
+            # Draw popup background and border
+            pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+            pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+
+            # Render each line of text
+            y = popup_rect.top + margin
+            for ts in text_surfaces:
+                text_rect = ts.get_rect()
+                text_rect.topleft = (popup_rect.left + margin, y)
+                self.screen.blit(ts, text_rect)
+                y += ts.get_height() + margin // 2
 
         pygame.display.flip()
 
@@ -431,7 +445,7 @@ class DesktopUI:
         elif event.button == 3:
             piece = self.get_piece_at_pixel(event.pos)
             if piece:
-                self.render_popup(f"{piece}", event.pos)
+                self.render_popup(piece, event.pos)
         # Save state for run loop
         """
         if not hasattr(self, '_dragging'):

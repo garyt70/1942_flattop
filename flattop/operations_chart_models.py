@@ -191,14 +191,14 @@ Text from rule book
         return header + table
 
 class Base:
-    def __init__(self, name=None, side="Allied"):
+    def __init__(self, name=None, side="Allied", air_operations_config=None, air_operations_tracker=None):
         """
         Args:
             name (str, optional): Optional name for the Base.
         """
         self.name = name or "Base"
-        self.air_operations_config = AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
-        self.air_operations = AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
+        self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
+        self.air_operations_tracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
 
     """
@@ -224,17 +224,17 @@ class Base:
         air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
 
         # Move aircraft from READY status to the new AirFormation
-        for ac in self.air_operations.ready:
+        for ac in self.air_operations_tracker.ready:
             air_formation.add_aircraft(ac)
         # Clear the READY status in the AirOperationsTracker
-        self.air_operations.ready.clear()
+        self.air_operations_tracker.ready.clear()
         
         return air_formation
 
 
 
     def __repr__(self):
-        return f"Base(name={self.name}, side={self.side} \n {self.air_operations}, \n {self.air_operations_config})"
+        return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self.air_operations_config})"
     
 
 class AirOperationsConfiguration:
@@ -273,7 +273,7 @@ class AirOperationsConfiguration:
     def __repr__(self):
         return (f"{self.name} Air Operations Configuration, "
                 f"\n Max Capacity={self.maximum_capacity}, "
-                f" Launch Factor={self.launch_factors}, "
+                f" Launch Factor={self.launch_factor_normal}, "
                 f" Ready Factor={self.ready_factors}, "
                 f" Planes Handled={self.plane_handling_type}")
   
@@ -651,7 +651,7 @@ class Carrier(Ship):
     
     @property
     def air_operations(self):
-        return self.base.air_operations
+        return self.base.air_operations_tracker
 
                
 
