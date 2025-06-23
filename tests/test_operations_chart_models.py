@@ -11,7 +11,7 @@ from flattop.operations_chart_models import (
     AirOperationsTracker,
     Base,
     AircraftOperationsStatus,
-    AirCraftType,
+    AircraftType,
     AircraftFactory
 )
 
@@ -47,7 +47,7 @@ class TestAirOperationsChart(unittest.TestCase):
 
 class TestAircraftFactory(unittest.TestCase):
     def test_type(self):
-        test_aircraft = AircraftFactory.create_aircraft(AirCraftType.A20, 19)
+        test_aircraft = AircraftFactory.create(AircraftType.A20, 19)
         self.assertTrue(test_aircraft.type , "A20")
 
 class TestTaskForce(unittest.TestCase):
@@ -150,7 +150,7 @@ class TestAirOperationsConfiguration(unittest.TestCase):
         self.assertEqual(config.name, "Air Operations Configuration")
         self.assertEqual(config.description, "")
         self.assertEqual(config.maximum_capacity, 1)
-        self.assertEqual(config.launch_factors, 1)
+        self.assertEqual(config.launch_factor_normal, 1)
         self.assertEqual(config.ready_factors, 1)
         self.assertEqual(config.plane_handling_type, "CV")
 
@@ -166,56 +166,9 @@ class TestAirOperationsConfiguration(unittest.TestCase):
         self.assertEqual(config.name, "Custom Config")
         self.assertEqual(config.description, "Test config")
         self.assertEqual(config.maximum_capacity, 5)
-        self.assertEqual(config.launch_factors, 3)
+        self.assertEqual(config.launch_factor_normal, 3)
         self.assertEqual(config.ready_factors, 2)
         self.assertEqual(config.plane_handling_type, "Base")
-
-    def test_maximum_capacity_setter(self):
-        config = AirOperationsConfiguration()
-        config.maximum_capacity = 10
-        self.assertEqual(config.maximum_capacity, 10)
-        with self.assertRaises(ValueError):
-            config.maximum_capacity = 0
-        with self.assertRaises(ValueError):
-            config.maximum_capacity = -5
-
-    def test_launch_factors_setter(self):
-        config = AirOperationsConfiguration()
-        config.launch_factors = 4
-        self.assertEqual(config.launch_factors, 4)
-        with self.assertRaises(ValueError):
-            config.launch_factors = 0
-        with self.assertRaises(ValueError):
-            config.launch_factors = -2
-
-    def test_ready_factors_setter(self):
-        config = AirOperationsConfiguration()
-        config.ready_factors = 2
-        self.assertEqual(config.ready_factors, 2)
-        with self.assertRaises(ValueError):
-            config.ready_factors = 0
-        with self.assertRaises(ValueError):
-            config.ready_factors = -1
-
-    
-
-    def test_init_invalid_maximum_capacity(self):
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(maximum_capacity=0)
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(maximum_capacity=-1)
-
-    def test_init_invalid_launch_factors(self):
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(launch_factor_normal=0)
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(launch_factor_normal=-3)
-
-    def test_init_invalid_ready_factors(self):
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(ready_factors=0)
-        with self.assertRaises(ValueError):
-            AirOperationsConfiguration(ready_factors=-10)
 
 class TestScenarioOneSetupRingsAroundRabul(unittest.TestCase):
     def test_scenario_setup(self):

@@ -14,6 +14,8 @@ HEX_SPACING = 5  # Space between hexes
 BG_COLOR = (30, 30, 30)
 HEX_COLOR = (173, 216, 230)  # Light blue
 HEX_BORDER = (100, 100, 100)
+COLOR_JAPANESE_PIECE = (255, 0, 0)  # RED
+COLOR_ALLIED_PIECE = (0, 128, 255)  # Blue
 
 
 class PieceImageFactory:
@@ -91,27 +93,34 @@ class PieceImageFactory:
         return surf
 
     @staticmethod
-    def stack_image(color, count, size=HEX_SIZE):
+    def stack_image(pieces, size=HEX_SIZE):
         """
-        Draws a stack indicator for multiple pieces in a hex.
+        Draws a stack indicator for multiple pieces in a hex, as overlapping squares.
+        Each square is the same size as the hex, but offset so the stack is visible.
+        The top piece is fully visible, and each piece underneath is offset and partially visible.
+        pieces: list of Piece objects in the stack (max 4 shown).
         """
-        surf = pygame.Surface((size, size), pygame.SRCALPHA)
-        # Draw a stack of circles, offset for each piece
-        offset = 4
-        for i in range(min(count, 4)):  # Show up to 4 in stack
-            alpha = 255 - i * 60
-            c = color if isinstance(color, tuple) else (0, 0, 255)
-            pygame.draw.circle(
-                surf,
-                c + (alpha,),
-                (size // 2 + i * offset, size // 2 + i * offset),
-                size // 2 - 2,
-            )
+        surf = pygame.Surface((size + size // 1.5, size + size // 1.5), pygame.SRCALPHA)
+        overlap = size // 4  # Amount each square is offset to show underneath
+        max_show = min(len(pieces), 4)
+
+        def piece_color(piece):
+            return COLOR_ALLIED_PIECE if getattr(piece, "side", "") == "Allied" else COLOR_JAPANESE_PIECE
+
+        # Draw from bottom to top so the top piece is fully visible
+        for i in range(max_show):
+            color = piece_color(pieces[i])
+            offset = (max_show - 1 - i) * overlap
+            rect = pygame.Rect(offset, offset, size, size)
+            pygame.draw.rect(surf, color, rect)
+            pygame.draw.rect(surf, (200, 200, 200), rect, 2)
+
         # Draw a number if more than 4
-        if count > 4:
+        if len(pieces) > 4:
             font = pygame.font.SysFont(None, 18)
-            text = font.render(str(count), True, (255, 255, 255))
-            surf.blit(text, (size // 2, size // 2))
+            text = font.render(str(len(pieces)), True, (255, 255, 255))
+            text_rect = text.get_rect(center=(surf.get_width() // 1.5, surf.get_height() // 1.5))
+            surf.blit(text, text_rect)
         return surf
 
 
@@ -253,7 +262,7 @@ class DesktopUI:
             center = self.hex_to_pixel(q, r)
             if len(pieces) == 1:
                 piece = pieces[0]
-                color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
+                color = COLOR_JAPANESE_PIECE if piece.side == "Japanese" else COLOR_ALLIED_PIECE
                 if piece.game_model.__class__.__name__ == "AirFormation":
                     image = PieceImageFactory.airformation_image(color)
                 elif piece.game_model.__class__.__name__ == "Base":
@@ -266,8 +275,7 @@ class DesktopUI:
                 self.screen.blit(image, rect)
             else:
                 # Render stack image for multiple pieces
-                color = (128, 0, 128)  # Purple for stack
-                image = PieceImageFactory.stack_image(color, len(pieces))
+                image = PieceImageFactory.stack_image(pieces)
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
 

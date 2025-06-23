@@ -265,49 +265,10 @@ class AirOperationsConfiguration:
         self.description = description or ""
         self.maximum_capacity = maximum_capacity  # Use property setter
         self.launch_factor_min = launch_factor_min
-        self.launch_factors = launch_factor_normal
+        self.launch_factor_normal = launch_factor_normal
         self.launch_factor_max = launch_factor_max
         self.ready_factors = ready_factors
         self.plane_handling_type = plane_handling_type
-
-    @property
-    def maximum_capacity(self):
-        return self._maximum_capacity
-
-    @maximum_capacity.setter
-    def maximum_capacity(self, value):
-        if value < 1:
-            raise ValueError("maximum_capacity must be at least 1")
-        self._maximum_capacity = value
-
-    @property
-    def launch_factors(self):
-        return self._launch_factors
-
-    @launch_factors.setter
-    def launch_factors(self, value):
-        if value < 1:
-            raise ValueError("launch_factors must be at least 1")
-        self._launch_factors = value
-
-    @property
-    def ready_factors(self):
-        return self._ready_factors
-
-    @ready_factors.setter
-    def ready_factors(self, value):
-        if value < 1:
-            raise ValueError("ready_factors must be at least 1")
-        self._ready_factors = value
-    @property
-    def maximum_capacity(self):
-        return self._maximum_capacity
-
-    @maximum_capacity.setter
-    def maximum_capacity(self, value):
-        if value < 1:
-            raise ValueError("maximum_capacity must be at least 1")
-        self._maximum_capacity = value
 
     def __repr__(self):
         return (f"{self.name} Air Operations Configuration, "
@@ -464,11 +425,11 @@ class AircraftFactory:
         pass
 
     @staticmethod
-    def create_aircraft(type, count=1):
+    def create(type, count=1):
         aircraft: AirCraft = None
         acd: AircraftCombatData = None
         match type:
-            case AirCraftType.A20:
+            case AircraftType.A20:
                 acd = AircraftCombatData(
                     air_to_air=3,
                     level_bombing_high_base_gp=5,
@@ -486,7 +447,7 @@ class AircraftFactory:
                     torpedo_bombing_ship=0
                 )
                 aircraft = AirCraft(type, count, 9, 6, acd)
-            case AirCraftType.AVENGER:
+            case AircraftType.AVENGER:
                 acd = AircraftCombatData(
                     air_to_air=3,
                     level_bombing_high_base_gp=4,
@@ -504,7 +465,7 @@ class AircraftFactory:
                     torpedo_bombing_ship=6
                 )
                 aircraft = AirCraft(type, count, 7, 8, acd)
-            case AirCraftType.BEAUFIGHTER:
+            case AircraftType.BEAUFIGHTER:
                 acd = AircraftCombatData(
                     air_to_air=6,
                     level_bombing_high_base_gp=0,
@@ -522,7 +483,7 @@ class AircraftFactory:
                     torpedo_bombing_ship=0
                 )
                 aircraft = AirCraft(type, count, 9, 6, acd)
-            case AirCraftType.BEUFORT:
+            case AircraftType.BEUFORT:
                 acd = AircraftCombatData(
                     air_to_air=3,
                     level_bombing_high_base_gp=4,
@@ -540,93 +501,93 @@ class AircraftFactory:
                     torpedo_bombing_ship=7
                 )
                 aircraft = AirCraft(type, count, 7, 8)
-            case AirCraftType.B17:
+            case AircraftType.B17:
                 acd= AircraftCombatData(8,13,5,0,0,0,0,0,2,0,0,0,0,0)
                 # B-17 has high air-to-air and level bombing capabilities
                 aircraft = AirCraft(type, count, 8, 12, acd)
-            case AirCraftType.B25:
+            case AircraftType.B25:
                 acd= AircraftCombatData(4,8,3,11,5,0,0,0,1,3,7,0,0,0)
                 aircraft = AirCraft(type, count, 9, 7, acd)
-            case AirCraftType.B26:
+            case AircraftType.B26:
                 acd= AircraftCombatData(4,6,2,10,4,0,0,0,1,2,5,0,0,5)
                 aircraft = AirCraft(type, count, 10, 6,acd)
-            case AirCraftType.CATALINA:
+            case AircraftType.CATALINA:
                 acd= AircraftCombatData(4,6,2,9,3,0,0,0,1,2,7,0,0,10)
                 aircraft = AirCraft(type, count, 6, 20, acd)
-            case AirCraftType.DAUNTLESS:
+            case AircraftType.DAUNTLESS:
                 acd= AircraftCombatData(3,3,1,5,1,6,2,0,0,2,5,2,7,0)
                 aircraft = AirCraft(type, count, 9, 6, acd)
-            case AirCraftType.DEVASTATOR:
+            case AircraftType.DEVASTATOR:
                 acd= AircraftCombatData(2,3,1,5,2,0,0,0,0,1,5,0,0,6)
                 aircraft = AirCraft(type, count, 6, 5, acd)
-            case AirCraftType.HUDESON:
+            case AircraftType.HUDESON:
                 acd= AircraftCombatData(3,3,1,6,2,0,0,0,1,1,4,0,0,0)
                 aircraft = AirCraft(type, count, 7, 10, acd)
-            case AirCraftType.P38:
+            case AircraftType.P38:
                 acd= AircraftCombatData(7,0,0,5,0,0,0,0,0,1,0,0,0,0)   
                 aircraft = AirCraft(type, count, 12, 5, acd)
-            case AirCraftType.P39:
+            case AircraftType.P39:
                 acd= AircraftCombatData(6,0,0,5,0,0,0,0,0,1,0,0,0,0)  
                 aircraft = AirCraft(type, count, 11, 5, acd)
-            case AirCraftType.P40:
+            case AircraftType.P40:
                 acd= AircraftCombatData(7,0,0,4,0,0,0,0,0,1,0,0,0,0)  
                 aircraft = AirCraft(type, count, 11, 5, acd)
-            case AirCraftType.WILDCAT:
+            case AircraftType.WILDCAT:
                 acd= AircraftCombatData(9,0,0,4,0,0,0,0,0,1,0,0,0,0)  
                 aircraft = AirCraft(type, count, 8, 6, acd)
             #japanese
             # Betty is a bomber, so it has a different range factor)
-            case AirCraftType.BETTY:
+            case AircraftType.BETTY:
                 acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,5,0,0,9)
                 aircraft = AirCraft(type, count, 9, 10 , acd)
             # Dave is a float plane, so it has a different range factor)
-            case AirCraftType.DAVE:
+            case AircraftType.DAVE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
                 aircraft = AirCraft(type, count, 4, 6, acd)
             # Emily is a flying boat, so it has a different range factor)
-            case AirCraftType.EMILY:
+            case AircraftType.EMILY:
                 acd= AircraftCombatData(6,8,3,9,4,0,0,0,1,3,7,0,0,15)
                 aircraft = AirCraft(type, count, 9, 24, acd)
             # Judy is a dive bomber)
-            case AirCraftType.JUDY:
+            case AircraftType.JUDY:
                 acd= AircraftCombatData(3,2,1,3,1,4,2,0,0,1,5,2,7,0)
                 aircraft = AirCraft(type, count, 11, 6, acd)
             # Jake is a float plane, 
-            case AirCraftType.JAKE:
+            case AircraftType.JAKE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
                 aircraft = AirCraft(type, count, 5, 9, acd)
             # Kate is a torpedo bomber
-            case AirCraftType.KATE:
+            case AircraftType.KATE:
                 acd= AircraftCombatData(2,4,2,6,2,0,0,0,1,2,6,0,0,10)
                 aircraft = AirCraft(type, count, 7, 7, acd)
             # Mavis is a flying boat, 
-            case AirCraftType.MAVIS:
+            case AircraftType.MAVIS:
                 acd= AircraftCombatData(5,6,2,7,3,0,0,0,1,2,6,0,0,15)
                 aircraft = AirCraft(type, count, 8, 23, acd)
             # Nell is a bomber, 
-            case AirCraftType.NELL:
+            case AircraftType.NELL:
                 acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,4,0,0,9)
                 aircraft = AirCraft(type, count, 8, 8 , acd)
             # Pete is a float plane, 
-            case AirCraftType.PETE:
+            case AircraftType.PETE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
                 aircraft = AirCraft(type, count, 4, 6, acd)
             # Rufe is a float plane,
-            case AirCraftType.RUFE:
+            case AircraftType.RUFE:
                 acd= AircraftCombatData(6,0,0,3,0,0,0,0,0,1,0,0,0,0)
                 aircraft = AirCraft(type, count, 9, 6, acd)
             # Val is a dive bomber
-            case AirCraftType.VAL:
+            case AircraftType.VAL:
                 acd= AircraftCombatData(2,2,1,3,1,4,2,0,0,1,5,2,7,0)
                 aircraft = AirCraft(type, count, 9, 7, acd)
             # Zero is a fighter, 
-            case AirCraftType.ZERO:
+            case AircraftType.ZERO:
                 acd= AircraftCombatData(9,0,0,3,0,0,0,0,0,1,0,0,0,0)
                 aircraft = AirCraft(type, count, 10, 8, acd)
         return aircraft
             
 
-class AirCraftType(Enum):
+class AircraftType(Enum):
     #Allied
     A20 = "A-20"
     AVENGER = "Avenger"
