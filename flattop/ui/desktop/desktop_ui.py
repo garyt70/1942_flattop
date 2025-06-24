@@ -281,6 +281,9 @@ class DesktopUI:
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
 
+        # If a piece is being moved, draw it at the mouse position
+        if self._moving_piece:
+            self.show_max_move_distance(self._moving_piece)
         pygame.display.flip()
     
     def render_popup(self, piece:Piece, pos):
@@ -375,6 +378,18 @@ class DesktopUI:
         print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
         return distance
 
+    def show_max_move_distance(self, piece):
+        # Show movement range as a light gray circle overlay
+        max_move = piece.movement_factor
+        radius = int(HEX_SIZE * max_move * 1.5)  # Adjust radius based on movement factor
+        center = self.hex_to_pixel(piece.position.q, piece.position.r)
+        
+        # Create a semi-transparent overlay for the movement range
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        pygame.draw.circle(overlay, (200, 200, 200, 100), center, radius)
+        self.screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+
     def run_with_click_return(self):
         running = True
         while running:
@@ -384,9 +399,6 @@ class DesktopUI:
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     self._handle_mouse_button_down(event)
-
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    self._handle_mouse_button_up(event)
 
                 elif event.type == pygame.MOUSEMOTION:
                     self._handle_mouse_motion(event)
@@ -407,10 +419,16 @@ class DesktopUI:
         # If no piece is present, it starts a generic drag operation (e.g., for panning the board)
         #   - Sets '_dragging' to True and records the last mouse position.
 
-        # Save state for run loop. This is required to maintain state across multiple events and important when
-        # multiple Pieces are in a Hex.
-        mouse_x, mouse_y = event.pos
-        self._dragging = False
+        
+        #if a piece is clicked, we need to handle the piece selection
+        if self._moving_piece:
+            # If a piece is already being moved, we need to handle the mouse button up event
+            self._handle_move_piece(event)
+            return
+        
+
+        #because some rendering operations have their own even loop, we need to save the button state
+        original_button = event.button
 
         pieces = self.get_pieces_at_pixel(event.pos)
         if len(pieces) == 1:
@@ -420,73 +438,45 @@ class DesktopUI:
         else:
             piece = None
 
-        if event.button == 1:
+       
+        if original_button == 1:
+            # If left mouse button is pressed, check if a piece is under the mouse and previous piece is not moving
             if piece:
-                self._dragging = False
-                center = self.hex_to_pixel(piece.position.q, piece.position.r)
-                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
-                if piece.can_move:
-                    self._moving_piece = piece
-                    
-                    # Show movement range as a light gray circle overlay
-                    max_move = piece.movement_factor
-                    radius = int(HEX_SIZE * max_move * 1.5)  # Adjust radius based on movement factor
-                    # Create a semi-transparent overlay for the movement range
-                    overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-                    pygame.draw.circle(overlay, (200, 200, 200, 100), center, radius)
-                    self.screen.blit(overlay, (0, 0))
-                    pygame.display.flip()
-                else:
-                    self._moving_piece = None
-                    self._moving_piece_offset = None
+                self.show_piece_menu(piece, event.pos)
             else:
                 self._dragging = True
                 self._last_mouse_pos = event.pos
-        elif event.button == 3:
+        elif original_button == 3:
             piece = self.get_piece_at_pixel(event.pos)
             if piece:
                 self.render_popup(piece, event.pos)
-        # Save state for run loop
-        """
-        if not hasattr(self, '_dragging'):
-            self._dragging = dragging
-        if not hasattr(self, '_last_mouse_pos'):
-            self._last_mouse_pos = last_mouse_pos
-        if not hasattr(self, '_moving_piece'):
-            self._moving_piece = moving_piece
-        if not hasattr(self, '_moving_piece_offset'):
-            self._moving_piece_offset = moving_piece_offset
-        """
-    def _handle_mouse_button_up(self, event):
-        moving_piece = self._moving_piece
-        if event.button == 1:
-            self._dragging = False
-            # Before moving, check if the move is within the piece's movement_factor
-            if moving_piece and event.button == 1:
-                mouse_x, mouse_y = event.pos
-                dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
-                if dest_hex:
-                    start_hex = moving_piece.position
-                    distance = self.get_distance(start_hex, dest_hex)
-                    max_move = moving_piece.movement_factor
-                    if distance <= max_move:
-                        self.board.move_piece(moving_piece, dest_hex)
-                    # else: ignore move (could add feedback)
-                self._moving_piece = None
-                # Save state for run loop
-                #dragging = getattr(self, '_dragging', dragging)
-                #last_mouse_pos = getattr(self, '_last_mouse_pos', last_mouse_pos)
-                #moving_piece = getattr(self, '_moving_piece', moving_piece)
-        # Save state for run loop
-        """
-        if not hasattr(self, '_dragging'):
-            self._dragging = dragging
-        if not hasattr(self, '_last_mouse_pos'):
-            self._last_mouse_pos = last_mouse_pos
-        if not hasattr(self, '_moving_piece'):
-            self._moving_piece = moving_piece
-        """
+       
 
+    def _handle_move_piece(self, event):
+        # Handles moving a piece when the mouse button is released.
+        # It checks if the piece can be moved within its movement factor and updates the board accordingly.
+        # If the move is valid, it moves the piece to the new hex; otherwise, it ignores the move.
+        # After moving, it resets the '_moving_piece' to None.
+        
+        # Save state for run loop
+        moving_piece = self._moving_piece
+        moving_piece_offset = self._moving_piece_offset
+        if not moving_piece:
+            # If no piece is being moved, just return
+            return
+        # If a piece is being moved, check if the move is valid
+        mouse_x, mouse_y = event.pos
+        dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
+        if dest_hex:
+            start_hex = moving_piece.position
+            distance = self.get_distance(start_hex, dest_hex)
+            max_move = moving_piece.movement_factor
+            if distance <= max_move:
+                self.board.move_piece(moving_piece, dest_hex)
+            # else: ignore move (could add feedback)
+        self._moving_piece = None
+        self._moving_piece_offset = (0, 0)  # Reset the offset after moving
+           
     def _handle_mouse_motion(self, event):
         moving_piece = self._moving_piece
         moving_piece_offset = self._moving_piece_offset
@@ -520,6 +510,59 @@ class DesktopUI:
         q = int(round((2/3 * x) / HEX_SIZE))
         r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
         return [piece for piece in self.board.pieces if piece.position.q == q and piece.position.r == r]
+
+    def show_piece_menu(self, piece:Piece, pos):
+        # When a piece is clicked, display a menu with options to Move or Details
+        menu_options = ["Move", "Details", "Cancel"]
+        font = pygame.font.SysFont(None, 28)
+        margin = 10
+        option_height = font.get_height() + margin
+        menu_width = max(font.size(opt)[0] for opt in menu_options) + 2 * margin
+        menu_height = option_height * len(menu_options) + margin
+        mouse_x, mouse_y = pos
+        menu_rect = pygame.Rect(mouse_x, mouse_y, menu_width, menu_height)
+
+        # Draw menu
+        pygame.draw.rect(self.screen, (60, 60, 60), menu_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), menu_rect, 2)
+        for i, opt in enumerate(menu_options):
+            opt_surf = font.render(opt, True, (255, 255, 255))
+            self.screen.blit(opt_surf, (menu_rect.left + margin, menu_rect.top + margin + i * option_height))
+        pygame.display.flip()
+
+        # Wait for user selection
+        selected = None
+        while selected is None:
+            for menu_event in pygame.event.get():
+                if menu_event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif menu_event.type == pygame.MOUSEBUTTONDOWN:
+                    mx2, my2 = menu_event.pos
+                    if menu_rect.collidepoint(mx2, my2):
+                        idx = (my2 - menu_rect.top - margin) // option_height
+                        if 0 <= idx < len(menu_options):
+                            selected = menu_options[idx]
+                            break
+                elif menu_event.type == pygame.KEYDOWN:
+                    if menu_event.key == pygame.K_ESCAPE:
+                        selected = "Cancel"
+                        break
+
+        if selected == "Details":
+            self.render_popup(piece, pos)
+        elif selected == "Move":
+            self._dragging = False
+            center = self.hex_to_pixel(piece.position.q, piece.position.r)
+            if piece.can_move:
+                self.show_max_move_distance(piece)
+                self._moving_piece = piece
+                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+                
+            else:
+                self._moving_piece = None
+                self._moving_piece_offset = None
+                # Cancel just returns, nothing to do
 
     def render_piece_selection_popup(self, pieces, pos):
         # Display a popup with a list of pieces and let the user select one
