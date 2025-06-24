@@ -646,12 +646,16 @@ class Carrier(Ship):
     def __init__(self, name, type, status, attack_factor=0, defense_factor=0, move_factor=2):
         super().__init__(name, "CV", status, attack_factor, defense_factor, move_factor)
         #a carrier is in effect a ship with a base  
-        self.base = Base(name=f"{type} Base")
+        self.base = Base(name=f"{name} Base")
 
     
     @property
     def air_operations(self):
         return self.base.air_operations_tracker
+    
+    @property
+    def air_operations_config(self):
+        return self.base.air_operations_config
 
                
 

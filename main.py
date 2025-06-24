@@ -123,7 +123,7 @@ def scenario_one_setup():
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
     carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)
-    carrierLexington.air_operations_config = AirOperationsConfiguration(
+    carrierLexington.base.air_operations_config = AirOperationsConfiguration(
         name="Lexington",
         description="Configuration for air operations on Lexington",
         maximum_capacity=20,

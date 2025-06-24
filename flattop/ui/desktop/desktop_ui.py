@@ -5,6 +5,7 @@ import math
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
 from flattop.operations_chart_models import AirFormation, Base, TaskForce  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay
+from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 
 # Hexagon settings
 HEX_SIZE = 20  # Radius of hex
@@ -292,11 +293,32 @@ class DesktopUI:
         win_width, win_height = self.screen.get_size()
         margin = 10
 
-        if piece.game_model.__class__.__name__ == "Base":
+        if isinstance(piece.game_model, Base):
             # If the piece is a Base, use the BaseUIDisplay to render it
             # This allows for a more detailed and interactive display of the Base piece
             try:
                 BaseUIDisplay( piece.game_model, self.screen).draw()
+                return
+            except ImportError:
+                pass  # Fallback to default popup if import fails
+        
+        elif isinstance(piece.game_model, TaskForce):
+            # If the piece is a TaskForce, use the TaskForceScreen to render it
+            # This allows for a more detailed and interactive display of the TaskForce piece
+            try:
+                tf_screen = TaskForceScreen(piece.game_model)
+                tf_screen.draw(self.screen)
+                pygame.display.flip()
+                # Wait for user to close the TaskForce screen
+                waiting = True
+                while waiting:
+                    for popup_event in pygame.event.get():
+                        tf_screen.handle_event(popup_event)
+                        if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                            waiting = False
+                            if popup_event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
                 return
             except ImportError:
                 pass  # Fallback to default popup if import fails
@@ -413,6 +435,10 @@ class DesktopUI:
 
                 elif event.type == pygame.MOUSEMOTION:
                     self._handle_mouse_motion(event)
+                
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    #assume dragging is done when mouse button is released
+                    self._dragging = False
 
             #self.screen.fill(BG_COLOR)
             self.render_screen()
