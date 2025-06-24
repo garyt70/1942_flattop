@@ -379,15 +379,26 @@ class DesktopUI:
         return distance
 
     def show_max_move_distance(self, piece):
-        # Show movement range as a light gray circle overlay
+        # Highlight all hexes within the piece's movement range
         max_move = piece.movement_factor
-        radius = int(HEX_SIZE * max_move * 1.5)  # Adjust radius based on movement factor
-        center = self.hex_to_pixel(piece.position.q, piece.position.r)
-        
-        # Create a semi-transparent overlay for the movement range
-        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        pygame.draw.circle(overlay, (200, 200, 200, 100), center, radius)
-        self.screen.blit(overlay, (0, 0))
+        start_hex = piece.position
+
+        for q in range(self.board.width):
+            for r in range(self.board.height):
+                dest_hex = Hex(q, r)
+                distance = self.get_distance(start_hex, dest_hex)
+                if distance <= max_move:
+                    center = self.hex_to_pixel(q, r)
+                    # Draw a semi-transparent overlay on the hex
+                    overlay = pygame.Surface((HEX_WIDTH, HEX_HEIGHT), pygame.SRCALPHA)
+                    points = []
+                    for i in range(6):
+                        angle = math.pi / 3 * i
+                        x = HEX_SIZE + HEX_SIZE * math.cos(angle)
+                        y = HEX_SIZE + HEX_SIZE * math.sin(angle)
+                        points.append((x, y))
+                    pygame.draw.polygon(overlay, (200, 200, 200, 100), points)
+                    self.screen.blit(overlay, (center[0] - HEX_SIZE, center[1] - HEX_SIZE))
         pygame.display.flip()
 
     def run_with_click_return(self):
