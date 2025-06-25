@@ -708,40 +708,42 @@ class DesktopUI:
         )
         scroll_offset = 0
 
+       
+        # Draw popup background and border
+        self.render_screen()  # Redraw board behind popup
+        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+        # Draw header
+        y = popup_rect.top + margin
+        self.screen.blit(header_surf, (popup_rect.left + margin, y))
+        y += header_surf.get_height() + margin // 2
+
+        # Draw Advance Turn button
+        next_turn_rect = next_turn_surf.get_rect(topleft=(popup_rect.left + margin, y))
+        pygame.draw.rect(self.screen, (30, 80, 30), next_turn_rect.inflate(12, 8))
+        self.screen.blit(next_turn_surf, next_turn_rect.topleft)
+        y += next_turn_rect.height + margin // 2
+
+        # Draw visible lines with scrolling
+        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+            ts = text_surfaces[i]
+            text_rect = ts.get_rect()
+            text_rect.topleft = (popup_rect.left + margin, y)
+            self.screen.blit(ts, text_rect)
+            y += line_height
+
+        # Draw scroll indicators if needed
+        if scroll_offset > 0:
+            up_arrow = font.render("^", True, (255, 255, 255))
+            self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
+        if scroll_offset + visible_lines < len(text_surfaces):
+            down_arrow = font.render("v", True, (255, 255, 255))
+            self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
+
+        pygame.display.flip()
+
         while True:
-            # Draw popup background and border
-            self.render_screen()  # Redraw board behind popup
-            pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
-            pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
-            # Draw header
-            y = popup_rect.top + margin
-            self.screen.blit(header_surf, (popup_rect.left + margin, y))
-            y += header_surf.get_height() + margin // 2
-
-            # Draw Advance Turn button
-            next_turn_rect = next_turn_surf.get_rect(topleft=(popup_rect.left + margin, y))
-            pygame.draw.rect(self.screen, (30, 80, 30), next_turn_rect.inflate(12, 8))
-            self.screen.blit(next_turn_surf, next_turn_rect.topleft)
-            y += next_turn_rect.height + margin // 2
-
-            # Draw visible lines with scrolling
-            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-                ts = text_surfaces[i]
-                text_rect = ts.get_rect()
-                text_rect.topleft = (popup_rect.left + margin, y)
-                self.screen.blit(ts, text_rect)
-                y += line_height
-
-            # Draw scroll indicators if needed
-            if scroll_offset > 0:
-                up_arrow = font.render("^", True, (255, 255, 255))
-                self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
-            if scroll_offset + visible_lines < len(text_surfaces):
-                down_arrow = font.render("v", True, (255, 255, 255))
-                self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
-
-            pygame.display.flip()
-
+            
             # Wait for user interaction
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
