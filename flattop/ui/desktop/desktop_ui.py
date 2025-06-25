@@ -311,6 +311,8 @@ class DesktopUI:
         )
         pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect)
         self.screen.blit(text_surf, text_rect)
+        # Save for click detection
+        self._turn_info_rect = text_rect.copy()
 
     def render_popup(self, piece:Piece, pos):
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
@@ -481,15 +483,16 @@ class DesktopUI:
         # If no piece is present, it starts a generic drag operation (e.g., for panning the board)
         #   - Sets '_dragging' to True and records the last mouse position.
 
-        
-        #if a piece is clicked, we need to handle the piece selection
+        # If a piece is already being moved, handle the mouse button up event
         if self._moving_piece:
-            # If a piece is already being moved, we need to handle the mouse button up event
             self._handle_move_piece(event)
             return
-        
 
-        #because some rendering operations have their own even loop, we need to save the button state
+        # Check if click is on the turn info display
+        if hasattr(self, "_turn_info_rect") and self._turn_info_rect.collidepoint(event.pos):
+            self.show_unmoved_pieces_popup()
+            return
+
         original_button = event.button
 
         pieces = self.get_pieces_at_pixel(event.pos)
@@ -500,9 +503,7 @@ class DesktopUI:
         else:
             piece = None
 
-       
         if original_button == 1:
-            # If left mouse button is pressed, check if a piece is under the mouse and previous piece is not moving
             if piece:
                 self.show_piece_menu(piece, event.pos)
             else:
@@ -676,6 +677,111 @@ class DesktopUI:
                             return pieces[idx]
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return None
+
+    def show_unmoved_pieces_popup(self):
+        # Display a scrollable popup listing all pieces that can move but have not moved yet,
+        # and allow the user to advance the turn.
+        win_width, win_height = self.screen.get_size()
+        margin = 16
+        font = pygame.font.SysFont(None, 24)
+        header_font = pygame.font.SysFont(None, 28, bold=True)
+        # Filter pieces that can move and have not moved
+        unmoved = [p for p in self.board.pieces if getattr(p, "can_move", False) and not getattr(p, "has_moved", False)]
+        lines = [
+            f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
+            for i, piece in enumerate(unmoved)
+        ]
+        if not lines:
+            lines = ["No pieces can move this turn."]
+        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        header_surf = header_font.render("Unmoved Pieces", True, (255, 255, 0))
+        next_turn_surf = header_font.render("Advance Turn", True, (0, 255, 0))
+        popup_width = max([header_surf.get_width(), next_turn_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+        visible_lines = min(10, len(text_surfaces))
+        line_height = font.get_height() + 4
+        popup_height = header_surf.get_height() + next_turn_surf.get_height() + visible_lines * line_height + 5 * margin
+        popup_rect = pygame.Rect(
+            win_width // 2 - popup_width // 2,
+            win_height // 2 - popup_height // 2,
+            popup_width,
+            popup_height
+        )
+        scroll_offset = 0
+
+        while True:
+            # Draw popup background and border
+            self.render_screen()  # Redraw board behind popup
+            pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+            pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+            # Draw header
+            y = popup_rect.top + margin
+            self.screen.blit(header_surf, (popup_rect.left + margin, y))
+            y += header_surf.get_height() + margin // 2
+
+            # Draw Advance Turn button
+            next_turn_rect = next_turn_surf.get_rect(topleft=(popup_rect.left + margin, y))
+            pygame.draw.rect(self.screen, (30, 80, 30), next_turn_rect.inflate(12, 8))
+            self.screen.blit(next_turn_surf, next_turn_rect.topleft)
+            y += next_turn_rect.height + margin // 2
+
+            # Draw visible lines with scrolling
+            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+                ts = text_surfaces[i]
+                text_rect = ts.get_rect()
+                text_rect.topleft = (popup_rect.left + margin, y)
+                self.screen.blit(ts, text_rect)
+                y += line_height
+
+            # Draw scroll indicators if needed
+            if scroll_offset > 0:
+                up_arrow = font.render("^", True, (255, 255, 255))
+                self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
+            if scroll_offset + visible_lines < len(text_surfaces):
+                down_arrow = font.render("v", True, (255, 255, 255))
+                self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
+
+            pygame.display.flip()
+
+            # Wait for user interaction
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return
+                    elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
+                        scroll_offset += 1
+                    elif event.key == pygame.K_UP and scroll_offset > 0:
+                        scroll_offset -= 1
+                    elif pygame.K_1 <= event.key <= pygame.K_9:
+                        idx = event.key - pygame.K_1 + scroll_offset
+                        if 0 <= idx < len(unmoved):
+                            self.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
+                            return
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = event.pos
+                    # Check if click is on Advance Turn button
+                    if next_turn_rect.collidepoint(mx, my):
+                        self.turn_manager.next_turn()
+                        self.board.reset_pieces_for_new_turn()
+                        return
+                    # Check if click is on a piece line
+                    for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+                        ts = text_surfaces[i]
+                        text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_turn_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+                        if text_rect.collidepoint(mx, my):
+                            self.show_piece_menu(unmoved[i], event.pos)
+                            return
+                    # Scroll up/down if click on arrows
+                    if scroll_offset > 0:
+                        up_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.top + margin, 20, 20)
+                        if up_arrow_rect.collidepoint(mx, my):
+                            scroll_offset -= 1
+                    if scroll_offset + visible_lines < len(text_surfaces):
+                        down_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.bottom - margin - 20, 20, 20)
+                        if down_arrow_rect.collidepoint(mx, my):
+                            scroll_offset += 1
 
     def run(self):
         """
