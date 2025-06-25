@@ -195,10 +195,8 @@ class DesktopUI:
         # If the board is larger than the window, enable panning 
         self.can_pan = req_width > win_width or req_height > win_height
 
-        # Set the display mode with the calculated size
-        self.screen = pygame.display.set_mode((win_width, win_height))
-        
-
+        # Set the display mode with RESIZABLE flag
+        self.screen = pygame.display.set_mode((win_width, win_height), pygame.RESIZABLE)
 
         pygame.display.set_caption("Flattop 1942 - Hexagonal Board Game")
         
