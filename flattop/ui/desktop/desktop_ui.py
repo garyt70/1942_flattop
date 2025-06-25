@@ -158,15 +158,20 @@ class DesktopUI:
             Starts the UI event loop.
     """
     
-    def __init__(self, board = HexBoardModel(10, 10)):
+    def __init__(self, board=HexBoardModel(10, 10), turn_manager=None):
         self.board = board
         self.screen = None
         self.origin = (HEX_WIDTH // 2 + HEX_SPACING, HEX_HEIGHT // 2 + HEX_SPACING)
-        
         self._dragging = False
         self._last_mouse_pos = None
         self._moving_piece = None
         self._moving_piece_offset = (0, 0)
+        # Add turn manager reference
+        if turn_manager is None:
+            from flattop.hex_board_game_model import TurnManager
+            self.turn_manager = TurnManager()
+        else:
+            self.turn_manager = turn_manager
 
     def initialize(self):
         pygame.init()
@@ -282,11 +287,33 @@ class DesktopUI:
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
 
+        # Draw the turn info in the bottom right corner
+        self._draw_turn_info()
+
         # If a piece is being moved, draw it at the mouse position
         if self._moving_piece:
             self.show_max_move_distance(self._moving_piece)
         pygame.display.flip()
     
+    def _draw_turn_info(self):
+        # Draws the current day and hour in the bottom right corner
+        font = pygame.font.SysFont(None, 28)
+        day = self.turn_manager.current_day
+        hour = self.turn_manager.current_hour
+        text = f"Day: {day}  Hour: {hour:02d}:00"
+        text_surf = font.render(text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect()
+        win_width, win_height = self.screen.get_size()
+        margin = 12
+        text_rect.bottomright = (win_width - margin, win_height - margin)
+        # Draw a semi-transparent background for readability
+        bg_rect = pygame.Rect(
+            text_rect.left - 8, text_rect.top - 4,
+            text_rect.width + 16, text_rect.height + 8
+        )
+        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect)
+        self.screen.blit(text_surf, text_rect)
+
     def render_popup(self, piece:Piece, pos):
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
         # Calculate maximum popup size (20% of display area, but allow up to 90% of height)

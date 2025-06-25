@@ -50,6 +50,7 @@ class Piece:
         self.side = side
         self.position = position  # A Hex object
         self._game_model = gameModel  # Optional reference to the game model, which can be an AirFormation or TaskForce, Base, etc.
+        self.has_moved = False  # Flag to track if the piece has moved
 
     @property
     def game_model(self):
@@ -99,8 +100,9 @@ class Piece:
         """
 
         #only AirFormation and TaskForce can move
-        if self.can_move:
+        if self.can_move and not self.has_moved:
            self.position = target_hex
+           self.has_moved = True
 
     def __repr__(self):
         """
@@ -181,6 +183,13 @@ class HexBoardModel:
         for piece in self.pieces:
             print(piece)
 
+    def reset_pieces_for_new_turn(self):
+        """
+        Resets the has_moved flag for all pieces at the start of a new turn.
+        """
+        for piece in self.pieces:
+            piece.has_moved = False
+
 # === Example usage ===
 if __name__ == "__main__":
     # Define which hexes are land
@@ -203,3 +212,51 @@ if __name__ == "__main__":
     # Check terrain
     print(board.get_terrain(Hex(0, 0)))  # "land"
     print(board.get_terrain(Hex(0, 1)))  # "sea"
+
+    turn_manager = TurnManager(total_days=2)
+    print(turn_manager)
+    while not turn_manager.is_game_over():
+        # At the start of each turn, reset piece movement
+        board.reset_pieces_for_new_turn()
+        print(f"Turn {turn_manager.turn_number}: Day {turn_manager.current_day}, Hour {turn_manager.current_hour}")
+        # ... game logic here ...
+        turn_manager.next_turn()
+    print("Game over!")
+
+
+class TurnManager:
+    """
+    Manages the game turns, days, and hour tracking.
+    """
+    def __init__(self, total_days=1):
+        self.total_days = total_days
+        self.current_day = 1
+        self.current_hour = 0  # 0 to 23
+        self.turn_number = 1
+
+    def next_turn(self):
+        """
+        Advances the game by one turn (one hour).
+        """
+        self.current_hour += 1
+        self.turn_number += 1
+        if self.current_hour >= 24:
+            self.current_hour = 0
+            self.current_day += 1
+
+    def is_game_over(self):
+        """
+        Returns True if the scenario has ended.
+        """
+        return self.current_day > self.total_days
+
+    def reset(self):
+        """
+        Resets the turn manager to the beginning.
+        """
+        self.current_day = 1
+        self.current_hour = 0
+        self.turn_number = 1
+
+    def __repr__(self):
+        return f"TurnManager(day={self.current_day}, hour={self.current_hour}, turn={self.turn_number})"
