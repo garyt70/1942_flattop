@@ -7,6 +7,113 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType
 
+
+class AircraftDisplay:
+    columns = [200, 260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980]
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def draw_aircraft(surface, aircraft: AirCraft, x, y):
+        """
+        Draws a single AirCraft object on the surface at the specified position.
+        """
+        columns = AircraftDisplay.columns
+        font = pygame.font.SysFont(None, 24)
+             
+        ac_type = aircraft.type.name if isinstance(aircraft.type, AircraftType) else str(aircraft.type)
+        ac_text = font.render(f"{ac_type} (count: {aircraft.count})", True, (180, 220, 255))
+        surface.blit(ac_text, (x + 20, y))
+        # If the aircraft has a combat data object, display its combat data
+        # This includes air-to-air combat, high level bombing, low level bombing, dive bombing
+        acd = aircraft.combat_data
+        if acd is not None: 
+            #air to air
+            surface.blit(font.render(str(acd.air_to_air), True, (255, 255, 255)), (x + columns[0], y))
+            #high Level GP, AP
+            surface.blit(font.render(str(acd.level_bombing_high_base_gp), True, (255, 255, 255)), (x + columns[1], y))
+            surface.blit(font.render(str(acd.level_bombing_high_base_ap), True, (255, 255, 255)), (x + columns[2], y))
+            #low Level GP, AP
+            surface.blit(font.render(str(acd.level_bombing_low_base_gp), True, (255, 255, 255)), (x + columns[3], y))
+            surface.blit(font.render(str(acd.level_bombing_low_base_ap), True, (255, 255, 255)), (x + columns[4], y))
+            #dive GP, AP
+            surface.blit(font.render(str(acd.dive_bombing_base_gp), True, (255, 255, 255)), (x + columns[5], y))
+            surface.blit(font.render(str(acd.dive_bombing_base_ap), True, (255, 255, 255)), (x + columns[6], y))
+            #high Level Ship GP, AP
+            surface.blit(font.render(str(acd.level_bombing_high_ship_gp), True, (255, 255, 255)), (x + columns[7], y))
+            surface.blit(font.render(str(acd.level_bombing_high_ship_ap), True, (255, 255, 255)), (x + columns[8], y))
+            #low Level Ship GP, AP
+            surface.blit(font.render(str(acd.level_bombing_low_ship_gp), True, (255, 255, 255)), (x + columns[9], y))
+            surface.blit(font.render(str(acd.level_bombing_low_ship_ap), True, (255, 255, 255)), (x + columns[10], y))
+            #dive Ship GP, AP
+            surface.blit(font.render(str(acd.dive_bombing_ship_gp), True, (255, 255, 255)), (x + columns[11], y))
+            surface.blit(font.render(str(acd.dive_bombing_ship_ap), True, (255, 255, 255)), (x + columns[12], y))
+            #Torpedo Ship
+            surface.blit(font.render(str(acd.torpedo_bombing_ship), True, (255, 255, 255)), (x + columns[13], y))
+            y += 20
+
+        return y + 22 
+
+    @staticmethod
+    def draw_aircraft_list_header(surface, aircraft: AirCraft, x, y):
+        columns = AircraftDisplay.columns
+        font = pygame.font.SysFont(None, 24)
+
+        surface.blit(font.render("vs Base", True, (255, 255, 255)), (x + columns[1], y))
+        surface.blit(font.render("vs Ship", True, (255, 255, 255)), (x + columns[7], y))
+        y += 20
+
+        # Draw headers for the tracker display
+        # The headers are for the different types of operations and aircraft combat data
+        surface.blit(font.render("Air2Air", True, (255, 255, 255)), (x + columns[0], y))
+        #Base headers
+        surface.blit(font.render("High", True, (255, 255, 255)), (x + columns[1], y))
+        surface.blit(font.render("Low", True, (255, 255, 255)), (x + columns[3], y))
+        surface.blit(font.render("Dive", True, (255, 255, 255)), (x + columns[5], y))
+
+        #Ship headers
+        surface.blit(font.render("High ", True, (255, 255, 255)), (x + columns[7], y))
+        surface.blit(font.render("Low ", True, (255, 255, 255)), (x + columns[9], y))
+        surface.blit(font.render("Dive", True, (255, 255, 255)), (x + columns[11], y))
+        surface.blit(font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
+        y += 20
+
+        #now display the GP and AP header text
+        #high Level GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[1], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[2], y))
+        #low Level GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[3], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[4], y))
+        #dive GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[5], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[6], y))
+        
+        #high Level Ship GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[7], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[8], y))
+        #low Level Ship GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[9], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[10], y))
+        #dive Ship GP, AP
+        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[11], y))
+        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[12], y))
+        #Torpedo Ship
+        surface.blit(font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
+        y += 20
+        return y
+
+    @staticmethod  
+    def draw_aircraft_list(surface, aircraft_list, x, y):
+        
+        """
+        Draws a list of AirCraft objects on the surface at the specified position.
+        """
+        for ac in aircraft_list:
+            y = AircraftDisplay.draw_aircraft(surface, ac, x, y)
+        return y
+
 class AirOperationsTrackerDisplay:
     columns = [200, 260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980]
 
@@ -17,54 +124,10 @@ class AirOperationsTrackerDisplay:
         self.font = pygame.font.SysFont(None, 24)
 
     def draw_aircraft_list(self, aircraft_list, x, y):
-        
-        """
-        Draws a list of AirCraft objects on the surface at the specified position.
-        """
-        for ac in aircraft_list:
-            y = self.draw_aircraft(ac, x, y)
-        return y
+        return AircraftDisplay.draw_aircraft_list(self.surface, aircraft_list, x, y)
 
     def draw_aircraft(self, aircraft: AirCraft, x, y):
-        """
-        Draws a single AirCraft object on the surface at the specified position.
-        """
-        columns = self.columns
-             
-        ac_type = aircraft.type.name if isinstance(aircraft.type, AircraftType) else str(aircraft.type)
-        ac_text = self.font.render(f"{ac_type} (count: {aircraft.count})", True, (180, 220, 255))
-        self.surface.blit(ac_text, (x + 20, y))
-
-        
-
-        acd = aircraft.combat_data
-        if acd is not None:
-            
-            #air to air
-            self.surface.blit(self.font.render(str(acd.air_to_air), True, (255, 255, 255)), (x + columns[0], y))
-            #high Level GP, AP
-            self.surface.blit(self.font.render(str(acd.level_bombing_high_base_gp), True, (255, 255, 255)), (x + columns[1], y))
-            self.surface.blit(self.font.render(str(acd.level_bombing_high_base_ap), True, (255, 255, 255)), (x + columns[2], y))
-            #low Level GP, AP
-            self.surface.blit(self.font.render(str(acd.level_bombing_low_base_gp), True, (255, 255, 255)), (x + columns[3], y))
-            self.surface.blit(self.font.render(str(acd.level_bombing_low_base_ap), True, (255, 255, 255)), (x + columns[4], y))
-            #dive GP, AP
-            self.surface.blit(self.font.render(str(acd.dive_bombing_base_gp), True, (255, 255, 255)), (x + columns[5], y))
-            self.surface.blit(self.font.render(str(acd.dive_bombing_base_ap), True, (255, 255, 255)), (x + columns[6], y))
-            #high Level Ship GP, AP
-            self.surface.blit(self.font.render(str(acd.level_bombing_high_ship_gp), True, (255, 255, 255)), (x + columns[7], y))
-            self.surface.blit(self.font.render(str(acd.level_bombing_high_ship_ap), True, (255, 255, 255)), (x + columns[8], y))
-            #low Level Ship GP, AP
-            self.surface.blit(self.font.render(str(acd.level_bombing_low_ship_gp), True, (255, 255, 255)), (x + columns[9], y))
-            self.surface.blit(self.font.render(str(acd.level_bombing_low_ship_ap), True, (255, 255, 255)), (x + columns[10], y))
-            #dive Ship GP, AP
-            self.surface.blit(self.font.render(str(acd.dive_bombing_ship_gp), True, (255, 255, 255)), (x + columns[11], y))
-            self.surface.blit(self.font.render(str(acd.dive_bombing_ship_ap), True, (255, 255, 255)), (x + columns[12], y))
-            #Torpedo Ship
-            self.surface.blit(self.font.render(str(acd.torpedo_bombing_ship), True, (255, 255, 255)), (x + columns[13], y))
-            y += 20
-
-        return y + 22
+        return AircraftDisplay.draw_aircraft(self.surface, aircraft, x, y)
 
     def draw(self):
         columns = self.columns
@@ -73,47 +136,7 @@ class AirOperationsTrackerDisplay:
         self.surface.blit(title, (x, y))
         y += 30
 
-        self.surface.blit(self.font.render("vs Base", True, (255, 255, 255)), (x + columns[1], y))
-        self.surface.blit(self.font.render("vs Ship", True, (255, 255, 255)), (x + columns[7], y))
-        y += 20
-
-        # Draw headers for the tracker display
-        # The headers are for the different types of operations and aircraft combat data
-        self.surface.blit(self.font.render("Air2Air", True, (255, 255, 255)), (x + columns[0], y))
-        #Base headers
-        self.surface.blit(self.font.render("High", True, (255, 255, 255)), (x + columns[1], y))
-        self.surface.blit(self.font.render("Low", True, (255, 255, 255)), (x + columns[2], y))
-        self.surface.blit(self.font.render("Dive", True, (255, 255, 255)), (x + columns[3], y))
-
-        #Ship headers
-        self.surface.blit(self.font.render("High ", True, (255, 255, 255)), (x + columns[7], y))
-        self.surface.blit(self.font.render("Low ", True, (255, 255, 255)), (x + columns[8], y))
-        self.surface.blit(self.font.render("Dive", True, (255, 255, 255)), (x + columns[9], y))
-        self.surface.blit(self.font.render("Torpedo", True, (255, 255, 255)), (x + columns[10], y))
-        y += 20
-
-        #now display the GP and AP header text
-        #high Level GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[1], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[2], y))
-        #low Level GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[3], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[4], y))
-        #dive GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[5], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[6], y))
-        #high Level Ship GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[7], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[8], y))
-        #low Level Ship GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[9], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[10], y))
-        #dive Ship GP, AP
-        self.surface.blit(self.font.render("GP", True, (255, 255, 255)), (x + columns[11], y))
-        self.surface.blit(self.font.render("AP", True, (255, 255, 255)), (x + columns[12], y))
-        #Torpedo Ship
-        self.surface.blit(self.font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
-        y += 20
+        y = AircraftDisplay.draw_aircraft_list_header(self.surface, None, x, y)   
     
         #now display the combat data for each aircraft
         self.surface.blit(self.font.render("Ready", True, (200, 200, 0)), (x, y))

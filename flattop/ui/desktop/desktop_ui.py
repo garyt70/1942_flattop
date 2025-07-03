@@ -6,6 +6,7 @@ from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust imp
 from flattop.operations_chart_models import AirFormation, Base, TaskForce  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
+from flattop.ui.desktop.base_ui import AircraftDisplay
 
 # Hexagon settings
 HEX_SIZE = 20  # Radius of hex
@@ -302,7 +303,7 @@ class DesktopUI:
         text_surf = font.render(text, True, (255, 255, 255))
         text_rect = text_surf.get_rect()
         win_width, win_height = self.screen.get_size()
-        margin = 12
+        margin = 24
         text_rect.bottomright = (win_width - margin, win_height - margin)
         # Draw a semi-transparent background for readability
         bg_rect = pygame.Rect(
@@ -349,6 +350,48 @@ class DesktopUI:
                 return
             except ImportError:
                 pass  # Fallback to default popup if import fails
+        elif isinstance(piece.game_model, AirFormation):
+            # If the piece is an AirFormation, use the AircraftDisplay to render it
+            # This allows for a more detailed and interactive display of the AirFormation piece
+            try:
+                # Draw a popup background for the AirFormation details
+                font = pygame.font.SysFont(None, 24)
+                header_font = pygame.font.SysFont(None, 28, bold=True)
+                popup_width = int(win_width * 0.75)
+                popup_height = int(win_height * 0.5)
+                popup_rect = pygame.Rect(
+                    win_width // 2 - popup_width // 2,
+                    win_height // 2 - popup_height // 2,
+                    popup_width,
+                    popup_height
+                )
+                pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+                pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+
+                # Draw header
+                header = f"Air Formation: {getattr(piece, 'name', str(piece))}"
+                header_surf = header_font.render(header, True, (255, 255, 0))
+                self.screen.blit(header_surf, (popup_rect.left + margin, popup_rect.top + margin))
+
+                # Draw aircraft list header and list
+                y = popup_rect.top + margin + header_surf.get_height() + margin // 2
+                y = AircraftDisplay.draw_aircraft_list_header(self.screen, piece.game_model.aircraft, popup_rect.left + margin, y)
+                y = AircraftDisplay.draw_aircraft_list(self.screen, piece.game_model.aircraft, popup_rect.left + margin, y + 5)
+
+                pygame.display.flip()
+
+                # Wait for user to close popup
+                waiting = True
+                while waiting:
+                    for popup_event in pygame.event.get():
+                        if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                            waiting = False
+                            if popup_event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+                return
+            except ImportError:
+                pass
         else:
             # Prepare text for popup
             text= f"{piece}"
@@ -576,7 +619,12 @@ class DesktopUI:
 
     def show_piece_menu(self, piece:Piece, pos):
         # When a piece is clicked, display a menu with options to Move or Details
-        menu_options = ["Move", "Details", "Cancel"]
+        if piece.can_move and not piece.has_moved:
+            # If the piece can move and has not moved yet, show the Move option
+            menu_options = ["Move", "Details", "Cancel"]
+        else:
+            # If the piece cannot move or has already moved, show only Details and Cancel 
+             menu_options = ["Details", "Cancel"]
         font = pygame.font.SysFont(None, 28)
         margin = 10
         option_height = font.get_height() + margin
