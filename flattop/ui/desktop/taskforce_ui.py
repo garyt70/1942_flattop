@@ -68,7 +68,9 @@ class TaskForceScreen:
                 surface.blit(txt, (x_positions[i], y))
             # Draw base symbol as clickable if carrier has base
             if is_carrier and ship.base:
-                symbol = SMALL_FONT.render(base_symbol, True, BLACK)
+                # Use a font that supports Unicode for the carrier symbol
+                unicode_font = pygame.font.SysFont("Segoe UI Emoji", 24)  # Common font for emoji support
+                symbol = unicode_font.render(CARRIER_SYMBOL, True, BLACK)
                 rect = symbol.get_rect(topleft=(x_positions[5], y))
                 surface.blit(symbol, rect.topleft)
                 self.carrier_buttons.append((rect, ship.base))
