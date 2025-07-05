@@ -325,7 +325,14 @@ class DesktopUI:
             # If the piece is a Base, use the BaseUIDisplay to render it
             # This allows for a more detailed and interactive display of the Base piece
             try:
-                BaseUIDisplay( piece.game_model, self.screen).draw()
+                baseUI = BaseUIDisplay( piece.game_model, self.screen)
+                baseUI.draw()
+                for af in baseUI.created_air_formations:
+                    self.board.add_piece(Piece(
+                        name=f"AF#{10}",  #need to fix this or decide if AirFormation number are needed
+                        side=piece.game_model.side,
+                        position=piece.position,
+                        gameModel=af))
                 return
             except ImportError:
                 pass  # Fallback to default popup if import fails
@@ -347,6 +354,15 @@ class DesktopUI:
                             if popup_event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
+                #create a piece for any created air formations
+                if tf_screen.base_dialog:
+                    for af in tf_screen.base_dialog.created_air_formations:
+                        self.board.add_piece(Piece(
+                            name=f"AF#{af.number}",  #TODO: need to fix this or decide if AirFormation number are needed
+                            side=piece.game_model.side,
+                            position=piece.position,
+                            gameModel=af))
+                        
                 return
             except ImportError:
                 pass  # Fallback to default popup if import fails
@@ -357,7 +373,7 @@ class DesktopUI:
                 # Draw a popup background for the AirFormation details
                 font = pygame.font.SysFont(None, 24)
                 header_font = pygame.font.SysFont(None, 28, bold=True)
-                popup_width = int(win_width * 0.75)
+                popup_width = int(win_width * 0.85)
                 popup_height = int(win_height * 0.5)
                 popup_rect = pygame.Rect(
                     win_width // 2 - popup_width // 2,
@@ -470,7 +486,7 @@ class DesktopUI:
         print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
         return distance
 
-    def show_max_move_distance(self, piece):
+    def show_max_move_distance(self, piece:Piece):
         # Highlight all hexes within the piece's movement range
         max_move = piece.movement_factor
         start_hex = piece.position

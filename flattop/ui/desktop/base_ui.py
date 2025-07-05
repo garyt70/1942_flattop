@@ -8,8 +8,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType
 
 
+
 class AircraftDisplay:
-    columns = [200, 260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980]
+    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160]
 
     def __init__(self):
         pass
@@ -23,8 +24,10 @@ class AircraftDisplay:
         font = pygame.font.SysFont(None, 24)
              
         ac_type = aircraft.type.name if isinstance(aircraft.type, AircraftType) else str(aircraft.type)
-        ac_text = font.render(f"{ac_type} (count: {aircraft.count})", True, (180, 220, 255))
+        ac_move=aircraft.move_factor
+        ac_text = font.render(f"{ac_type} (#: {aircraft.count} )", True, (180, 220, 255))
         surface.blit(ac_text, (x + 20, y))
+
         # If the aircraft has a combat data object, display its combat data
         # This includes air-to-air combat, high level bombing, low level bombing, dive bombing
         acd = aircraft.combat_data
@@ -51,7 +54,12 @@ class AircraftDisplay:
             surface.blit(font.render(str(acd.dive_bombing_ship_ap), True, (255, 255, 255)), (x + columns[12], y))
             #Torpedo Ship
             surface.blit(font.render(str(acd.torpedo_bombing_ship), True, (255, 255, 255)), (x + columns[13], y))
-            y += 20
+           
+        #movement details of aircraft
+        surface.blit(font.render(str(aircraft.move_factor), True, (255, 255, 255)), (x + columns[14], y))
+        surface.blit(font.render(str(aircraft.range_factor), True, (255, 255, 255)), (x + columns[15], y))
+        
+        y += 20
 
         return y + 22 
 
@@ -101,6 +109,10 @@ class AircraftDisplay:
         surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[12], y))
         #Torpedo Ship
         surface.blit(font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
+        #movement
+        surface.blit(font.render("Move", True, (255, 255, 255)), (x + columns[14], y))
+        surface.blit(font.render("Range", True, (255, 255, 255)), (x + columns[15], y))
+
         y += 20
         return y
 
@@ -184,25 +196,60 @@ class AirOperationsConfigurationDisplay:
 class BaseUIDisplay:
     def __init__(self, base:Base, surface):
         self.surface = surface
+        self.base = base
         self.config_display = AirOperationsConfigurationDisplay(base.air_operations_config, surface)
         self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, surface)
-        
+        self.create_af_button_rect = None  # Button rect for creating air formation
+        self.last_airformation = None      # Store the last created air formation
+        self.created_air_formations = []  # store the created AirFormations so that the calling code can implement pieces for them
 
     def draw(self):
         self.surface.fill((0, 0, 40))
         self.config_display.draw()
         self.tracker_display.draw()
 
+
+         # Draw the "Create Air Formation" button
+        font = pygame.font.SysFont(None, 28)
+        button_text = "Create Air Formation"
+        btn_surf = font.render(button_text, True, (0, 0, 0))
+        btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
+        btn_x, btn_y = 30, self.surface.get_height() - btn_height - 30
+        self.create_af_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+        pygame.draw.rect(self.surface, (200, 200, 0), self.create_af_button_rect)
+        pygame.draw.rect(self.surface, (255, 255, 255), self.create_af_button_rect, 2)
+        self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
+
+
         pygame.display.flip()
 
         waiting = True
         while waiting:
             for popup_event in pygame.event.get():
-                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                if popup_event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = popup_event.pos
+                    if self.create_af_button_rect.collidepoint(mx, my) and len(self.base.air_operations_tracker.ready) > 0:
+                        # Create an air formation using the next available number
+                        af_number = self._get_next_airformation_number()
+                        if af_number is not None:
+                            airformation = self.base.create_air_formation(af_number)
+                            self.created_air_formations.append(airformation)
+                        else:
+                            self.last_airformation = None
+                        self.draw()  # Redraw to show the new air formation
+                        return
+                    else:
+                        waiting = False
+                elif popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
                     waiting = False
                     if popup_event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+
+
+    def _get_next_airformation_number(self):
+            return 1
+    
 
 # Example usage:
 if __name__ == "__main__":

@@ -190,39 +190,6 @@ class HexBoardModel:
         for piece in self.pieces:
             piece.has_moved = False
 
-# === Example usage ===
-if __name__ == "__main__":
-    # Define which hexes are land
-    land_hexes = {Hex(0, 0), Hex(1, 1)}
-    board = HexBoardModel(3, 3, land_hexes=land_hexes)
-
-    p1 = Piece(side="Player 1", position=Hex(0, 0))
-    p2 = Piece(side="Player 2", position=Hex(1, -1))
-    board.add_piece(p1)
-    board.add_piece(p2)
-
-    print("Initial board:")
-    board.display()
-
-    print("\nPlayer 1 moves:")
-    move_success = board.move_piece(p1, Hex(1, 0))
-    print(f"Move success: {move_success}")
-    board.display()
-
-    # Check terrain
-    print(board.get_terrain(Hex(0, 0)))  # "land"
-    print(board.get_terrain(Hex(0, 1)))  # "sea"
-
-    turn_manager = TurnManager(total_days=2)
-    print(turn_manager)
-    while not turn_manager.is_game_over():
-        # At the start of each turn, reset piece movement
-        board.reset_pieces_for_new_turn()
-        print(f"Turn {turn_manager.turn_number}: Day {turn_manager.current_day}, Hour {turn_manager.current_hour}")
-        # ... game logic here ...
-        turn_manager.next_turn()
-    print("Game over!")
-
 
 class TurnManager:
     """
@@ -260,3 +227,36 @@ class TurnManager:
 
     def __repr__(self):
         return f"TurnManager(day={self.current_day}, hour={self.current_hour}, turn={self.turn_number})"
+
+# === Example usage ===
+if __name__ == "__main__":
+    # Define which hexes are land
+    land_hexes = {Hex(0, 0), Hex(1, 1)}
+    board = HexBoardModel(3, 3, land_hexes=land_hexes)
+
+    p1 = Piece(side="Player 1", position=Hex(0, 0))
+    p2 = Piece(side="Player 2", position=Hex(1, -1))
+    board.add_piece(p1)
+    board.add_piece(p2)
+
+    print("Initial board:")
+    board.display()
+
+    print("\nPlayer 1 moves:")
+    move_success = board.move_piece(p1, Hex(1, 0))
+    print(f"Move success: {move_success}")
+    board.display()
+
+    # Check terrain
+    print(board.get_terrain(Hex(0, 0)))  # "land"
+    print(board.get_terrain(Hex(0, 1)))  # "sea"
+
+    turn_manager = TurnManager(total_days=2)
+    print(turn_manager)
+    while not turn_manager.is_game_over():
+        # At the start of each turn, reset piece movement
+        board.reset_pieces_for_new_turn()
+        print(f"Turn {turn_manager.turn_number}: Day {turn_manager.current_day}, Hour {turn_manager.current_hour}")
+        # ... game logic here ...
+        turn_manager.next_turn()
+    print("Game over!")
