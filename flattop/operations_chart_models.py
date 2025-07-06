@@ -303,7 +303,7 @@ class AirFormation:
 
 
     def add_aircraft(self, aircraft):
-        if not isinstance(aircraft, AirCraft):
+        if not isinstance(aircraft, Aircraft):
             raise TypeError("Expected an AirCraft instance")
         self.aircraft.append(aircraft)
 
@@ -408,7 +408,7 @@ class AircraftCombatData:
         )
 
 
-class AirCraft:
+class Aircraft:
     """
     Represents an aircraft in the game.
 
@@ -433,7 +433,7 @@ class AircraftFactory:
 
     @staticmethod
     def create(type, count=1):
-        aircraft: AirCraft = None
+        aircraft: Aircraft = None
         acd: AircraftCombatData = None
         match type:
             case AircraftType.A20:
@@ -453,7 +453,7 @@ class AircraftFactory:
                     dive_bombing_ship_ap=0,
                     torpedo_bombing_ship=0
                 )
-                aircraft = AirCraft(type, count, 9, 6, acd)
+                aircraft = Aircraft(type, count, 9, 6, acd)
             case AircraftType.AVENGER:
                 acd = AircraftCombatData(
                     air_to_air=3,
@@ -471,7 +471,7 @@ class AircraftFactory:
                     dive_bombing_ship_ap=0,
                     torpedo_bombing_ship=6
                 )
-                aircraft = AirCraft(type, count, 7, 8, acd)
+                aircraft = Aircraft(type, count, 7, 8, acd)
             case AircraftType.BEAUFIGHTER:
                 acd = AircraftCombatData(
                     air_to_air=6,
@@ -489,7 +489,7 @@ class AircraftFactory:
                     dive_bombing_ship_ap=0,
                     torpedo_bombing_ship=0
                 )
-                aircraft = AirCraft(type, count, 9, 6, acd)
+                aircraft = Aircraft(type, count, 9, 6, acd)
             case AircraftType.BEUFORT:
                 acd = AircraftCombatData(
                     air_to_air=3,
@@ -507,90 +507,90 @@ class AircraftFactory:
                     dive_bombing_ship_ap=0,
                     torpedo_bombing_ship=7
                 )
-                aircraft = AirCraft(type, count, 7, 8)
+                aircraft = Aircraft(type, count, 7, 8)
             case AircraftType.B17:
                 acd= AircraftCombatData(8,13,5,0,0,0,0,0,2,0,0,0,0,0)
                 # B-17 has high air-to-air and level bombing capabilities
-                aircraft = AirCraft(type, count, 8, 12, acd)
+                aircraft = Aircraft(type, count, 8, 12, acd)
             case AircraftType.B25:
                 acd= AircraftCombatData(4,8,3,11,5,0,0,0,1,3,7,0,0,0)
-                aircraft = AirCraft(type, count, 9, 7, acd)
+                aircraft = Aircraft(type, count, 9, 7, acd)
             case AircraftType.B26:
                 acd= AircraftCombatData(4,6,2,10,4,0,0,0,1,2,5,0,0,5)
-                aircraft = AirCraft(type, count, 10, 6,acd)
+                aircraft = Aircraft(type, count, 10, 6,acd)
             case AircraftType.CATALINA:
                 acd= AircraftCombatData(4,6,2,9,3,0,0,0,1,2,7,0,0,10)
-                aircraft = AirCraft(type, count, 6, 20, acd)
+                aircraft = Aircraft(type, count, 6, 20, acd)
             case AircraftType.DAUNTLESS:
                 acd= AircraftCombatData(3,3,1,5,1,6,2,0,0,2,5,2,7,0)
-                aircraft = AirCraft(type, count, 9, 6, acd)
+                aircraft = Aircraft(type, count, 9, 6, acd)
             case AircraftType.DEVASTATOR:
                 acd= AircraftCombatData(2,3,1,5,2,0,0,0,0,1,5,0,0,6)
-                aircraft = AirCraft(type, count, 6, 5, acd)
+                aircraft = Aircraft(type, count, 6, 5, acd)
             case AircraftType.HUDESON:
                 acd= AircraftCombatData(3,3,1,6,2,0,0,0,1,1,4,0,0,0)
-                aircraft = AirCraft(type, count, 7, 10, acd)
+                aircraft = Aircraft(type, count, 7, 10, acd)
             case AircraftType.P38:
                 acd= AircraftCombatData(7,0,0,5,0,0,0,0,0,1,0,0,0,0)   
-                aircraft = AirCraft(type, count, 12, 5, acd)
+                aircraft = Aircraft(type, count, 12, 5, acd)
             case AircraftType.P39:
                 acd= AircraftCombatData(6,0,0,5,0,0,0,0,0,1,0,0,0,0)  
-                aircraft = AirCraft(type, count, 11, 5, acd)
+                aircraft = Aircraft(type, count, 11, 5, acd)
             case AircraftType.P40:
                 acd= AircraftCombatData(7,0,0,4,0,0,0,0,0,1,0,0,0,0)  
-                aircraft = AirCraft(type, count, 11, 5, acd)
+                aircraft = Aircraft(type, count, 11, 5, acd)
             case AircraftType.WILDCAT:
                 acd= AircraftCombatData(9,0,0,4,0,0,0,0,0,1,0,0,0,0)  
-                aircraft = AirCraft(type, count, 8, 6, acd)
+                aircraft = Aircraft(type, count, 8, 6, acd)
             #japanese
             # Betty is a bomber, so it has a different range factor)
             case AircraftType.BETTY:
                 acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,5,0,0,9)
-                aircraft = AirCraft(type, count, 9, 10 , acd)
+                aircraft = Aircraft(type, count, 9, 10 , acd)
             # Dave is a float plane, so it has a different range factor)
             case AircraftType.DAVE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
-                aircraft = AirCraft(type, count, 4, 6, acd)
+                aircraft = Aircraft(type, count, 4, 6, acd)
             # Emily is a flying boat, so it has a different range factor)
             case AircraftType.EMILY:
                 acd= AircraftCombatData(6,8,3,9,4,0,0,0,1,3,7,0,0,15)
-                aircraft = AirCraft(type, count, 9, 24, acd)
+                aircraft = Aircraft(type, count, 9, 24, acd)
             # Judy is a dive bomber)
             case AircraftType.JUDY:
                 acd= AircraftCombatData(3,2,1,3,1,4,2,0,0,1,5,2,7,0)
-                aircraft = AirCraft(type, count, 11, 6, acd)
+                aircraft = Aircraft(type, count, 11, 6, acd)
             # Jake is a float plane, 
             case AircraftType.JAKE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
-                aircraft = AirCraft(type, count, 5, 9, acd)
+                aircraft = Aircraft(type, count, 5, 9, acd)
             # Kate is a torpedo bomber
             case AircraftType.KATE:
                 acd= AircraftCombatData(2,4,2,6,2,0,0,0,1,2,6,0,0,10)
-                aircraft = AirCraft(type, count, 7, 7, acd)
+                aircraft = Aircraft(type, count, 7, 7, acd)
             # Mavis is a flying boat, 
             case AircraftType.MAVIS:
                 acd= AircraftCombatData(5,6,2,7,3,0,0,0,1,2,6,0,0,15)
-                aircraft = AirCraft(type, count, 8, 23, acd)
+                aircraft = Aircraft(type, count, 8, 23, acd)
             # Nell is a bomber, 
             case AircraftType.NELL:
                 acd= AircraftCombatData(3,4,2,6,2,0,0,0,1,2,4,0,0,9)
-                aircraft = AirCraft(type, count, 8, 8 , acd)
+                aircraft = Aircraft(type, count, 8, 8 , acd)
             # Pete is a float plane, 
             case AircraftType.PETE:
                 acd= AircraftCombatData(1,0,0,1,0,0,0,0,0,0,0,0,0,0)
-                aircraft = AirCraft(type, count, 4, 6, acd)
+                aircraft = Aircraft(type, count, 4, 6, acd)
             # Rufe is a float plane,
             case AircraftType.RUFE:
                 acd= AircraftCombatData(6,0,0,3,0,0,0,0,0,1,0,0,0,0)
-                aircraft = AirCraft(type, count, 9, 6, acd)
+                aircraft = Aircraft(type, count, 9, 6, acd)
             # Val is a dive bomber
             case AircraftType.VAL:
                 acd= AircraftCombatData(2,2,1,3,1,4,2,0,0,1,5,2,7,0)
-                aircraft = AirCraft(type, count, 9, 7, acd)
+                aircraft = Aircraft(type, count, 9, 7, acd)
             # Zero is a fighter, 
             case AircraftType.ZERO:
                 acd= AircraftCombatData(9,0,0,3,0,0,0,0,0,1,0,0,0,0)
-                aircraft = AirCraft(type, count, 10, 8, acd)
+                aircraft = Aircraft(type, count, 10, 8, acd)
         return aircraft
             
 
@@ -733,7 +733,7 @@ class AirOperationsTracker:
             aircraft (AirCraft): The aircraft to update.
             status (AircraftStatus or str): The new status for the aircraft.
         """
-        if not isinstance(aircraft, AirCraft):
+        if not isinstance(aircraft, Aircraft):
             raise TypeError("Expected an AirCraft instance")
 
         # Accept both enum and string for status

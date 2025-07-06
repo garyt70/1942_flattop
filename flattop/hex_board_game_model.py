@@ -64,7 +64,7 @@ class Piece:
             getattr(operations_chart_models, "Base", None)
         )
         if value is not None and not isinstance(value, allowed_types):
-            raise TypeError("game_model must be an AirFormation or TaskForce instance")
+            raise TypeError("game_model must be an Base, AirFormation or TaskForce instance")
         self._game_model = value
 
     @property
@@ -195,6 +195,20 @@ class HexBoardModel:
 class TurnManager:
     """
     Manages the game turns, days, and hour tracking.
+
+There are ten phases within each turn. Phases may not be skipped or performed out of sequence. Players perform all phases simultaneously except the Plane Movement Phase.
+
+1. **Weather Phase** — Wind direction changes are made and Cloud markers are moved.
+2. **Air Operations Phase** — Planes are readied and placed in Air Formations.
+3. **Task Force Movement Plotting Phase** — Movement for all TFs is logged on the Plot Map.
+4. **Shadowing Phase** — TFs and Air Formations that are shadowing and TFs that are being shadowed are moved on the mapboard.
+5. **Task Force Movement Execution Phase** — TFs which did not move in the Shadowing Phase are moved on the mapboard or on the Plot Map according to their plotted move.
+6. **Initiative Phase** — Players determine which player has the initiative.
+7. **Plane Movement Phase** — The player with the initiative moves all his Air Formations on the mapboard and on the Plot Map, then the player without the initiative does the same.
+8. **Combat Phase** — All combat is resolved, one battle at a time, following the Combat sequence for each battle.
+9. **Repair Phase** — Damaged bases are repaired.
+10. **Time Record Phase** — The passage of one turn is marked on the Time Record Chart.
+
     """
     def __init__(self, total_days=1):
         self.total_days = total_days

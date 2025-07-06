@@ -329,8 +329,6 @@ class DesktopUI:
                 baseUI.air_op_chart = self.board.players[piece.side]
                 baseUI.draw()
                 for af in baseUI.created_air_formations:
-                    
-
                     self.board.add_piece(Piece(
                         name=f"AF#{af.number}",  #need to fix this or decide if AirFormation number are needed
                         side=piece.game_model.side,

@@ -5,7 +5,7 @@ import pygame
 # Ensure the parent directory is in sys.path for module discovery
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
-from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart
+from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart
 
 
 
@@ -16,7 +16,7 @@ class AircraftDisplay:
         pass
 
     @staticmethod
-    def draw_aircraft(surface, aircraft: AirCraft, x, y):
+    def draw_aircraft(surface, aircraft: Aircraft, x, y):
         """
         Draws a single AirCraft object on the surface at the specified position.
         """
@@ -64,7 +64,7 @@ class AircraftDisplay:
         return y + 22 
 
     @staticmethod
-    def draw_aircraft_list_header(surface, aircraft: AirCraft, x, y):
+    def draw_aircraft_list_header(surface, aircraft: Aircraft, x, y):
         columns = AircraftDisplay.columns
         font = pygame.font.SysFont(None, 24)
 
@@ -138,7 +138,7 @@ class AirOperationsTrackerDisplay:
     def draw_aircraft_list(self, aircraft_list, x, y):
         return AircraftDisplay.draw_aircraft_list(self.surface, aircraft_list, x, y)
 
-    def draw_aircraft(self, aircraft: AirCraft, x, y):
+    def draw_aircraft(self, aircraft: Aircraft, x, y):
         return AircraftDisplay.draw_aircraft(self.surface, aircraft, x, y)
 
     def draw(self):

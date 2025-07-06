@@ -1,6 +1,6 @@
 from flattop.ui.desktop.desktop_ui import DesktopUI # Import the DesktopUI class from the module
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
+from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
 
 
 def scenario_one_setup():
