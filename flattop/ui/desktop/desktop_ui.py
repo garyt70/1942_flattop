@@ -3,7 +3,7 @@ import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirFormation, Base, TaskForce  # Adjust import as needed
+from flattop.operations_chart_models import AirFormation, Base, TaskForce, AirOperationsChart  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.base_ui import AircraftDisplay
@@ -326,10 +326,13 @@ class DesktopUI:
             # This allows for a more detailed and interactive display of the Base piece
             try:
                 baseUI = BaseUIDisplay( piece.game_model, self.screen)
+                baseUI.air_op_chart = self.board.players[piece.side]
                 baseUI.draw()
                 for af in baseUI.created_air_formations:
+                    
+
                     self.board.add_piece(Piece(
-                        name=f"AF#{10}",  #need to fix this or decide if AirFormation number are needed
+                        name=f"AF#{af.number}",  #need to fix this or decide if AirFormation number are needed
                         side=piece.game_model.side,
                         position=piece.position,
                         gameModel=af))

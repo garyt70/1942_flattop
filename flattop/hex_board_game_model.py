@@ -119,12 +119,13 @@ class Piece:
         return strValueToReturn
 
 class HexBoardModel:
-    def __init__(self, width, height, land_hexes=None):
+    def __init__(self, width, height, land_hexes=None, players = []):
         self.width = width
         self.height = height
         self.land_hexes = set(land_hexes) if land_hexes else set()
         self.tiles = set(self.generate_board(width, height))
         self.pieces = []
+        self.players = dict()
 
     def generate_board(self, width, height):
         # Generates a rectangular grid of hexes using axial coordinates

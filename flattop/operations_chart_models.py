@@ -296,6 +296,12 @@ class AirFormation:
         self.launch_hour = launch_hour
         self.height = "High"  # Default height, can be "High" or "Low"
 
+    """
+    Each turn reduces the range available for each aircraft type in the formation.
+    If the available range for an aircraft reduces to zero then the aircraft have run out of fuel and are lost.
+    """
+
+
     def add_aircraft(self, aircraft):
         if not isinstance(aircraft, AirCraft):
             raise TypeError("Expected an AirCraft instance")
@@ -416,6 +422,7 @@ class AirCraft:
         self.move_factor = move_factor  # Movement factor for the aircraft
         self.range_factor = range_factor # The number of hours a plan can stay in tha air for.
         self.combat_data = acd  # Aircraft Combat Data instance
+        self.range_remaining = range_factor #this is the remaining in air time available. Each turn increment reduces this.
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"

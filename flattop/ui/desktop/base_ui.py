@@ -5,7 +5,7 @@ import pygame
 # Ensure the parent directory is in sys.path for module discovery
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
-from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType
+from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, AirCraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart
 
 
 
@@ -171,7 +171,7 @@ class AirOperationsConfigurationDisplay:
         self.pos = pos
         self.font = pygame.font.SysFont(None, 24)
 
-    def draw(self):
+    def draw(self):     
         x, y = self.pos
         title = self.font.render("Air Operations Configuration", True, (255, 255, 255))
         self.surface.blit(title, (x, y))
@@ -202,9 +202,27 @@ class BaseUIDisplay:
         self.create_af_button_rect = None  # Button rect for creating air formation
         self.last_airformation = None      # Store the last created air formation
         self.created_air_formations = []  # store the created AirFormations so that the calling code can implement pieces for them
+        self.air_op_chart: AirOperationsChart = None #this is required to enable access to the dictionary of air formations.
 
     def draw(self):
-        self.surface.fill((0, 0, 40))
+
+        win_width, win_height = self.surface.get_size()
+        margin = 10
+
+        # Draw a popup background for the takforce details
+        font = pygame.font.SysFont(None, 24)
+        header_font = pygame.font.SysFont(None, 28, bold=True)
+        popup_width = int(win_width * 0.9)
+        popup_height = int(win_height * 0.9)
+        popup_rect = pygame.Rect(
+            10,
+            10,
+            popup_width,
+            popup_height
+        )
+        pygame.draw.rect(self.surface, (50, 50, 50), popup_rect)
+        pygame.draw.rect(self.surface, (200, 200, 200), popup_rect, 2)
+
         self.config_display.draw()
         self.tracker_display.draw()
 
@@ -214,7 +232,7 @@ class BaseUIDisplay:
         button_text = "Create Air Formation"
         btn_surf = font.render(button_text, True, (0, 0, 0))
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
-        btn_x, btn_y = 30, self.surface.get_height() - btn_height - 30
+        btn_x, btn_y = popup_rect.x, popup_height - btn_height - 30
         self.create_af_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
         pygame.draw.rect(self.surface, (200, 200, 0), self.create_af_button_rect)
         pygame.draw.rect(self.surface, (255, 255, 255), self.create_af_button_rect, 2)
@@ -248,7 +266,7 @@ class BaseUIDisplay:
 
 
     def _get_next_airformation_number(self):
-            return 1
+            return self.air_op_chart.get_empty_formation_number()
     
 
 # Example usage:

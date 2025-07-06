@@ -26,12 +26,29 @@ class TaskForceScreen:
 
     def draw(self, surface):
         self.surface = surface
-        surface.fill(WHITE)
+
+        win_width, win_height = self.surface.get_size()
+        margin = 10
+
+        # Draw a popup background for the takforce details
+        font = pygame.font.SysFont(None, 24)
+        header_font = pygame.font.SysFont(None, 28, bold=True)
+        popup_width = int(win_width * 0.9)
+        popup_height = int(win_height * 0.9)
+        popup_rect = pygame.Rect(
+            20,
+            20,
+            popup_width,
+            popup_height
+        )
+        pygame.draw.rect(self.surface, (50, 50, 50), popup_rect)
+        pygame.draw.rect(self.surface, (200, 200, 200), popup_rect, 2)
+
         y = 20
-        title = FONT.render(f"TaskForce: {self.taskforce.name}", True, BLACK)
+        title = FONT.render(f"TaskForce: {self.taskforce.name}", True, WHITE)
         surface.blit(title, (20, y))
         y += 40
-        ships_label = SMALL_FONT.render(f"Ships: {len(self.taskforce.ships)}", True, BLACK)
+        ships_label = SMALL_FONT.render(f"Ships: {len(self.taskforce.ships)}", True, WHITE)
         surface.blit(ships_label, (20, y))
         y += 40
 
@@ -43,7 +60,7 @@ class TaskForceScreen:
             x_positions.append(x_positions[-1] + w)
         header_y = y
         for i, header in enumerate(headers):
-            txt = SMALL_FONT.render(header, True, BLACK)
+            txt = SMALL_FONT.render(header, True, WHITE)
             surface.blit(txt, (x_positions[i], header_y))
         y += 30
         pygame.draw.line(surface, BLACK, (40, y), (40 + sum(col_widths), y), 2)
@@ -64,13 +81,13 @@ class TaskForceScreen:
             
             row = [name, ship_type, str(attack), str(defense), str(move), air_ops]
             for i, value in enumerate(row):
-                txt = SMALL_FONT.render(value, True, BLACK)
+                txt = SMALL_FONT.render(value, True, WHITE)
                 surface.blit(txt, (x_positions[i], y))
             # Draw base symbol as clickable if carrier has base
             if is_carrier and ship.base:
                 # Use a font that supports Unicode for the carrier symbol
                 unicode_font = pygame.font.SysFont("Segoe UI Emoji", 24)  # Common font for emoji support
-                symbol = unicode_font.render(CARRIER_SYMBOL, True, BLACK)
+                symbol = unicode_font.render(CARRIER_SYMBOL, True, WHITE)
                 rect = symbol.get_rect(topleft=(x_positions[5], y))
                 surface.blit(symbol, rect.topleft)
                 self.carrier_buttons.append((rect, ship.base))

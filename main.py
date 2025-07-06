@@ -153,6 +153,9 @@ def scenario_one_setup():
     print("Allied Chart:", chartAllied)
     print("Allied Task Force 1 Ships:", chartAllied.task_forces[1])
 
+    hexboard_model.players[chartAllied.side] = chartAllied
+    hexboard_model.players[chartJapanase.side] = chartJapanase
+
     return hexboard_model  # Return the hexagonal board model with the scenario set up
 
 def load_hexboard_model():
