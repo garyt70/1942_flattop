@@ -345,6 +345,7 @@ class DesktopUI:
             # This allows for a more detailed and interactive display of the TaskForce piece
             try:
                 tf_screen = TaskForceScreen(piece.game_model)
+                tf_screen.air_ops_chart = self.board.players[piece.side]
                 tf_screen.draw(self.screen)
                 pygame.display.flip()
                 # Wait for user to close the TaskForce screen

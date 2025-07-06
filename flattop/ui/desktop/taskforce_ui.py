@@ -6,7 +6,7 @@ import pygame
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
 # Import necessary classes from the operations chart models
-from flattop.operations_chart_models import TaskForce, Carrier, Base, Ship, AircraftType, AircraftOperationsStatus, AirOperationsConfiguration, AircraftFactory
+from flattop.operations_chart_models import AirOperationsChart, TaskForce, Carrier, Base, Ship, AircraftType, AircraftOperationsStatus, AirOperationsConfiguration, AircraftFactory
 from flattop.ui.desktop.base_ui import BaseUIDisplay  # <-- Use BaseUIDisplay instead of BaseDialog
 
 pygame.init()
@@ -23,6 +23,7 @@ class TaskForceScreen:
         self.carrier_buttons = []
         self.base_dialog = None  # This will now be a BaseUIDisplay
         self.screen = None
+        self.air_ops_chart : AirOperationsChart = None
 
     def draw(self, surface):
         self.surface = surface
@@ -101,6 +102,7 @@ class TaskForceScreen:
             for rect, base in self.carrier_buttons:
                 if rect.collidepoint(pos):
                     self.base_dialog = BaseUIDisplay(base, self.surface)  
+                    self.base_dialog.air_op_chart = self.air_ops_chart
                     self.base_dialog.draw()  # Show the base dialog
                     pygame.display.flip()  # Update the display
                     break
