@@ -1,5 +1,6 @@
 import math
 from flattop import operations_chart_models
+from flattop.operations_chart_models import AirFormation, AirOperationsChart, Aircraft
 
 
 class Hex:
@@ -125,7 +126,7 @@ class HexBoardModel:
         self.land_hexes = set(land_hexes) if land_hexes else set()
         self.tiles = set(self.generate_board(width, height))
         self.pieces = []
-        self.players = dict()
+        self.players = dict() # this is a dictionary of AirOperationsChart
 
     def generate_board(self, width, height):
         # Generates a rectangular grid of hexes using axial coordinates
@@ -190,6 +191,23 @@ class HexBoardModel:
         """
         for piece in self.pieces:
             piece.has_moved = False
+            # If the piece is an AirFormation, update aircraft ranges and remove those out of fuel
+            if isinstance(piece.game_model, AirFormation):
+                af: AirFormation = piece.game_model
+                ac: Aircraft
+                to_remove = []
+                for ac in af.aircraft:
+                    ac.range_remaining -= 1
+                    if ac.range_remaining <= 0:
+                        to_remove.append(ac)
+                for ac in to_remove:
+                    af.remove_aircraft(ac)
+                    print(f"Air Formation {af.name}: Aircraft {ac.type} ran out of fuel and was removed.")
+                if len(af.aircraft) <= 0:
+                    #the airformation is destroyed
+                    self.pieces.remove(piece)
+                    print(f"Air Formation {af.name}, ran out of fuel")
+
 
 
 class TurnManager:

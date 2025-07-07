@@ -57,7 +57,7 @@ class AircraftDisplay:
            
         #movement details of aircraft
         surface.blit(font.render(str(aircraft.move_factor), True, (255, 255, 255)), (x + columns[14], y))
-        surface.blit(font.render(str(aircraft.range_factor), True, (255, 255, 255)), (x + columns[15], y))
+        surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, (255, 255, 255)), (x + columns[15], y))
         
         y += 20
 
