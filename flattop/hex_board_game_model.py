@@ -1,6 +1,6 @@
 import math
 from flattop import operations_chart_models
-from flattop.operations_chart_models import AirFormation, AirOperationsChart, Aircraft
+from flattop.operations_chart_models import AirFormation, AirOperationsChart, Aircraft, Base, TaskForce, Carrier
 
 
 class Hex:
@@ -189,6 +189,7 @@ class HexBoardModel:
         """
         Resets the has_moved flag for all pieces at the start of a new turn.
         """
+        piece : Piece
         for piece in self.pieces:
             piece.has_moved = False
             # If the piece is an AirFormation, update aircraft ranges and remove those out of fuel
@@ -207,7 +208,18 @@ class HexBoardModel:
                     #the airformation is destroyed
                     self.pieces.remove(piece)
                     print(f"Air Formation {af.name}, ran out of fuel")
-
+            elif isinstance(piece.game_model, Base):
+                base: Base
+                base = piece.game_model
+                base.reset_for_new_turn()
+            elif isinstance(piece.game_model, TaskForce):
+                tf:TaskForce
+                tf = piece.game_model
+                carrier_list = tf.get_carriers()
+                if carrier_list is not None:
+                    cv:Carrier
+                    cv = carrier_list[0]
+                    cv.base.reset_for_new_turn()
 
 
 class TurnManager:

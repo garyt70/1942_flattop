@@ -5,9 +5,56 @@ import pygame
 # Ensure the parent directory is in sys.path for module discovery
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
-from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart
+from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart, AirFormation
 
+class AircraftOperationChartCommandWidget:
+    def __init__(self, surface, x, y, aircraft:Aircraft):
+        self.from_aircraft = aircraft
+        self.to_aircraft :Aircraft = None
+        self.pos_x = x
+        self.pos_y = y
+        self.surface = surface
+        self.btn_rect = pygame.Rect(x, y, 30, 30)
 
+    def draw(self):
+        """
+        Draws a button and counter.
+        The button adds one to_aircraft.count and subtracts one from from_aircraft.count.
+        If to_aircraft does not exist then create a copy of from_aircraft and set count to one.
+        to_aircraft_list: list to hold destination aircraft (optional, for updating)
+        to_aircraft_type: AircraftType to match in to_aircraft_list (optional)
+        """
+        # Draw the button
+        pygame.draw.rect(self.surface, (0, 200, 0), self.btn_rect)
+        font = pygame.font.SysFont(None, 24)
+        btn_label = font.render("+", True, (255, 255, 255))
+        self.surface.blit(btn_label, (self.pos_x + 8, self.pos_y + 2))
+
+        # Draw the current count
+        if self.to_aircraft is not None:
+            count_label = font.render(str(self.to_aircraft.count), True, (255, 255, 0))
+            self.surface.blit(count_label, (self.pos_x + 35, self.pos_y + 5))
+
+    def handle_click(self):
+        if self.from_aircraft.count > 0:
+            # Find or create to_aircraft
+            if self.to_aircraft is None:
+                self.to_aircraft = self.from_aircraft.copy()
+                self.to_aircraft.count = 0
+
+            # Update counts
+            self.from_aircraft.count -= 1
+            self.to_aircraft.count += 1
+        
+        # Draw the current count
+        if self.to_aircraft is not None:
+            font = pygame.font.SysFont(None, 24)
+            count_label = font.render(str(self.to_aircraft.count), True, (255, 255, 0), (50, 50, 50))
+            self.surface.blit(count_label, (self.pos_x + 35, self.pos_y + 5))
+
+    def collidepoint(self, mx, my):
+        return self.btn_rect.collidepoint(mx, my)
+ 
 
 class AircraftDisplay:
     columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160]
@@ -62,6 +109,20 @@ class AircraftDisplay:
         y += 20
 
         return y + 22 
+    
+    @staticmethod
+    def draw_command_btn(surface, aircraft, x, y):
+        btn = AircraftOperationChartCommandWidget(surface, x, y, aircraft)
+        btn.draw()
+        return btn
+
+    @staticmethod
+    def draw_aircraft_with_command_btn(surface, aircraft, x, y):
+        #this is drawn button first because drawing the aircraft increment y by number of 
+        # aircraft which will result in button being in wrong place
+        btn = AircraftDisplay.draw_command_btn(surface, aircraft, x + AircraftDisplay.columns[15] + 60 , y)
+        y = AircraftDisplay.draw_aircraft(surface, aircraft, x, y)
+        return y, btn
 
     @staticmethod
     def draw_aircraft_list_header(surface, aircraft: Aircraft, x, y):
@@ -125,15 +186,30 @@ class AircraftDisplay:
         for ac in aircraft_list:
             y = AircraftDisplay.draw_aircraft(surface, ac, x, y)
         return y
+    
+
+    @staticmethod  
+    def draw_aircraft_list_with_btn(surface, aircraft_list, x, y):
+        
+        """
+        Draws a list of AirCraft objects on the surface at the specified position.
+        """
+        btn_list = []
+        for ac in aircraft_list:
+            y, btn = AircraftDisplay.draw_aircraft_with_command_btn(surface, ac, x, y)
+            btn_list.append(btn)
+        return y, btn_list
 
 class AirOperationsTrackerDisplay:
     columns = [200, 260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980]
 
-    def __init__(self, tracker: AirOperationsTracker, surface, pos=(10, 90)):
+    def __init__(self, tracker: AirOperationsTracker, config: AirOperationsConfiguration ,surface, pos=(10, 90)):
         self.tracker = tracker
+        self.config = config
         self.surface = surface
         self.pos = pos
         self.font = pygame.font.SysFont(None, 24)
+        self.ready_btn_list = []
 
     def draw_aircraft_list(self, aircraft_list, x, y):
         return AircraftDisplay.draw_aircraft_list(self.surface, aircraft_list, x, y)
@@ -153,7 +229,9 @@ class AirOperationsTrackerDisplay:
         #now display the combat data for each aircraft
         self.surface.blit(self.font.render("Ready", True, (200, 200, 0)), (x, y))
         y += 25
-        y = self.draw_aircraft_list(self.tracker.ready, x, y)
+        #y = self.draw_aircraft_list(self.tracker.ready, x, y)
+        y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
+        self.ready_btn_list = btn_list
         self.surface.blit(self.font.render("Readying", True, (200, 200, 0)), (x, y))
         y += 25
         y = self.draw_aircraft_list(self.tracker.readying, x, y)
@@ -198,12 +276,67 @@ class BaseUIDisplay:
         self.surface = surface
         self.base = base
         self.config_display = AirOperationsConfigurationDisplay(base.air_operations_config, surface)
-        self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, surface)
+        self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, base.air_operations_config, surface)
         self.create_af_button_rect = None  # Button rect for creating air formation
+        self.ready_btn_list = [] #list of button for the ready plan list. This is used in create airformation
         self.last_airformation = None      # Store the last created air formation
         self.created_air_formations = []  # store the created AirFormations so that the calling code can implement pieces for them
         self.air_op_chart: AirOperationsChart = None #this is required to enable access to the dictionary of air formations.
 
+    def _handle_button_click(self, event):
+        mx, my = event.pos
+        exit :bool = False
+        if self.create_af_button_rect.collidepoint(mx, my) and len(self.base.air_operations_tracker.ready) > 0:
+            
+            # Create an air formation using the next available number
+            af_number = self._get_next_airformation_number()
+            if af_number is not None:
+                #airformation = self.base.create_air_formation(af_number)
+                airformation = AirFormation(af_number, f"{self.base.name} airformation {af_number}", side=self.base.side)
+
+                btn:AircraftOperationChartCommandWidget
+                for btn in self.ready_btn_list:
+                    if btn.to_aircraft:
+                        airformation.add_aircraft(btn.to_aircraft)
+                    if btn.from_aircraft.count <= 0:
+                        self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
+                self.created_air_formations.append(airformation)
+                self.air_op_chart.air_formations[af_number] = airformation
+
+
+            else:
+                self.last_airformation = None
+            # # Redraw to show the new air formation
+            #self.draw()  
+            pygame.display.flip()
+            exit = True      
+        else:
+            exit = True # assume exiting the screen unless button is clicked.
+
+
+            #see if any of the ready button have been clicked
+            btn : AircraftOperationChartCommandWidget
+            for btn in self.ready_btn_list:
+                #need to think of a better way to handle zero ready facotr to prevent need for loop
+                if btn.collidepoint(mx, my) and self.base.available_ready_factor > 0:
+                    exit = False
+                    btn.handle_click()
+                    self.base.available_ready_factor -= 1
+                    pygame.display.flip()
+        return exit
+
+    
+    def _handle_events(self):
+        waiting = True
+        while waiting:
+            for popup_event in pygame.event.get():
+                if popup_event.type == pygame.MOUSEBUTTONDOWN:
+                    waiting = not self._handle_button_click(popup_event)     
+                elif popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                    waiting = False
+                    if popup_event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
     def draw(self):
 
         win_width, win_height = self.surface.get_size()
@@ -225,6 +358,7 @@ class BaseUIDisplay:
 
         self.config_display.draw()
         self.tracker_display.draw()
+        self.ready_btn_list = self.tracker_display.ready_btn_list
 
 
          # Draw the "Create Air Formation" button
@@ -241,28 +375,9 @@ class BaseUIDisplay:
 
         pygame.display.flip()
 
-        waiting = True
-        while waiting:
-            for popup_event in pygame.event.get():
-                if popup_event.type == pygame.MOUSEBUTTONDOWN:
-                    mx, my = popup_event.pos
-                    if self.create_af_button_rect.collidepoint(mx, my) and len(self.base.air_operations_tracker.ready) > 0:
-                        # Create an air formation using the next available number
-                        af_number = self._get_next_airformation_number()
-                        if af_number is not None:
-                            airformation = self.base.create_air_formation(af_number)
-                            self.created_air_formations.append(airformation)
-                        else:
-                            self.last_airformation = None
-                        self.draw()  # Redraw to show the new air formation
-                        return
-                    else:
-                        waiting = False
-                elif popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
-                    waiting = False
-                    if popup_event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
+        self._handle_events()
+
+       
 
 
     def _get_next_airformation_number(self):

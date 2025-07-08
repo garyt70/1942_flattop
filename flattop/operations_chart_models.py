@@ -200,6 +200,7 @@ class Base:
         self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
         self.air_operations_tracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
+        self.available_ready_factor = self.air_operations_config.ready_factors
 
     """
     #create a AirFormation for this base. To create an AirFormation the AirOperationsTracker status for the aircraft must be set to READY.
@@ -231,7 +232,9 @@ class Base:
         
         return air_formation
 
-
+    def reset_for_new_turn(self):
+        self.available_ready_factor = self.air_operations_config.ready_factors
+        
 
     def __repr__(self):
         return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self.air_operations_config})"
@@ -426,6 +429,9 @@ class Aircraft:
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
+    
+    def copy(self):
+        return Aircraft(self.type, self.count, self.move_factor, self.range_factor, self.combat_data)
 
 class AircraftFactory:
     def __init__(self):

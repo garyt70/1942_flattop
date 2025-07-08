@@ -8,6 +8,7 @@ from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.base_ui import AircraftDisplay
 
+
 # Hexagon settings
 HEX_SIZE = 20  # Radius of hex
 HEX_HEIGHT = math.sqrt(3) * HEX_SIZE
@@ -324,19 +325,19 @@ class DesktopUI:
         if isinstance(piece.game_model, Base):
             # If the piece is a Base, use the BaseUIDisplay to render it
             # This allows for a more detailed and interactive display of the Base piece
-            try:
-                baseUI = BaseUIDisplay( piece.game_model, self.screen)
-                baseUI.air_op_chart = self.board.players[piece.side]
-                baseUI.draw()
-                for af in baseUI.created_air_formations:
-                    self.board.add_piece(Piece(
-                        name=f"AF#{af.number}",  #need to fix this or decide if AirFormation number are needed
-                        side=piece.game_model.side,
-                        position=piece.position,
-                        gameModel=af))
-                return
-            except ImportError:
-                pass  # Fallback to default popup if import fails
+            
+            baseUI = BaseUIDisplay( piece.game_model, self.screen)
+            baseUI.air_op_chart = self.board.players[piece.side]
+            baseUI.turn_manager = self.turn_manager
+            baseUI.draw()
+            for af in baseUI.created_air_formations:
+                self.board.add_piece(Piece(
+                    name=f"AF#{af.number}",  #need to fix this or decide if AirFormation number are needed
+                    side=piece.game_model.side,
+                    position=piece.position,
+                    gameModel=af))
+            return
+        
         
         elif isinstance(piece.game_model, TaskForce):
             # If the piece is a TaskForce, use the TaskForceScreen to render it

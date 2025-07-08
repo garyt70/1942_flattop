@@ -70,8 +70,8 @@ def scenario_one_setup():
     
     #setup Japanese base at Rabul
     
-    baseRahulJapanese = Base("Rabul",side="Japanese")  # Create a base for the Japanese side
-    baseRahulJapanese.air_operations_config = AirOperationsConfiguration(
+    
+    air_operations_config = AirOperationsConfiguration(
         name="Rabul",
         description="Configuration for air operations at Rabul",
         maximum_capacity=9999,
@@ -81,6 +81,7 @@ def scenario_one_setup():
         ready_factors=7,
         plane_handling_type="Base"
     )
+    baseRahulJapanese = Base("Rabul",side="Japanese", air_operations_config=air_operations_config)  # Create a base for the Japanese side
     baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=10),AircraftOperationsStatus.READY)
     baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.VAL, count=8),AircraftOperationsStatus.READY)
     baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READY)
@@ -104,8 +105,8 @@ def scenario_one_setup():
     ###########################################
     ## setup Allied base at Port Moresby and Allied Task Force
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
-    basePortMoresbyAllied = Base("Port Moresby",side="Allied")  # Create a base for the Allied side
-    basePortMoresbyAllied.air_operations_config = AirOperationsConfiguration(
+    
+    air_operations_config = AirOperationsConfiguration(
         name="Port Moresby",
         description="Configuration for air operations at Port Moresby",
         maximum_capacity=9999,
@@ -115,6 +116,8 @@ def scenario_one_setup():
         ready_factors=8,
         plane_handling_type="LP"
     )
+    basePortMoresbyAllied = Base("Port Moresby",side="Allied" ,air_operations_config = air_operations_config)  # Create a base for the Allied side
+
     basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.P40, count=12),AircraftOperationsStatus.READY)
     basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.CATALINA, count=4),AircraftOperationsStatus.READY)
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
@@ -169,6 +172,9 @@ def load_hexboard_model():
 
     return model 
 
+
+
+
 def main():
     """
     Main function to initialize the hexagonal board game model and start the desktop UI.
@@ -177,7 +183,7 @@ def main():
     desktopUI = DesktopUI(boardModel)  # Initialize the DesktopUI with the board model
     desktopUI.initialize()  # Set up the UI
     desktopUI.run()  # Start the UI event loop
-    
+
 
 if __name__ == "__main__":
     main()  # Run the main function to start the application
