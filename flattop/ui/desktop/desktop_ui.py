@@ -3,7 +3,7 @@ import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirFormation, Base, TaskForce, AirOperationsChart  # Adjust import as needed
+from flattop.operations_chart_models import Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus, AirOperationsChart  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
@@ -534,12 +534,28 @@ class DesktopUI:
 
     def show_piece_menu(self, piece:Piece, pos):
         # When a piece is clicked, display a menu with options to Move or Details
+        menu_options = []
+
+
+        #if the piece is a AirFormation and it is in the same hex as a Base then show a menu option to land the AirFormation
+        if isinstance(piece.game_model, AirFormation):
+            # Check if there is a Base in the same hex
+            base_in_hex = any(
+                isinstance(p.game_model, (Base,TaskForce)) and p.position == piece.position
+                for p in self.board.pieces
+            )
+            if base_in_hex and not piece.has_moved:
+                # If there is a Base, add the Land option to the menu
+                menu_options.append("Land")
+    
         if piece.can_move and not piece.has_moved:
             # If the piece can move and has not moved yet, show the Move option
-            menu_options = ["Move", "Details", "Cancel"]
-        else:
-            # If the piece cannot move or has already moved, show only Details and Cancel 
-             menu_options = ["Details", "Cancel"]
+            menu_options.append("Move")
+       
+        # If the piece cannot move or has already moved, show only Details and Cancel 
+        menu_options.extend(["Details", "Cancel"])
+
+
         font = pygame.font.SysFont(None, 28)
         margin = 10
         option_height = font.get_height() + margin
@@ -575,20 +591,55 @@ class DesktopUI:
                         selected = "Cancel"
                         break
 
-        if selected == "Details":
-            self.render_popup(piece, pos)
-        elif selected == "Move":
-            self._dragging = False
-            center = self.hex_to_pixel(piece.position.q, piece.position.r)
-            if piece.can_move:
-                self.show_max_move_distance(piece)
-                self._moving_piece = piece
-                self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+        match selected:
+            case "Land":   
+                #landing an AirFormation sets the aircraft to the Base's air operations chart
+                # and removes the AirFormation piece from the board
+                # the aircraft are added to the Base's air operations chart will have a Just Landed status
+                if isinstance(piece.game_model, AirFormation):
+                    # Find the Base in the same hex as the AirFormation
+                    #TODO: modify this code to also handle TaskForce with aircraft carrier.
+                    base_piece:Piece = next(
+                        (p for p in self.board.pieces if isinstance(p.game_model, (Base, TaskForce)) and p.position == piece.position),
+                        None
+                    )
+                    base:Base = None
+                    if base_piece:
+                        if isinstance(base_piece.game_model, Base):
+                            base = base_piece.game_model
+                            # Ensure the Base has an air operations tracker
+                        if isinstance(base_piece.game_model, TaskForce):
+                            tf:TaskForce = base_piece.game_model
+                            #loop through the ships to ensure there is a carrier. If there is a carrier, then set the base to the carrier's air operations chart
+                            for ship in tf.ships:  
+                                if isinstance(ship, Carrier):
+                                    base = ship.base
+                                    break 
+                        
+                    if base:
+                        # Add aircraft to the Base's air operations chart
+                        for aircraft in piece.game_model.aircraft:
+                            base.air_operations_tracker.set_operations_status(aircraft, AircraftOperationsStatus.JUST_LANDED)
+                        # Remove the AirFormation piece from the board
+                        self.board.pieces.remove(piece)
+                        self._moving_piece = None
+                        self._moving_piece_offset = None
                 
-            else:
+            case "Details":
+                self.render_popup(piece, pos)
+            case "Move":
+                self._dragging = False
+                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                if piece.can_move:
+                    self.show_max_move_distance(piece)
+                    self._moving_piece = piece
+                    self._moving_piece_offset = (mouse_x - center[0], mouse_y - center[1])
+            case _:      
+                # If the selected option is not recognized, reset moving state and assume cancel
                 self._moving_piece = None
                 self._moving_piece_offset = None
                 # Cancel just returns, nothing to do
+                return
 
     def render_piece_selection_popup(self, pieces, pos):
         # Display a popup with a list of pieces and let the user select one
