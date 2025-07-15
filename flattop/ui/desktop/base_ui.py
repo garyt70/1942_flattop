@@ -36,6 +36,9 @@ class AircraftOperationChartCommandWidget:
             self.surface.blit(count_label, (self.pos_x + 35, self.pos_y + 5))
 
     def handle_click(self):
+
+        change_value = 0
+
         if self.from_aircraft.count > 0:
             # Find or create to_aircraft
             if self.to_aircraft is None:
@@ -45,12 +48,15 @@ class AircraftOperationChartCommandWidget:
             # Update counts
             self.from_aircraft.count -= 1
             self.to_aircraft.count += 1
+            change_value = 1
         
         # Draw the current count
         if self.to_aircraft is not None:
             font = pygame.font.SysFont(None, 24)
             count_label = font.render(str(self.to_aircraft.count), True, (255, 255, 0), (50, 50, 50))
             self.surface.blit(count_label, (self.pos_x + 35, self.pos_y + 5))
+        
+        return change_value
 
     def collidepoint(self, mx, my):
         return self.btn_rect.collidepoint(mx, my)
@@ -302,6 +308,10 @@ class BaseUIDisplay:
                         self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
                 self.created_air_formations.append(airformation)
                 self.air_op_chart.air_formations[af_number] = airformation
+                self.last_airformation = airformation
+                # Reset the temporary launch factor
+                self.base.used_launch_factor += self.temp_launch_factor
+                self.temp_launch_factor = 0
 
 
             else:
@@ -312,22 +322,32 @@ class BaseUIDisplay:
             exit = True      
         else:
             exit = True # assume exiting the screen unless button is clicked.
-
-
             #see if any of the ready button have been clicked
             btn : AircraftOperationChartCommandWidget
             for btn in self.ready_btn_list:
                 #need to think of a better way to handle zero ready facotr to prevent need for loop
-                if btn.collidepoint(mx, my) and self.base.available_ready_factor > 0:
+                if btn.collidepoint(mx, my):
                     exit = False
-                    btn.handle_click()
-                    self.base.available_ready_factor -= 1
-                    pygame.display.flip()
+                    if self.base.used_launch_factor + self.temp_launch_factor <= self.base.air_operations_config.launch_factor_max:
+                        if btn.handle_click() > 0:
+                            #reducing the available_ready_factor here causes an issue because its possible to not create an airformation 
+                            # which is really where the available ready/launch factor is affected. Need to consider a temporary variable.
+                            self.temp_launch_factor += 1
+                            #redraw the ready factor
+                            self.surface.blit(
+                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor})", 
+                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                            self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
+                                                                    True, (255, 255, 255),(50, 50, 50)), (900, 65))
+                            pygame.display.flip()
         return exit
 
     
     def _handle_events(self):
         waiting = True
+        self.temp_launch_factor = 0
+        self.temp_ready_factor = 0
+
         while waiting:
             for popup_event in pygame.event.get():
                 if popup_event.type == pygame.MOUSEBUTTONDOWN:
@@ -358,6 +378,11 @@ class BaseUIDisplay:
 
         self.config_display.draw()
         self.tracker_display.draw()
+        self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
+                                                                 True, (255, 255, 255),(50, 50, 50)), (250, 65))
+        self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
+                                                                 True, (255, 255, 255),(50, 50, 50)), (900, 65))
+        #self.surface.blit(self.font.render("LF (Max)", True, (200, 200, 0)), (x + 800, y))
         self.ready_btn_list = self.tracker_display.ready_btn_list
 
 

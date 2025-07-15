@@ -200,7 +200,9 @@ class Base:
         self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
         self.air_operations_tracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
-        self.available_ready_factor = self.air_operations_config.ready_factors
+        self.used_ready_factor = 0
+        self.used_launch_factor = 0
+
 
     """
     #create a AirFormation for this base. To create an AirFormation the AirOperationsTracker status for the aircraft must be set to READY.
@@ -233,7 +235,8 @@ class Base:
         return air_formation
 
     def reset_for_new_turn(self):
-        self.available_ready_factor = self.air_operations_config.ready_factors
+        self.used_ready_factor = 0
+        self.used_launch_factor = 0
         
 
     def __repr__(self):
@@ -669,6 +672,10 @@ class Carrier(Ship):
     @property
     def air_operations_config(self):
         return self.base.air_operations_config
+    
+    @air_operations_config.setter
+    def air_operations_config(self, value : AirOperationsConfiguration):
+        self.base.air_operations_config = value
 
                
 
