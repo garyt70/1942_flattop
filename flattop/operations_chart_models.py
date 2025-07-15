@@ -429,6 +429,8 @@ class Aircraft:
         self.range_factor = range_factor # The number of hours a plan can stay in tha air for.
         self.combat_data = acd  # Aircraft Combat Data instance
         self.range_remaining = range_factor #this is the remaining in air time available. Each turn increment reduces this.
+        self.armament = None  # Placeholder for any armament data, GP, AP, Torpedo, etc.
+        
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"

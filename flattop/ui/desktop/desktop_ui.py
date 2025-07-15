@@ -448,7 +448,7 @@ class DesktopUI:
 
         # Check if click is on the turn info display
         if hasattr(self, "_turn_info_rect") and self._turn_info_rect.collidepoint(event.pos):
-            self.show_unmoved_pieces_popup()
+            self.show_turn_change_popup()
             return
 
         original_button = event.button
@@ -692,28 +692,41 @@ class DesktopUI:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return None
 
-    def show_unmoved_pieces_popup(self):
+    def show_turn_change_popup(self):
         # Display a scrollable popup listing all pieces that can move but have not moved yet,
-        # and allow the user to advance the turn.
+        # and allow the user to advance the phase or turn only if all phases are complete.
         win_width, win_height = self.screen.get_size()
         margin = 16
         font = pygame.font.SysFont(None, 24)
         header_font = pygame.font.SysFont(None, 28, bold=True)
-        # Filter pieces that can move and have not moved
+
+        # Get current phase and phase list from TurnManager
+        current_phase = self.turn_manager.current_phase
+        phase_list = self.turn_manager.PHASES
+        phase_idx = phase_list.index(current_phase) if current_phase in phase_list else 0
+
+        # Filter pieces that can move and have not moved (for this phase, if applicable)
         unmoved = [p for p in self.board.pieces if getattr(p, "can_move", False) and not getattr(p, "has_moved", False)]
         lines = [
             f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
             for i, piece in enumerate(unmoved)
         ]
         if not lines:
-            lines = ["No pieces can move this turn."]
+            lines = ["No pieces can move this phase."]
+
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
-        header_surf = header_font.render("Unmoved Pieces", True, (255, 255, 0))
-        next_turn_surf = header_font.render("Advance Turn", True, (0, 255, 0))
-        popup_width = max([header_surf.get_width(), next_turn_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+        header_surf = header_font.render(f"Phase: {current_phase}", True, (255, 255, 0))
+        # Button text depends on whether this is the last phase
+        if phase_idx == len(phase_list) - 1:
+            next_phase_text = "Advance Turn"
+        else:
+            next_phase_text = f"Advance Phase ({phase_list[phase_idx+1]})"
+        next_phase_surf = header_font.render(next_phase_text, True, (0, 255, 0))
+
+        popup_width = max([header_surf.get_width(), next_phase_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
         visible_lines = min(10, len(text_surfaces))
         line_height = font.get_height() + 4
-        popup_height = header_surf.get_height() + next_turn_surf.get_height() + visible_lines * line_height + 5 * margin
+        popup_height = header_surf.get_height() + next_phase_surf.get_height() + visible_lines * line_height + 5 * margin
         popup_rect = pygame.Rect(
             win_width // 2 - popup_width // 2,
             win_height // 2 - popup_height // 2,
@@ -722,42 +735,44 @@ class DesktopUI:
         )
         scroll_offset = 0
 
-       
-        # Draw popup background and border
-        self.render_screen()  # Redraw board behind popup
-        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
-        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
-        # Draw header
-        y = popup_rect.top + margin
-        self.screen.blit(header_surf, (popup_rect.left + margin, y))
-        y += header_surf.get_height() + margin // 2
-
-        # Draw Advance Turn button
-        next_turn_rect = next_turn_surf.get_rect(topleft=(popup_rect.left + margin, y))
-        pygame.draw.rect(self.screen, (30, 80, 30), next_turn_rect.inflate(12, 8))
-        self.screen.blit(next_turn_surf, next_turn_rect.topleft)
-        y += next_turn_rect.height + margin // 2
-
-        # Draw visible lines with scrolling
-        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-            ts = text_surfaces[i]
-            text_rect = ts.get_rect()
-            text_rect.topleft = (popup_rect.left + margin, y)
-            self.screen.blit(ts, text_rect)
-            y += line_height
-
-        # Draw scroll indicators if needed
-        if scroll_offset > 0:
-            up_arrow = font.render("^", True, (255, 255, 255))
-            self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
-        if scroll_offset + visible_lines < len(text_surfaces):
-            down_arrow = font.render("v", True, (255, 255, 255))
-            self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
-
-        pygame.display.flip()
-
         while True:
-            
+            # Draw popup background and border
+            self.render_screen()  # Redraw board behind popup
+            pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+            pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+            # Draw header
+            y = popup_rect.top + margin
+            self.screen.blit(header_surf, (popup_rect.left + margin, y))
+            y += header_surf.get_height() + margin // 2
+
+            # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
+            next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, y))
+            if unmoved:
+                pygame.draw.rect(self.screen, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
+                self.screen.blit(next_phase_surf, next_phase_rect.topleft)
+            else:
+                pygame.draw.rect(self.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
+                self.screen.blit(next_phase_surf, next_phase_rect.topleft)
+            y += next_phase_rect.height + margin // 2
+
+            # Draw visible lines with scrolling
+            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+                ts = text_surfaces[i]
+                text_rect = ts.get_rect()
+                text_rect.topleft = (popup_rect.left + margin, y)
+                self.screen.blit(ts, text_rect)
+                y += line_height
+
+            # Draw scroll indicators if needed
+            if scroll_offset > 0:
+                up_arrow = font.render("^", True, (255, 255, 255))
+                self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
+            if scroll_offset + visible_lines < len(text_surfaces):
+                down_arrow = font.render("v", True, (255, 255, 255))
+                self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
+
+            pygame.display.flip()
+
             # Wait for user interaction
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -777,15 +792,22 @@ class DesktopUI:
                             return
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
-                    # Check if click is on Advance Turn button
-                    if next_turn_rect.collidepoint(mx, my):
-                        self.turn_manager.next_turn()
-                        self.board.reset_pieces_for_new_turn()
+                    # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
+                    if next_phase_rect.collidepoint(mx, my):
+                        if phase_idx == len(phase_list) - 1:
+                            # Last phase: advance turn
+                            self.turn_manager.next_turn()
+                            self.board.reset_pieces_for_new_turn()
+                        else:
+                            # Advance to next phase
+                            self.turn_manager.next_phase()
+                            #TODO  - handle processing of a new phase
+                            # self.board.reset_pieces_for_new_phase()
                         return
                     # Check if click is on a piece line
                     for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
                         ts = text_surfaces[i]
-                        text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_turn_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+                        text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
                         if text_rect.collidepoint(mx, my):
                             self.show_piece_menu(unmoved[i], event.pos)
                             return
