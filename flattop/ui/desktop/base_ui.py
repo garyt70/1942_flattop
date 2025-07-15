@@ -216,6 +216,8 @@ class AirOperationsTrackerDisplay:
         self.pos = pos
         self.font = pygame.font.SysFont(None, 24)
         self.ready_btn_list = []
+        self.just_landed_btn_list = []
+
 
     def draw_aircraft_list(self, aircraft_list, x, y):
         return AircraftDisplay.draw_aircraft_list(self.surface, aircraft_list, x, y)
@@ -238,15 +240,20 @@ class AirOperationsTrackerDisplay:
         #y = self.draw_aircraft_list(self.tracker.ready, x, y)
         y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
         self.ready_btn_list = btn_list
+        
         self.surface.blit(self.font.render("Readying", True, (200, 200, 0)), (x, y))
         y += 25
         y = self.draw_aircraft_list(self.tracker.readying, x, y)
+        
+        self.surface.blit(self.font.render("Just Landed", True, (200, 200, 0)), (x, y))
+        y += 25
+        y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.just_landed, x, y )
+        self.just_landed_btn_list = btn_list
+        
+
         self.surface.blit(self.font.render("In Flight", True, (200, 200, 0)), (x, y))
         y += 25
         y = self.draw_aircraft_list(self.tracker.in_flight, x, y)
-        self.surface.blit(self.font.render("Just Landed", True, (200, 200, 0)), (x, y))
-        y += 25
-        y = self.draw_aircraft_list(self.tracker.just_landed, x, y) 
 
 class AirOperationsConfigurationDisplay:
     def __init__(self, config: AirOperationsConfiguration, surface, pos=(10, 10)):
@@ -285,41 +292,58 @@ class BaseUIDisplay:
         self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, base.air_operations_config, surface)
         self.create_af_button_rect = None  # Button rect for creating air formation
         self.ready_btn_list = [] #list of button for the ready plan list. This is used in create airformation
+        self.just_landed_btn_list = [] #list of button for the just landed plan list. This is used to move planes from just landed to readying.
         self.last_airformation = None      # Store the last created air formation
         self.created_air_formations = []  # store the created AirFormations so that the calling code can implement pieces for them
         self.air_op_chart: AirOperationsChart = None #this is required to enable access to the dictionary of air formations.
 
-    def _handle_button_click(self, event):
-        mx, my = event.pos
-        exit :bool = False
-        if self.create_af_button_rect.collidepoint(mx, my) and len(self.base.air_operations_tracker.ready) > 0:
-            
-            # Create an air formation using the next available number
-            af_number = self._get_next_airformation_number()
-            if af_number is not None:
-                #airformation = self.base.create_air_formation(af_number)
-                airformation = AirFormation(af_number, f"{self.base.name} airformation {af_number}", side=self.base.side)
+    def _handle_create_airformation_click(self):
+        # Create an air formation using the next available number
+        af_number = self._get_next_airformation_number()
+        if af_number is not None:
+            #airformation = self.base.create_air_formation(af_number)
+            airformation = AirFormation(af_number, f"{self.base.name} airformation {af_number}", side=self.base.side)
 
-                btn:AircraftOperationChartCommandWidget
-                for btn in self.ready_btn_list:
-                    if btn.to_aircraft:
-                        airformation.add_aircraft(btn.to_aircraft)
-                    if btn.from_aircraft.count <= 0:
-                        self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
+            btn:AircraftOperationChartCommandWidget
+            for btn in self.ready_btn_list:
+                if btn.to_aircraft:
+                    airformation.add_aircraft(btn.to_aircraft)
+                if btn.from_aircraft.count <= 0:
+                    self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
+
+            if len(airformation.aircraft) > 0:
                 self.created_air_formations.append(airformation)
                 self.air_op_chart.air_formations[af_number] = airformation
                 self.last_airformation = airformation
                 # Reset the temporary launch factor
                 self.base.used_launch_factor += self.temp_launch_factor
-                self.temp_launch_factor = 0
-
-
-            else:
-                self.last_airformation = None
-            # # Redraw to show the new air formation
-            #self.draw()  
+            self.temp_launch_factor = 0
+        else:
+            self.last_airformation = None
+    
+    def _handle_button_click(self, event):
+        mx, my = event.pos
+        exit :bool = False
+        if self.create_af_button_rect.collidepoint(mx, my) and self.base.used_launch_factor + self.temp_launch_factor <= self.base.air_operations_config.launch_factor_max:
+            self._handle_create_airformation_click()
+            # # Redraw to show the new air formation  
             pygame.display.flip()
             exit = True      
+        elif self.action_ready_factor_button_rect.collidepoint(mx, my) and self.base.used_ready_factor + self.temp_ready_factor <= self.base.air_operations_config.ready_factors:
+            # Handle action ready factor button click
+            # This button is used to handle the logic for moving aircraft from just landed to readying.
+            #loop through the just landed btns and move aircraft to readying
+            for btn in self.just_landed_btn_list:
+                if btn.to_aircraft:
+                    #move the aircraft from just landed to readying
+                    self.base.air_operations_tracker.readying.append(btn.to_aircraft)
+                    if btn.from_aircraft.count <=0:
+                        self.base.air_operations_tracker.just_landed.remove(btn.from_aircraft)
+                    btn.to_aircraft = None
+
+            self.base.used_ready_factor = self.base.used_ready_factor + self.temp_ready_factor
+            pygame.display.flip()
+            exit = True
         else:
             exit = True # assume exiting the screen unless button is clicked.
             #see if any of the ready button have been clicked
@@ -331,15 +355,25 @@ class BaseUIDisplay:
                     if self.base.used_launch_factor + self.temp_launch_factor <= self.base.air_operations_config.launch_factor_max:
                         if btn.handle_click() > 0:
                             #reducing the available_ready_factor here causes an issue because its possible to not create an airformation 
-                            # which is really where the available ready/launch factor is affected. Need to consider a temporary variable.
+                            # which is really where the available ready/launch factor is affected. The lauch factor is only affected when an airformation is created.
                             self.temp_launch_factor += 1
-                            #redraw the ready factor
-                            self.surface.blit(
-                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor})", 
-                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
-                            self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
+                            #redraw the launch factor
+                            self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor + self.temp_launch_factor})", 
                                                                     True, (255, 255, 255),(50, 50, 50)), (900, 65))
                             pygame.display.flip()
+                    break
+            #see if any of the just landed button have been clicked
+            for btn in self.just_landed_btn_list:
+                if btn.collidepoint(mx, my):
+                    exit = False
+                    if btn.handle_click()> 0:
+                        self.temp_ready_factor += 1
+                        #redraw the ready factor value
+                        self.surface.blit(
+                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
+                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                        pygame.display.flip()
+                    break
         return exit
 
     
@@ -384,6 +418,7 @@ class BaseUIDisplay:
                                                                  True, (255, 255, 255),(50, 50, 50)), (900, 65))
         #self.surface.blit(self.font.render("LF (Max)", True, (200, 200, 0)), (x + 800, y))
         self.ready_btn_list = self.tracker_display.ready_btn_list
+        self.just_landed_btn_list = self.tracker_display.just_landed_btn_list
 
 
          # Draw the "Create Air Formation" button
@@ -395,6 +430,16 @@ class BaseUIDisplay:
         self.create_af_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
         pygame.draw.rect(self.surface, (200, 200, 0), self.create_af_button_rect)
         pygame.draw.rect(self.surface, (255, 255, 255), self.create_af_button_rect, 2)
+        self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
+
+        # draw the "Action Ready Factor" button
+        btn_text = "Action Ready Factor"
+        btn_surf = font.render(btn_text, True, (0, 0, 0))
+        btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
+        btn_x, btn_y = popup_rect.x + 220, popup_height - btn_height - 30
+        self.action_ready_factor_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+        pygame.draw.rect(self.surface, (200, 200, 0), self.action_ready_factor_button_rect)
+        pygame.draw.rect(self.surface, (255, 255, 255), self.action_ready_factor_button_rect, 2)
         self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
 
 
