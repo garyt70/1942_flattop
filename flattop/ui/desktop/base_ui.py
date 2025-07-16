@@ -332,6 +332,8 @@ class AirOperationsTrackerDisplay:
         self.ready_btn_list = []
         self.just_landed_btn_list = []
         self.readying_btn_list = []
+        self.used_launch_factor = 0
+        self.used_ready_factor = 0
 
 
     def draw_aircraft_list(self, aircraft_list, x, y):
@@ -351,17 +353,29 @@ class AirOperationsTrackerDisplay:
 
         self.surface.blit(self.font.render("Ready", True, COLOR_YELLOW), (x, y))
         y += 25
-        y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
+        if self.used_launch_factor < self.config.launch_factor_max:
+            y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
+        else:
+            y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.ready, x, y )
+            btn_list = []   
         self.ready_btn_list = btn_list
         
         self.surface.blit(self.font.render("Readying", True, COLOR_YELLOW), (x, y))
         y += 25
-        y, btn_list = AircraftDisplay.draw_aircraft_list_with_armament_btn(self.surface, self.tracker.readying, x, y )
+        if self.used_ready_factor < self.config.ready_factors:
+            y, btn_list = AircraftDisplay.draw_aircraft_list_with_armament_btn(self.surface, self.tracker.readying, x, y )
+        else:
+            y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.readying, x, y )
+            btn_list = []   
         self.readying_btn_list = btn_list
         
         self.surface.blit(self.font.render("Just Landed", True, COLOR_YELLOW), (x, y))
         y += 25
-        y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.just_landed, x, y )
+        if self.used_ready_factor < self.config.ready_factors:
+            y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.just_landed, x, y )
+        else:
+            y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.just_landed, x, y )
+            btn_list = []
         self.just_landed_btn_list = btn_list
 
         self.surface.blit(self.font.render("In Flight", True, COLOR_YELLOW), (x, y))
@@ -556,6 +570,8 @@ class BaseUIDisplay:
         pygame.draw.rect(self.surface, COLOR_BORDER, popup_rect, 2)
 
         self.config_display.draw()
+        self.tracker_display.used_launch_factor = self.base.used_launch_factor + getattr(self, "temp_launch_factor", 0)
+        self.tracker_display.used_ready_factor = self.base.used_ready_factor + getattr(self, "temp_ready_factor", 0)
         self.tracker_display.draw()
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
                                                                  True, COLOR_FONT_HEADER, COLOR_FONT_BG), (250, 65))
