@@ -77,6 +77,10 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
         # Place the armament button to the right of the main button
         self.armament_btn_rect = pygame.Rect(x + 40, y, 30, 30)
         self.selected_armament = getattr(aircraft, "armament", None)
+        if self.selected_armament not in self.ARMAMENT_OPTIONS:
+            self.selected_armament = self.ARMAMENT_OPTIONS[0]
+
+
         
     def draw(self):
         # Draw the main button and count
@@ -97,8 +101,9 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
         idx = (idx + 1) % len(self.ARMAMENT_OPTIONS)
         self.selected_armament = self.ARMAMENT_OPTIONS[idx]
         # Update the aircraft's armament attribute 
-        if self.to_aircraft is not None and self.selected_armament:
+        if self.to_aircraft is not None:
             self.to_aircraft.armament = self.selected_armament
+        if self.selected_armament:
             # Redraw the armament button with the new selection
             font = pygame.font.SysFont(None, 20)
             arm_text = font.render(str(self.selected_armament), True, (255, 255, 0),(50, 50, 50))
@@ -113,6 +118,9 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
                 self.handle_armament_click()
                 return 0
             elif self.btn_rect.collidepoint(mx, my):
+                if self.to_aircraft and self.selected_armament:
+                    # Update the armament of the to_aircraft
+                    self.to_aircraft.armament = self.selected_armament
                 return super().handle_click()
             return 0
         # Default: just handle main button
