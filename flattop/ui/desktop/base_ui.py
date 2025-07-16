@@ -86,12 +86,12 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
         # Draw the armament button
         pygame.draw.rect(self.surface, (0, 100, 200), self.armament_btn_rect)
         font = pygame.font.SysFont(None, 20)
-        arm_label = font.render("A", True, (255, 255, 255))
-        self.surface.blit(arm_label, (self.armament_btn_rect.x + 8, self.armament_btn_rect.y + 5))
+        arm_label = font.render("-", True, (255, 255, 255))
         # Optionally, display selected armament
         if self.selected_armament:
-            arm_text = font.render(str(self.selected_armament), True, (255, 255, 0))
-            self.surface.blit(arm_text, (self.armament_btn_rect.x + 35, self.armament_btn_rect.y + 5))
+            arm_label = font.render(str(self.selected_armament), True, (255, 255, 0))
+        # Draw the armament label on the button
+        self.surface.blit(arm_label, (self.armament_btn_rect.x + 8, self.armament_btn_rect.y + 5))
 
     def handle_armament_click(self):
         # Cycle through the armament options
@@ -105,7 +105,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
         if self.selected_armament:
             font = pygame.font.SysFont(None, 20)
             arm_text = font.render(str(self.selected_armament), True, (255, 255, 0),(50, 50, 50))
-            self.surface.blit(arm_text, (self.armament_btn_rect.x + 35, self.armament_btn_rect.y + 5))
+            self.surface.blit(arm_text, (self.armament_btn_rect.x + 8, self.armament_btn_rect.y + 5))
             pygame.display.flip()
         
 
@@ -445,7 +445,7 @@ class BaseUIDisplay:
             
             #see if any of the ready button have been clicked
             btn : AircraftOperationChartCommandWidget
-            if self.base.used_launch_factor + self.temp_launch_factor <= self.base.air_operations_config.launch_factor_max:
+            if self.base.used_launch_factor + self.temp_launch_factor < self.base.air_operations_config.launch_factor_max:
                 for btn in self.ready_btn_list:
                     #need to think of a better way to handle zero ready facotr to prevent need for loop
                     if btn.collidepoint(mx, my):
@@ -459,7 +459,7 @@ class BaseUIDisplay:
                             pygame.display.flip()
                         break
 
-            if self.base.used_ready_factor + self.temp_ready_factor <= self.base.air_operations_config.ready_factors:    
+            if self.base.used_ready_factor + self.temp_ready_factor < self.base.air_operations_config.ready_factors:    
                 #see if any of the just landed button have been clicked
                 for btn in self.just_landed_btn_list:
                     if btn.collidepoint(mx, my):
