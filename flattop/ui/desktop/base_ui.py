@@ -7,6 +7,34 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart, AirFormation
 
+# Color constants
+COLOR_WHITE = (255, 255, 255)
+COLOR_BLACK = (0, 0, 0)
+COLOR_GRAY = (220, 220, 220)
+COLOR_YELLOW = (200, 200, 0)
+COLOR_GREEN = (0, 200, 0)
+COLOR_DARK_GREEN = (0, 100, 200)
+COLOR_BG = (50, 50, 50)
+COLOR_BORDER = (200, 200, 200)
+COLOR_BTN_TEXT = (0, 0, 0)
+COLOR_BTN_BG = (200, 200, 0)
+COLOR_BTN_BORDER = (255, 255, 255)
+COLOR_BTN_CLOSE_BG = (200, 200, 0)
+COLOR_BTN_CLOSE_BORDER = (255, 255, 255)
+COLOR_BTN_CLOSE_TEXT = (0, 0, 0)
+COLOR_BTN_READY_FACTOR_BG = (200, 200, 0)
+COLOR_BTN_READY_FACTOR_BORDER = (255, 255, 255)
+COLOR_BTN_READY_FACTOR_TEXT = (0, 0, 0)
+COLOR_FONT_HEADER = (255, 255, 255)
+COLOR_FONT_HEADER_BOLD = (255, 255, 0)
+COLOR_FONT_AIRCRAFT = (180, 220, 255)
+COLOR_FONT_COUNT = (255, 255, 0)
+COLOR_FONT_COMBAT = (255, 255, 255)
+COLOR_FONT_MOVE = (255, 255, 255)
+COLOR_FONT_RANGE = (255, 255, 255)
+COLOR_FONT_ARMAMENT = (255, 255, 255)
+COLOR_FONT_BG = (50, 50, 50)
+
 class AircraftOperationChartCommandWidget:
     def __init__(self, surface, x, y, aircraft:Aircraft):
         self.from_aircraft = aircraft
@@ -147,7 +175,7 @@ class AircraftDisplay:
              
         ac_type = aircraft.type.name if isinstance(aircraft.type, AircraftType) else str(aircraft.type)
         ac_move=aircraft.move_factor
-        ac_text = font.render(f"{ac_type} (#: {aircraft.count} )", True, (180, 220, 255))
+        ac_text = font.render(f"{ac_type} (#: {aircraft.count} )", True, COLOR_FONT_AIRCRAFT)
         surface.blit(ac_text, (x + 20, y))
 
         # If the aircraft has a combat data object, display its combat data
@@ -155,34 +183,34 @@ class AircraftDisplay:
         acd = aircraft.combat_data
         if acd is not None: 
             #air to air
-            surface.blit(font.render(str(acd.air_to_air), True, (255, 255, 255)), (x + columns[0], y))
+            surface.blit(font.render(str(acd.air_to_air), True, COLOR_FONT_COMBAT), (x + columns[0], y))
             #high Level GP, AP
-            surface.blit(font.render(str(acd.level_bombing_high_base_gp), True, (255, 255, 255)), (x + columns[1], y))
-            surface.blit(font.render(str(acd.level_bombing_high_base_ap), True, (255, 255, 255)), (x + columns[2], y))
+            surface.blit(font.render(str(acd.level_bombing_high_base_gp), True, COLOR_FONT_COMBAT), (x + columns[1], y))
+            surface.blit(font.render(str(acd.level_bombing_high_base_ap), True, COLOR_FONT_COMBAT), (x + columns[2], y))
             #low Level GP, AP
-            surface.blit(font.render(str(acd.level_bombing_low_base_gp), True, (255, 255, 255)), (x + columns[3], y))
-            surface.blit(font.render(str(acd.level_bombing_low_base_ap), True, (255, 255, 255)), (x + columns[4], y))
+            surface.blit(font.render(str(acd.level_bombing_low_base_gp), True, COLOR_FONT_COMBAT), (x + columns[3], y))
+            surface.blit(font.render(str(acd.level_bombing_low_base_ap), True, COLOR_FONT_COMBAT), (x + columns[4], y))
             #dive GP, AP
-            surface.blit(font.render(str(acd.dive_bombing_base_gp), True, (255, 255, 255)), (x + columns[5], y))
-            surface.blit(font.render(str(acd.dive_bombing_base_ap), True, (255, 255, 255)), (x + columns[6], y))
+            surface.blit(font.render(str(acd.dive_bombing_base_gp), True, COLOR_FONT_COMBAT), (x + columns[5], y))
+            surface.blit(font.render(str(acd.dive_bombing_base_ap), True, COLOR_FONT_COMBAT), (x + columns[6], y))
             #high Level Ship GP, AP
-            surface.blit(font.render(str(acd.level_bombing_high_ship_gp), True, (255, 255, 255)), (x + columns[7], y))
-            surface.blit(font.render(str(acd.level_bombing_high_ship_ap), True, (255, 255, 255)), (x + columns[8], y))
+            surface.blit(font.render(str(acd.level_bombing_high_ship_gp), True, COLOR_FONT_COMBAT), (x + columns[7], y))
+            surface.blit(font.render(str(acd.level_bombing_high_ship_ap), True, COLOR_FONT_COMBAT), (x + columns[8], y))
             #low Level Ship GP, AP
-            surface.blit(font.render(str(acd.level_bombing_low_ship_gp), True, (255, 255, 255)), (x + columns[9], y))
-            surface.blit(font.render(str(acd.level_bombing_low_ship_ap), True, (255, 255, 255)), (x + columns[10], y))
+            surface.blit(font.render(str(acd.level_bombing_low_ship_gp), True, COLOR_FONT_COMBAT), (x + columns[9], y))
+            surface.blit(font.render(str(acd.level_bombing_low_ship_ap), True, COLOR_FONT_COMBAT), (x + columns[10], y))
             #dive Ship GP, AP
-            surface.blit(font.render(str(acd.dive_bombing_ship_gp), True, (255, 255, 255)), (x + columns[11], y))
-            surface.blit(font.render(str(acd.dive_bombing_ship_ap), True, (255, 255, 255)), (x + columns[12], y))
+            surface.blit(font.render(str(acd.dive_bombing_ship_gp), True, COLOR_FONT_COMBAT), (x + columns[11], y))
+            surface.blit(font.render(str(acd.dive_bombing_ship_ap), True, COLOR_FONT_COMBAT), (x + columns[12], y))
             #Torpedo Ship
-            surface.blit(font.render(str(acd.torpedo_bombing_ship), True, (255, 255, 255)), (x + columns[13], y))
+            surface.blit(font.render(str(acd.torpedo_bombing_ship), True, COLOR_FONT_COMBAT), (x + columns[13], y))
            
         #movement details of aircraft
-        surface.blit(font.render(str(aircraft.move_factor), True, (255, 255, 255)), (x + columns[14], y))
-        surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, (255, 255, 255)), (x + columns[15], y))
+        surface.blit(font.render(str(aircraft.move_factor), True, COLOR_FONT_MOVE), (x + columns[14], y))
+        surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, COLOR_FONT_RANGE), (x + columns[15], y))
 
         #armament display
-        surface.blit(font.render(str(aircraft.armament), True, (255, 255, 255)), (x + columns[16], y))
+        surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
         
         y += 20
 
@@ -207,50 +235,50 @@ class AircraftDisplay:
         columns = AircraftDisplay.columns
         font = pygame.font.SysFont(None, 24)
 
-        surface.blit(font.render("vs Base", True, (255, 255, 255)), (x + columns[1], y))
-        surface.blit(font.render("vs Ship", True, (255, 255, 255)), (x + columns[7], y))
+        surface.blit(font.render("vs Base", True, COLOR_FONT_HEADER), (x + columns[1], y))
+        surface.blit(font.render("vs Ship", True, COLOR_FONT_HEADER), (x + columns[7], y))
         y += 20
 
         # Draw headers for the tracker display
         # The headers are for the different types of operations and aircraft combat data
-        surface.blit(font.render("Air2Air", True, (255, 255, 255)), (x + columns[0], y))
+        surface.blit(font.render("Air2Air", True, COLOR_FONT_HEADER), (x + columns[0], y))
         #Base headers
-        surface.blit(font.render("High", True, (255, 255, 255)), (x + columns[1], y))
-        surface.blit(font.render("Low", True, (255, 255, 255)), (x + columns[3], y))
-        surface.blit(font.render("Dive", True, (255, 255, 255)), (x + columns[5], y))
+        surface.blit(font.render("High", True, COLOR_FONT_HEADER), (x + columns[1], y))
+        surface.blit(font.render("Low", True, COLOR_FONT_HEADER), (x + columns[3], y))
+        surface.blit(font.render("Dive", True, COLOR_FONT_HEADER), (x + columns[5], y))
 
         #Ship headers
-        surface.blit(font.render("High ", True, (255, 255, 255)), (x + columns[7], y))
-        surface.blit(font.render("Low ", True, (255, 255, 255)), (x + columns[9], y))
-        surface.blit(font.render("Dive", True, (255, 255, 255)), (x + columns[11], y))
-        surface.blit(font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
+        surface.blit(font.render("High ", True, COLOR_FONT_HEADER), (x + columns[7], y))
+        surface.blit(font.render("Low ", True, COLOR_FONT_HEADER), (x + columns[9], y))
+        surface.blit(font.render("Dive", True, COLOR_FONT_HEADER), (x + columns[11], y))
+        surface.blit(font.render("Torpedo", True, COLOR_FONT_HEADER), (x + columns[13], y))
         y += 20
 
         #now display the GP and AP header text
         #high Level GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[1], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[2], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[1], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[2], y))
         #low Level GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[3], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[4], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[3], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[4], y))
         #dive GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[5], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[6], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[5], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[6], y))
         
         #high Level Ship GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[7], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[8], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[7], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[8], y))
         #low Level Ship GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[9], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[10], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[9], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[10], y))
         #dive Ship GP, AP
-        surface.blit(font.render("GP", True, (255, 255, 255)), (x + columns[11], y))
-        surface.blit(font.render("AP", True, (255, 255, 255)), (x + columns[12], y))
+        surface.blit(font.render("GP", True, COLOR_FONT_HEADER), (x + columns[11], y))
+        surface.blit(font.render("AP", True, COLOR_FONT_HEADER), (x + columns[12], y))
         #Torpedo Ship
-        surface.blit(font.render("Torpedo", True, (255, 255, 255)), (x + columns[13], y))
+        surface.blit(font.render("Torpedo", True, COLOR_FONT_HEADER), (x + columns[13], y))
         #movement
-        surface.blit(font.render("Move", True, (255, 255, 255)), (x + columns[14], y))
-        surface.blit(font.render("Range", True, (255, 255, 255)), (x + columns[15], y))
+        surface.blit(font.render("Move", True, COLOR_FONT_HEADER), (x + columns[14], y))
+        surface.blit(font.render("Range", True, COLOR_FONT_HEADER), (x + columns[15], y))
 
         y += 20
         return y
@@ -315,32 +343,28 @@ class AirOperationsTrackerDisplay:
     def draw(self):
         columns = self.columns
         x, y = self.pos
-        title = self.font.render("Air Operations Tracker", True, (255, 255, 255))
+        title = self.font.render("Air Operations Tracker", True, COLOR_FONT_HEADER)
         self.surface.blit(title, (x, y))
         y += 30
 
         y = AircraftDisplay.draw_aircraft_list_header(self.surface, None, x, y)   
-    
-        #now display the combat data for each aircraft
-        self.surface.blit(self.font.render("Ready", True, (200, 200, 0)), (x, y))
+
+        self.surface.blit(self.font.render("Ready", True, COLOR_YELLOW), (x, y))
         y += 25
-        #y = self.draw_aircraft_list(self.tracker.ready, x, y)
         y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
         self.ready_btn_list = btn_list
         
-        self.surface.blit(self.font.render("Readying", True, (200, 200, 0)), (x, y))
+        self.surface.blit(self.font.render("Readying", True, COLOR_YELLOW), (x, y))
         y += 25
-        #y = self.draw_aircraft_list(self.tracker.readying, x, y)
         y, btn_list = AircraftDisplay.draw_aircraft_list_with_armament_btn(self.surface, self.tracker.readying, x, y )
         self.readying_btn_list = btn_list
         
-        self.surface.blit(self.font.render("Just Landed", True, (200, 200, 0)), (x, y))
+        self.surface.blit(self.font.render("Just Landed", True, COLOR_YELLOW), (x, y))
         y += 25
         y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.just_landed, x, y )
         self.just_landed_btn_list = btn_list
-        
 
-        self.surface.blit(self.font.render("In Flight", True, (200, 200, 0)), (x, y))
+        self.surface.blit(self.font.render("In Flight", True, COLOR_YELLOW), (x, y))
         y += 25
         y = self.draw_aircraft_list(self.tracker.in_flight, x, y)
 
@@ -358,11 +382,11 @@ class AirOperationsConfigurationDisplay:
         y += 30
 
         # Render config headers max capacity, ready_factors, launch_factor_normal, launch_factor_min, launch_factor_max
-        self.surface.blit(self.font.render("Max Capacity", True, (200, 200, 0)), (x, y))
-        self.surface.blit(self.font.render("Ready Factors", True, (200, 200, 0)), (x + 200, y))
-        self.surface.blit(self.font.render("LF (Normal)", True, (200, 200, 0)), (x + 400, y))
-        self.surface.blit(self.font.render("LF (Min)", True, (200, 200, 0)), (x + 600, y))
-        self.surface.blit(self.font.render("LF (Max)", True, (200, 200, 0)), (x + 800, y))
+        self.surface.blit(self.font.render("Max Capacity", True, COLOR_YELLOW), (x, y))
+        self.surface.blit(self.font.render("Ready Factors", True, COLOR_YELLOW), (x + 200, y))
+        self.surface.blit(self.font.render("LF (Normal)", True, COLOR_YELLOW), (x + 400, y))
+        self.surface.blit(self.font.render("LF (Min)", True, COLOR_YELLOW), (x + 600, y))
+        self.surface.blit(self.font.render("LF (Max)", True, COLOR_YELLOW), (x + 800, y))
         y += 25
 
         # Render config values
@@ -528,16 +552,16 @@ class BaseUIDisplay:
             popup_width,
             popup_height
         )
-        pygame.draw.rect(self.surface, (50, 50, 50), popup_rect)
-        pygame.draw.rect(self.surface, (200, 200, 200), popup_rect, 2)
+        pygame.draw.rect(self.surface, COLOR_BG, popup_rect)
+        pygame.draw.rect(self.surface, COLOR_BORDER, popup_rect, 2)
 
         self.config_display.draw()
         self.tracker_display.draw()
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
-                                                                 True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), (250, 65))
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
-                                                                 True, (255, 255, 255),(50, 50, 50)), (900, 65))
-        #self.surface.blit(self.font.render("LF (Max)", True, (200, 200, 0)), (x + 800, y))
+                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), (900, 65))
+        #self.surface.blit(self.font.render("LF (Max)", True, COLOR_YELLOW), (x + 800, y))
         self.ready_btn_list = self.tracker_display.ready_btn_list
         self.just_landed_btn_list = self.tracker_display.just_landed_btn_list
 
@@ -545,32 +569,32 @@ class BaseUIDisplay:
          # Draw the "Create Air Formation" button
         font = pygame.font.SysFont(None, 28)
         button_text = "Create Air Formation"
-        btn_surf = font.render(button_text, True, (0, 0, 0))
+        btn_surf = font.render(button_text, True, COLOR_BTN_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
         btn_x, btn_y = popup_rect.x, popup_height - btn_height - 30
         self.create_af_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-        pygame.draw.rect(self.surface, (200, 200, 0), self.create_af_button_rect)
-        pygame.draw.rect(self.surface, (255, 255, 255), self.create_af_button_rect, 2)
+        pygame.draw.rect(self.surface, COLOR_BTN_BG, self.create_af_button_rect)
+        pygame.draw.rect(self.surface, COLOR_BTN_BORDER, self.create_af_button_rect, 2)
         self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
 
         # draw the "Action Ready Factor" button
         btn_text = "Action Ready Factor"
-        btn_surf = font.render(btn_text, True, (0, 0, 0))
+        btn_surf = font.render(btn_text, True, COLOR_BTN_READY_FACTOR_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
         btn_x, btn_y = popup_rect.x + 220, popup_height - btn_height - 30
         self.action_ready_factor_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-        pygame.draw.rect(self.surface, (200, 200, 0), self.action_ready_factor_button_rect)
-        pygame.draw.rect(self.surface, (255, 255, 255), self.action_ready_factor_button_rect, 2)
+        pygame.draw.rect(self.surface, COLOR_BTN_READY_FACTOR_BG, self.action_ready_factor_button_rect)
+        pygame.draw.rect(self.surface, COLOR_BTN_READY_FACTOR_BORDER, self.action_ready_factor_button_rect, 2)
         self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
 
         #draw a Close button
         btn_text = "Close"
-        btn_surf = font.render(btn_text, True, (0, 0, 0))
+        btn_surf = font.render(btn_text, True, COLOR_BTN_CLOSE_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
         btn_x, btn_y = popup_rect.x + 620, popup_height - btn_height - 30
         self.close_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-        pygame.draw.rect(self.surface, (200, 200, 0), self.close_button_rect)
-        pygame.draw.rect(self.surface, (255, 255, 255), self.close_button_rect, 2)
+        pygame.draw.rect(self.surface, COLOR_BTN_CLOSE_BG, self.close_button_rect)
+        pygame.draw.rect(self.surface, COLOR_BTN_CLOSE_BORDER, self.close_button_rect, 2)
         self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
 
 
