@@ -104,6 +104,7 @@ class TaskForceScreen:
                     self.base_dialog = BaseUIDisplay(base, self.surface)  
                     self.base_dialog.air_op_chart = self.air_ops_chart
                     self.base_dialog.draw()  # Show the base dialog
+                    self.base_dialog.handle_events()  # Handle any events for the dialog
                     pygame.display.flip()  # Update the display
                     break
 

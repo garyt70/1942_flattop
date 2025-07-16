@@ -226,6 +226,7 @@ class DesktopUI:
             baseUI.air_op_chart = self.board.players[piece.side]
             baseUI.turn_manager = self.turn_manager
             baseUI.draw()
+            baseUI.handle_events()
             for af in baseUI.created_air_formations:
                 self.board.add_piece(Piece(
                     name=f"AF#{af.number}",  #need to fix this or decide if AirFormation number are needed
@@ -467,10 +468,9 @@ class DesktopUI:
             else:
                 self._dragging = True
                 self._last_mouse_pos = event.pos
-        elif original_button == 3:
-            piece = self.get_piece_at_pixel(event.pos)
-            if piece:
-                self.render_popup(piece, event.pos)
+        elif original_button == 3 and piece:
+            #piece = self.get_piece_at_pixel(event.pos)
+            self.render_popup(piece, event.pos)
        
 
     def _handle_move_piece(self, event):

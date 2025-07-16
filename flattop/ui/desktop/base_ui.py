@@ -62,8 +62,72 @@ class AircraftOperationChartCommandWidget:
         return self.btn_rect.collidepoint(mx, my)
  
 
+
+class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartCommandWidget):
+    """
+    Extends AircraftOperationChartCommandWidget to add an armament button for aircraft.
+    The armament button allows the user to select or display the armament of the aircraft.
+    Now supports cycling through GP, AP, and Torpedo.
+    """
+
+    ARMAMENT_OPTIONS = ["GP", "AP", "Torpedo"]
+
+    def __init__(self, surface, x, y, aircraft: Aircraft):
+        super().__init__(surface, x, y, aircraft)
+        # Place the armament button to the right of the main button
+        self.armament_btn_rect = pygame.Rect(x + 40, y, 30, 30)
+        self.selected_armament = getattr(aircraft, "armament", None)
+        if self.selected_armament not in self.ARMAMENT_OPTIONS:
+            self.selected_armament = self.ARMAMENT_OPTIONS[0]
+
+    def draw(self):
+        # Draw the main button and count
+        super().draw()
+        # Draw the armament button
+        pygame.draw.rect(self.surface, (0, 100, 200), self.armament_btn_rect)
+        font = pygame.font.SysFont(None, 20)
+        arm_label = font.render("A", True, (255, 255, 255))
+        self.surface.blit(arm_label, (self.armament_btn_rect.x + 8, self.armament_btn_rect.y + 5))
+        # Optionally, display selected armament
+        if self.selected_armament:
+            arm_text = font.render(str(self.selected_armament), True, (255, 255, 0))
+            self.surface.blit(arm_text, (self.armament_btn_rect.x + 35, self.armament_btn_rect.y + 5))
+
+    def handle_armament_click(self):
+        # Cycle through the armament options
+        idx = self.ARMAMENT_OPTIONS.index(self.selected_armament)
+        idx = (idx + 1) % len(self.ARMAMENT_OPTIONS)
+        self.selected_armament = self.ARMAMENT_OPTIONS[idx]
+        # Update the aircraft's armament attribute 
+        if self.to_aircraft is not None:
+            self.to_aircraft.armament = self.selected_armament
+            # Optionally, display selected armament
+        if self.selected_armament:
+            font = pygame.font.SysFont(None, 20)
+            arm_text = font.render(str(self.selected_armament), True, (255, 255, 0),(50, 50, 50))
+            self.surface.blit(arm_text, (self.armament_btn_rect.x + 35, self.armament_btn_rect.y + 5))
+            pygame.display.flip()
+        
+
+    def handle_click(self, mx=None, my=None):
+        # If coordinates are provided, check which button was clicked
+        if mx is not None and my is not None:
+            if self.armament_btn_rect.collidepoint(mx, my):
+                self.handle_armament_click()
+                return 0
+            elif self.btn_rect.collidepoint(mx, my):
+                return super().handle_click()
+            return 0
+        # Default: just handle main button
+        return super().handle_click()
+
+    def collidepoint(self, mx, my):
+        # Returns True if either button is clicked
+        return self.btn_rect.collidepoint(mx, my) or self.armament_btn_rect.collidepoint(mx, my)
+
+
 class AircraftDisplay:
-    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160]
+    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300]
 
     def __init__(self):
         pass
@@ -111,6 +175,9 @@ class AircraftDisplay:
         #movement details of aircraft
         surface.blit(font.render(str(aircraft.move_factor), True, (255, 255, 255)), (x + columns[14], y))
         surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, (255, 255, 255)), (x + columns[15], y))
+
+        #armament display
+        surface.blit(font.render(str(aircraft.armament), True, (255, 255, 255)), (x + columns[16], y))
         
         y += 20
 
@@ -205,6 +272,20 @@ class AircraftDisplay:
             y, btn = AircraftDisplay.draw_aircraft_with_command_btn(surface, ac, x, y)
             btn_list.append(btn)
         return y, btn_list
+    
+    @staticmethod  
+    def draw_aircraft_list_with_armament_btn(surface, aircraft_list, x, y):
+        """
+        Draws a list of AirCraft objects on the surface at the specified position.
+        """
+        btn_list = []
+        for ac in aircraft_list:
+            btn = AircraftOperationChartCommandWidgetWithArmament(surface, x + AircraftDisplay.columns[15] + 60 , y, ac)
+            btn.draw()
+            btn_list.append(btn)
+            y = AircraftDisplay.draw_aircraft(surface, ac, x, y)
+
+        return y, btn_list
 
 class AirOperationsTrackerDisplay:
     columns = [200, 260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980]
@@ -217,6 +298,7 @@ class AirOperationsTrackerDisplay:
         self.font = pygame.font.SysFont(None, 24)
         self.ready_btn_list = []
         self.just_landed_btn_list = []
+        self.readying_btn_list = []
 
 
     def draw_aircraft_list(self, aircraft_list, x, y):
@@ -243,7 +325,9 @@ class AirOperationsTrackerDisplay:
         
         self.surface.blit(self.font.render("Readying", True, (200, 200, 0)), (x, y))
         y += 25
-        y = self.draw_aircraft_list(self.tracker.readying, x, y)
+        #y = self.draw_aircraft_list(self.tracker.readying, x, y)
+        y, btn_list = AircraftDisplay.draw_aircraft_list_with_armament_btn(self.surface, self.tracker.readying, x, y )
+        self.readying_btn_list = btn_list
         
         self.surface.blit(self.font.render("Just Landed", True, (200, 200, 0)), (x, y))
         y += 25
@@ -341,9 +425,19 @@ class BaseUIDisplay:
                         self.base.air_operations_tracker.just_landed.remove(btn.from_aircraft)
                     btn.to_aircraft = None
 
+            #loop through the readying btns and move aircraft to ready
+            for btn in self.tracker_display.readying_btn_list:
+                if btn.to_aircraft:
+                    #move the aircraft from readying to ready
+                    self.base.air_operations_tracker.ready.append(btn.to_aircraft)
+                    if btn.from_aircraft.count <=0:
+                        self.base.air_operations_tracker.readying.remove(btn.from_aircraft)
+                    btn.to_aircraft = None
+
             self.base.used_ready_factor = self.base.used_ready_factor + self.temp_ready_factor
+            self.draw()  # Redraw the display to reflect changes
             pygame.display.flip()
-            exit = True
+            exit = False
         else:
             exit = True # assume exiting the screen unless button is clicked.
             #see if any of the ready button have been clicked
@@ -374,10 +468,22 @@ class BaseUIDisplay:
                                                                     True, (255, 255, 255),(50, 50, 50)), (250, 65))
                         pygame.display.flip()
                     break
+            #see if any of the readying button have been clicked
+            for btn in self.tracker_display.readying_btn_list:
+                if btn.collidepoint(mx, my):
+                    exit = False
+                    if btn.handle_click(mx, my) > 0:
+                        self.temp_ready_factor += 1
+                        #redraw the ready factor value
+                        self.surface.blit(
+                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
+                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                        pygame.display.flip()
+                    break
         return exit
 
     
-    def _handle_events(self):
+    def handle_events(self):
         waiting = True
         self.temp_launch_factor = 0
         self.temp_ready_factor = 0
@@ -442,12 +548,8 @@ class BaseUIDisplay:
         pygame.draw.rect(self.surface, (255, 255, 255), self.action_ready_factor_button_rect, 2)
         self.surface.blit(btn_surf, (btn_x + 12, btn_y + 6))
 
-
         pygame.display.flip()
 
-        self._handle_events()
-
-       
 
 
     def _get_next_airformation_number(self):
@@ -480,6 +582,7 @@ if __name__ == "__main__":
                 running = False
 
         ui.draw()
+        ui.handle_events()
         pygame.display.flip()
         clock.tick(30)
 
