@@ -430,13 +430,16 @@ class Aircraft:
         self.combat_data = acd  # Aircraft Combat Data instance
         self.range_remaining = range_factor #this is the remaining in air time available. Each turn increment reduces this.
         self.armament = None  # Placeholder for any armament data, GP, AP, Torpedo, etc.
-        
+
 
     def __repr__(self):
         return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
     
     def copy(self):
-        return Aircraft(self.type, self.count, self.move_factor, self.range_factor, self.combat_data)
+        ac = Aircraft(self.type, self.count, self.move_factor, self.range_factor, self.combat_data)
+        ac.armament = self.armament  # Copy armament if it exists
+        ac.range_remaining = self.range_remaining  # Copy remaining range
+        return ac
 
 class AircraftFactory:
     def __init__(self):
