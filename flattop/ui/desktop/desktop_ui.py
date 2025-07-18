@@ -3,10 +3,11 @@ import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus, AirOperationsChart  # Adjust import as needed
+from flattop.operations_chart_models import Aircraft, Carrier, AirFormation, AircraftType, Base, TaskForce, AircraftOperationsStatus, AirOperationsChart  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
+from flattop.aircombat_engine import resolve_air_to_air_combat
 
 import flattop.ui.desktop.desktop_config as config
 
@@ -533,26 +534,30 @@ class DesktopUI:
         return [piece for piece in self.board.pieces if piece.position.q == q and piece.position.r == r]
 
     def show_piece_menu(self, piece:Piece, pos):
-        # When a piece is clicked, display a menu with options to Move or Details
         menu_options = []
 
-
-        #if the piece is a AirFormation and it is in the same hex as a Base then show a menu option to land the AirFormation
+        # If the piece is an AirFormation and it is in the same hex as a Base then show a menu option to land the AirFormation
         if isinstance(piece.game_model, AirFormation):
-            # Check if there is a Base in the same hex
             base_in_hex = any(
-                isinstance(p.game_model, (Base,TaskForce)) and p.position == piece.position
+                isinstance(p.game_model, (Base, TaskForce)) and p.position == piece.position
                 for p in self.board.pieces
             )
             if base_in_hex and not piece.has_moved:
-                # If there is a Base, add the Land option to the menu
                 menu_options.append("Land")
-    
+
+            # Check for enemy AirFormation in the same hex for combat
+            enemy_airformations = [
+                p for p in self.board.pieces
+                if isinstance(p.game_model, AirFormation)
+                and p.position == piece.position
+                and p.side != piece.side
+            ]
+            if enemy_airformations:
+                menu_options.append("Combat")
+
         if piece.can_move and not piece.has_moved:
-            # If the piece can move and has not moved yet, show the Move option
             menu_options.append("Move")
-       
-        # If the piece cannot move or has already moved, show only Details and Cancel 
+
         menu_options.extend(["Details", "Cancel"])
 
 
@@ -625,6 +630,213 @@ class DesktopUI:
                         self._moving_piece = None
                         self._moving_piece_offset = None
                 
+            case "Combat":
+                # Find all AirFormations in the hex
+                hex_airformations = [
+                    p for p in self.board.pieces
+                    if isinstance(p.game_model, AirFormation)
+                    and p.position == piece.position
+                ]
+                # Group by side
+                sides = set(p.side for p in hex_airformations)
+                if len(sides) < 2:
+                    # Not enough sides for combat
+                    return
+
+                # For simplicity, assume two sides: Allied and Japanese
+                allied = [p for p in hex_airformations if p.side == "Allied"]
+                japanese = [p for p in hex_airformations if p.side == "Japanese"]
+
+                # Gather aircraft by role (interceptor, escort, bomber)
+                
+                def classify_aircraft(airformation_list):
+                    """
+                    ### 8.12 Plane Missions
+
+                    Only certain planes can perform certain missions.
+
+                    - **8.12.1** The following planes can always serve as interceptors, escorts, or bombers: Zero, P-38, P-39, P-40, Beaufighter, Wildcat.  
+                        The following planes can serve as interceptors and escorts, but not as bombers: Dave, Jake, Pete.  
+                        The following planes can serve as bombers, but not as escorts: Avenger, Dauntless, Judy, Val.
+                    - **8.12.2** If an Air Factor that can serve as an interceptor or escort is in an Air Formation with bombers, it is an escort. If the Air Formation does not have bombers, it is an interceptor.
+                    - **8.12.3** All other planes can only serve as bombers.
+                    - **8.12.4** If an Air Factor is armed when it takes off, it is considered to be a bomber until it lands, even after it has performed its bombing mission or jettisoned its bomb. Each armed Air Factor may only make one attack; to make another attack it must land and then rearm again before taking off.
+                    - **8.12.5** Planes which cannot serve as interceptors or escorts may be in flight unarmed. They cannot initiate combat of any kind.
+
+                    ---
+                    """
+                    # Plane type sets for rule 8.12.1
+                    CAN_DO_ALL = {
+                        AircraftType.ZERO,
+                        AircraftType.P38,
+                        AircraftType.P39,
+                        AircraftType.P40,
+                        AircraftType.BEAUFIGHTER,
+                        AircraftType.WILDCAT,
+                    }
+                    INTERCEPT_ESCORT_ONLY = {
+                        AircraftType.DAVE,
+                        AircraftType.JAKE,
+                        AircraftType.PETE,
+                    }
+                    BOMBER_ONLY = {
+                        AircraftType.AVENGER,
+                        AircraftType.DAUNTLESS,
+                        AircraftType.JUDY,
+                        AircraftType.VAL,
+                        AircraftType.B17,
+                        AircraftType.B25,
+                        AircraftType.B26,
+                        AircraftType.AVENGER,
+                        AircraftType.KATE
+                        
+                    }
+
+                    interceptors, escorts, bombers = [], [], []
+
+                    # First, collect all aircraft and classify by type and armament
+                    for af_piece in airformation_list:
+                        af = af_piece.game_model
+                        has_bombers = False
+                        # Determine if this air formation has bombers (for 8.12.2)
+                        #for ac in af.aircraft:
+                        #    ac_type = ac.type
+                        #    # 8.12.4: If armed, always bomber
+                        #    if getattr(ac, "armament", False):
+                        #        has_bombers = True
+                        #        break
+
+                        # 8.12.1: Classify aircraft in the air formation
+                        ac:Aircraft
+                        for ac in af.aircraft:
+                            ac_type = ac.type
+                            is_armed = getattr(ac, "armament", False)
+                            # 8.12.4: If armed, always bomber
+                            if is_armed:
+                                bombers.append(ac)
+                                has_bombers = True
+                                continue
+
+                            # 8.12.3: All others bomber
+                            if ac_type not in CAN_DO_ALL and ac_type not in INTERCEPT_ESCORT_ONLY:   
+                                bombers.append(ac)
+                                has_bombers = True
+                                continue
+
+                            # 8.12.1: Classification by type
+                            if ac_type in CAN_DO_ALL:
+                                # 8.12.2: If in formation with bombers, act as escort, else interceptor
+                                if has_bombers:
+                                    escorts.append(ac)
+                                else:
+                                    interceptors.append(ac)
+                            elif ac_type in INTERCEPT_ESCORT_ONLY:
+                                # Can only be interceptor or escort, never bomber
+                                if has_bombers:
+                                    escorts.append(ac)
+                                else:
+                                    interceptors.append(ac)
+                            elif ac_type in BOMBER_ONLY:
+                                # Can only be bomber, never escort
+                                bombers.append(ac)
+                            else:
+                                
+                                # If in formation with bombers, act as escort, else interceptor
+                                if has_bombers:
+                                    escorts.append(ac)  
+                                else:
+                                    interceptors.append(ac)
+                            # Note: Unarmed aircraft that cannot serve as interceptors or escorts are ignored
+                    return interceptors, escorts, bombers
+                    
+
+                # For demo, treat all unarmed as interceptors, all armed as bombers
+                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied)
+                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese)
+
+
+                # if no bombers on either side then convert interceptors to escorts 
+                if not allied_bombers and not japanese_bombers:
+                    # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
+                    japanese_escorts.extend(japanese_interceptors)
+                    japanese_interceptors = []
+
+                # Run combat (Allied vs Japanese)
+                result_allied = resolve_air_to_air_combat(
+                    interceptors=allied_interceptors,
+                    escorts=japanese_escorts,
+                    bombers=japanese_bombers,
+                    rf_expended=True,
+                    clouds=False,
+                    night=False
+                )
+
+                if not allied_bombers and not japanese_bombers:
+                    # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
+                    allied_escorts.extend(allied_escorts)
+                    allied_interceptors = []
+                result_japanese = resolve_air_to_air_combat(
+                    interceptors=japanese_interceptors,
+                    escorts=allied_escorts,
+                    bombers=allied_bombers,
+                    rf_expended=True,
+                    clouds=False,
+                    night=False
+                )
+
+                # Apply results (remove aircraft factors)
+                def apply_hits(airformation_list, hits_dict):
+                    for af_piece in airformation_list:
+                        for ac in af_piece.game_model.aircraft:
+                            ac_type = str(ac.type)
+                            if ac_type in hits_dict:
+                                hits = hits_dict[ac_type]
+                                ac.count = max(0, ac.count - hits)
+
+                apply_hits(japanese, result_allied["interceptor_hits_on_bombers"].hits)
+                apply_hits(japanese, result_allied["escort_hits_on_interceptors"].hits)
+                apply_hits(japanese, result_allied["bomber_hits_on_interceptors"].hits)
+                apply_hits(japanese, result_allied["interceptor_hits_on_escorts"].hits)
+
+                apply_hits(allied, result_japanese["interceptor_hits_on_bombers"].hits)
+                apply_hits(allied, result_japanese["escort_hits_on_interceptors"].hits)
+                apply_hits(allied, result_japanese["bomber_hits_on_interceptors"].hits)
+                apply_hits(allied, result_japanese["interceptor_hits_on_escorts"].hits)
+
+               
+                
+                
+                # Remove any AirFormation pieces that have no aircraft left
+                
+
+                # Optionally, show a popup with results
+                font = pygame.font.SysFont(None, 24)
+                lines = ["Combat Results:"]
+                lines.append(f"Allied Interceptors: {len(allied_interceptors)}")
+                lines.append(f"Allied Escorts: {len(allied_escorts)}")
+                lines.append(f"Allied Bombers: {len(allied_bombers)}")
+
+                lines.append(f"Japanese Interceptors: {len(japanese_interceptors)}")
+                lines.append(f"Japanese Escorts: {len(japanese_escorts)}")
+                lines.append(f"Japanese Bombers: {len(japanese_bombers)}")
+                
+                lines.append(f"Allied hits on Japanese bombers: {result_allied['interceptor_hits_on_bombers']}")
+                lines.append(f"Allied interceptor hits on Japanese interceptors: {result_allied['interceptor_hits_on_escorts']}")
+                lines.append(f"Allied escort hits on Japanese interceptor: {result_allied['escort_hits_on_interceptors']}")
+                lines.append(f"Allied bomber hits on Japanese interceptor: {result_allied['bomber_hits_on_interceptors']}")
+
+                lines.append(f"Japanese hits on Allied bombers: {result_japanese['interceptor_hits_on_bombers']}")
+                lines.append(f"Japanese interceptor hits on Allied interceptors: {result_japanese['interceptor_hits_on_escorts']}")
+                lines.append(f"Japanese escort hits on Allied interceptor: {result_japanese['escort_hits_on_interceptors']}")
+                lines.append(f"Japanese bomber hits on Allied interceptor: {result_japanese['bomber_hits_on_interceptors']}")
+                
+                
+                lines.append(f"\n")
+
+                popup_text = "\n".join(lines)
+                self.show_combat_results(popup_text, pos)
+                return
+
             case "Details":
                 self.render_popup(piece, pos)
             case "Move":
@@ -640,6 +852,42 @@ class DesktopUI:
                 self._moving_piece_offset = None
                 # Cancel just returns, nothing to do
                 return
+
+    def show_combat_results(self, text, pos):
+        # Display a popup with the combat results
+        win_width, win_height = self.screen.get_size()
+        margin = 10
+        font = pygame.font.SysFont(None, 24)
+        lines = text.split('\n')
+        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        popup_rect = pygame.Rect(
+            pos[0] - popup_width // 2,
+            pos[1] - popup_height // 2,
+            popup_width,
+            popup_height
+        )
+        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+        y = popup_rect.top + margin
+        for ts in text_surfaces:
+            text_rect = ts.get_rect()
+            text_rect.topleft = (popup_rect.left + margin, y)
+            self.screen.blit(ts, text_rect)
+            y += ts.get_height() + margin // 2
+        pygame.display.flip()
+
+        # Wait for user to click or press a key to close popup
+        waiting = True
+        while waiting:
+            for popup_event in pygame.event.get():
+                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                    waiting = False
+                    if popup_event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+
 
     def render_piece_selection_popup(self, pieces, pos):
         # Display a popup with a list of pieces and let the user select one

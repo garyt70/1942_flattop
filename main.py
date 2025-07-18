@@ -149,7 +149,7 @@ def scenario_one_setup():
         taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2))
     
     chartAllied.task_forces[1] = taskForce
-    hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(30, 20), gameModel=taskForce))  # Add a piece for Allied Task Force
+    hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(20, 15), gameModel=taskForce))  # Add a piece for Allied Task Force
 
 
     print("Japanese Chart:", chartJapanase)

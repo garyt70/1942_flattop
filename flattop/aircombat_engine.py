@@ -161,7 +161,7 @@ Hits on plane units are recorded by eliminating Air Factors equal to the number 
 """
 
 import random
-from operations_chart_models import AirFormation, Aircraft
+from flattop.operations_chart_models import AirFormation, Aircraft
 
 # --- Combat Results Table Implementation ---
 # Each row is a Hit Table value (1-15), each column is an attack factor range.
