@@ -407,8 +407,11 @@ def resolve_air_to_air_combat(
             hits = resolve_hits(result_number, die)
             print(f"Die roll: {die}, Hits resolved: {hits}")
             if hits > 0:
-                result["interceptor_hits_on_escorts"].add_hit(ic.type, hits)
+                result["interceptor_hits_on_escorts"].add_hit(str(ic.type), hits)
             hits_on_escorts += hits
+        if hits_on_escorts > 0:
+            result["interceptor_hits_on_escorts"].summary = f"Interceptors attacked escorts. ({hits_on_escorts} hits total)"
+
         for ec in escorts:
             armed = ec.armament is not None
             bht = get_bht(ec, armed=armed)
@@ -424,8 +427,10 @@ def resolve_air_to_air_combat(
             hits = resolve_hits(result_number, die)
             print(f"Die roll: {die}, Hits resolved: {hits}")
             if hits > 0:
-                result["escort_hits_on_interceptors"].add_hit(ec.type, hits)
+                result["escort_hits_on_interceptors"].add_hit(str(ec.type), hits)
             hits_on_interceptors += hits
+        if hits_on_interceptors > 0:
+            result["escort_hits_on_interceptors"].summary = f"Escorts attacked interceptors. ({hits_on_interceptors} hits total)"
 
     # --- Ratio check for 2:1 advantage ---
     total_interceptors = sum(ic.count for ic in interceptors)
@@ -449,8 +454,10 @@ def resolve_air_to_air_combat(
             print(f"Interceptor {ic.type} attacking bombers with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
             print(f"Die roll: {die}, Hits resolved: {hits}")
             if hits > 0:
-                result["interceptor_hits_on_bombers"].add_hit(ic.type, hits)
+                result["interceptor_hits_on_bombers"].add_hit(str(ic.type), hits)
             hits_on_bombers += hits
+        if hits_on_bombers > 0:
+            result["interceptor_hits_on_bombers"].summary = f"Interceptors attacked bombers. ({hits_on_bombers} hits total)"
         # Bombers can return fire if allowed by scenario/rules (not typical, but for completeness)
         for bc in bombers:
             armed = bc.armament is not None
@@ -467,8 +474,10 @@ def resolve_air_to_air_combat(
             print(f"Bomber {bc.type} attacking interceptors with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
             print(f"Die roll: {die}, Hits resolved: {hits}")
             if hits > 0:
-                result["bomber_hits_on_interceptors"].add_hit(bc.type, hits)
+                result["bomber_hits_on_interceptors"].add_hit(str(bc.type), hits)
             hits_on_interceptors += hits
+        if hits_on_interceptors > 0:
+            result["bomber_hits_on_interceptors"].summary = f"Bombers attacked interceptors. ({hits_on_interceptors} hits total)"   
 
     # --- Remove losses ---
     # Remove hits from interceptors, escorts, and bombers
@@ -499,13 +508,6 @@ def resolve_air_to_air_combat(
         if bc.count > 0:
             bombers.append(bc)
     
-
-    # --- Summary ---
-    result["interceptor_hits_on_escorts"].summary = "Interceptors attacked escorts."
-    result["escort_hits_on_interceptors"].summary = "Escorts attacked interceptors."
-    result["interceptor_hits_on_bombers"].summary = "Interceptors attacked bombers."
-    result["bomber_hits_on_interceptors"].summary = "Bombers attacked interceptors (if allowed)."
-
     return result
 
 # Example usage:

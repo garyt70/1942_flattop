@@ -693,15 +693,17 @@ class DesktopUI:
                 lines.append(f"Japanese Escorts: {len(japanese_escorts)}")
                 lines.append(f"Japanese Bombers: {len(japanese_bombers)}")
                 
-                lines.append(f"Allied hits on Japanese bombers: {result_allied['interceptor_hits_on_bombers']}")
-                lines.append(f"Allied interceptor hits on Japanese interceptors: {result_allied['interceptor_hits_on_escorts']}")
-                lines.append(f"Allied escort hits on Japanese interceptor: {result_allied['escort_hits_on_interceptors']}")
-                lines.append(f"Allied bomber hits on Japanese interceptor: {result_allied['bomber_hits_on_interceptors']}")
+                lines.append("Allied Combat Results:")
+                lines.append(f" {result_allied['interceptor_hits_on_bombers']}")
+                lines.append(f" {result_allied['interceptor_hits_on_escorts']}")
+                lines.append(f" {result_allied['escort_hits_on_interceptors']}")
+                lines.append(f" {result_allied['bomber_hits_on_interceptors']}")
 
-                lines.append(f"Japanese hits on Allied bombers: {result_japanese['interceptor_hits_on_bombers']}")
-                lines.append(f"Japanese interceptor hits on Allied interceptors: {result_japanese['interceptor_hits_on_escorts']}")
-                lines.append(f"Japanese escort hits on Allied interceptor: {result_japanese['escort_hits_on_interceptors']}")
-                lines.append(f"Japanese bomber hits on Allied interceptor: {result_japanese['bomber_hits_on_interceptors']}")
+                lines.append("Japanese Combat Results:")
+                lines.append(f" {result_japanese['interceptor_hits_on_bombers']}")
+                lines.append(f" {result_japanese['interceptor_hits_on_escorts']}")
+                lines.append(f" {result_japanese['escort_hits_on_interceptors']}")
+                lines.append(f" {result_japanese['bomber_hits_on_interceptors']}")
                 
                 
                 lines.append(f"\n")
