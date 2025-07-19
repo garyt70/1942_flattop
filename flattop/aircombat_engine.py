@@ -182,7 +182,7 @@ COMBAT_RESULTS_TABLE = [
     [0, 1, 2, 3, 4, 4, 6, 7, 9, 11, 13, 15, 17, 19],       # Hit Table 12
     [0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 16, 18, 21],       # Hit Table 13
     [0, 1, 2, 3, 4, 5, 7, 8, 10, 12, 14, 17, 20, 22],      # Hit Table 14
-    [0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 17, 19, 21, 23],      # Hit Table 15
+    [1, 1, 2, 3, 4, 5, 7, 9, 11, 13, 17, 19, 21, 23],      # Hit Table 15
 ]
 
 # Attack factor ranges for columns in the table
@@ -322,13 +322,16 @@ def classify_aircraft(airformation_list):
 def roll_die():
     return random.randint(1, 6)
 
-def get_bht(aircraft:Aircraft, armed=False):
+def get_bht(aircraft:Aircraft, armed=False, die=None):
     # Returns the Basic Hit Table value for the aircraft, with modifiers for armament
     bht = getattr(aircraft.combat_data, "air_to_air", 0)
     # 16.10.4: If armed and type is in list, reduce BHT by 6
     ARMED_BHT_PENALTY_TYPES = {"Wildcat", "P-38", "P-39", "P-40", "Beaufighter", "Zero", "Rufe"}
     if armed and str(aircraft.type) in ARMED_BHT_PENALTY_TYPES:
         bht = max(1, bht - 6)
+    # If die is provided, adjust BHT based on die roll
+    if die is not None:
+        bht =max(1, resolve_die_roll(bht, die))
     return bht
 
 def apply_bht_modifiers(bht, rf_expended=True, clouds=False, night=False, armed=False, aircraft=None):
@@ -344,7 +347,7 @@ def apply_bht_modifiers(bht, rf_expended=True, clouds=False, night=False, armed=
     # 16.10.4: If armed and type is in list, -6 (already handled in get_bht)
     return max(1, bht)
 
-def resolve_hits(result_number, die_roll):
+def resolve_die_roll(result_number, die_roll):
     """
     Implements the die roll logic from Combat Resolution (20.3).
     - die 3 or 4: hits = result_number
@@ -393,22 +396,27 @@ def resolve_air_to_air_combat(
     hits_on_escorts = 0
     hits_on_interceptors = 0
 
-    # --- Interceptor to Escort Combat ---
-    if interceptors and escorts:
-        for ic in interceptors:
-            armed = ic.armament is not None
-            bht = get_bht(ic, armed=armed)
-            bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ic)
-            attack_factor = ic.count
+    def determine_hits(aircraft_list, target_type):
+        hits = 0
+        for ac in aircraft_list:
+            armed = ac.armament is not None
+            die = roll_die()
+            bht = get_bht(ac, armed=armed, die=die)
+            bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ac)
+            attack_factor = ac.count
             idx = get_attack_factor_index(attack_factor)
             if idx is None:
                 continue
             hit_table = max(1, min(15, bht))
-            result_number = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
-            print(f"Interceptor {ic.type} attacking escorts with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
-            die = roll_die()
-            hits = resolve_hits(result_number, die)
-            print(f"Die roll: {die}, Hits resolved: {hits}")
+            hits = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+            print(f"{ac.type} attacking {target_type} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hits {hits}")
+        return hits
+
+    # --- Interceptor to Escort Combat ---
+    if interceptors and escorts:
+        for ic in interceptors:
+            hits = determine_hits([ic], "escorts")
+            print(f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}")
             if hits > 0:
                 result["interceptor_hits_on_escorts"].add_hit(str(ic.type), hits)
             hits_on_escorts += hits
@@ -416,19 +424,8 @@ def resolve_air_to_air_combat(
             result["interceptor_hits_on_escorts"].summary = f"Interceptors attacked escorts. ({hits_on_escorts} hits total)"
 
         for ec in escorts:
-            armed = ec.armament is not None
-            bht = get_bht(ec, armed=armed)
-            bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ec)
-            attack_factor = ec.count
-            idx = get_attack_factor_index(attack_factor)
-            if idx is None:
-                continue
-            hit_table = max(1, min(15, bht))
-            result_number = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
-            print(f"Escort {ec.type} attacking interceptors with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
-            die = roll_die()
-            hits = resolve_hits(result_number, die)
-            print(f"Die roll: {die}, Hits resolved: {hits}")
+            hits = determine_hits([ec], "interceptors")
+            print(f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}")
             if hits > 0:
                 result["escort_hits_on_interceptors"].add_hit(str(ec.type), hits)
             hits_on_interceptors += hits
@@ -443,19 +440,8 @@ def resolve_air_to_air_combat(
     # --- Interceptor to Bomber Combat ---
     if bombers and (interceptor_advantage or not escorts):
         for ic in interceptors:
-            armed = ic.armament is not None
-            bht = get_bht(ic, armed=armed)
-            bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ic)
-            attack_factor = ic.count
-            idx = get_attack_factor_index(attack_factor)
-            if idx is None:
-                continue
-            hit_table = max(1, min(15, bht))
-            result_number = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
-            die = roll_die()
-            hits = resolve_hits(result_number, die)
-            print(f"Interceptor {ic.type} attacking bombers with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
-            print(f"Die roll: {die}, Hits resolved: {hits}")
+            hits = determine_hits([ic], "bombers")
+            print(f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}")
             if hits > 0:
                 result["interceptor_hits_on_bombers"].add_hit(str(ic.type), hits)
             hits_on_bombers += hits
@@ -463,19 +449,8 @@ def resolve_air_to_air_combat(
             result["interceptor_hits_on_bombers"].summary = f"Interceptors attacked bombers. ({hits_on_bombers} hits total)"
         # Bombers can return fire if allowed by scenario/rules (not typical, but for completeness)
         for bc in bombers:
-            armed = bc.armament is not None
-            bht = get_bht(bc, armed=armed)
-            bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, bc)
-            attack_factor = bc.count
-            idx = get_attack_factor_index(attack_factor)
-            if idx is None:
-                continue
-            hit_table = max(1, min(15, bht))
-            result_number = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
-            die = roll_die()
-            hits = resolve_hits(result_number, die)
-            print(f"Bomber {bc.type} attacking interceptors with BHT {bht}, attack factor {attack_factor}, hit table {hit_table}, result number {result_number}")
-            print(f"Die roll: {die}, Hits resolved: {hits}")
+            hits = determine_hits([bc], "interceptors")
+            print(f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}")
             if hits > 0:
                 result["bomber_hits_on_interceptors"].add_hit(str(bc.type), hits)
             hits_on_interceptors += hits
