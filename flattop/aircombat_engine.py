@@ -215,7 +215,10 @@ class AirCombatResult:
         self.hits[plane_type] = self.hits.get(plane_type, 0) + count
 
     def __str__(self):
-        return f"Hits: {self.hits}\n{self.summary}"
+        r = ""
+        if len(self.hits) > 0:
+           r =  f"Hits: {self.hits}\n{self.summary}"
+        return r
 
 
 

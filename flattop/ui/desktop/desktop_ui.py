@@ -651,14 +651,19 @@ class DesktopUI:
                 allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied)
                 japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese)
 
+                pre_combat_count_allied_interceptors = sum(ic.count for ic in allied_interceptors)
+                pre_combat_count_allied_bombers = sum(b.count for b in allied_bombers)
+                pre_combat_count_allied_escorts = sum(ec.count for ec in allied_escorts)
+
+                pre_combat_count_japanese_interceptors = sum(ic.count for ic in japanese_interceptors)
+                pre_combat_count_japanese_bombers = sum(b.count for b in japanese_bombers)
+                pre_combat_count_japanese_escorts = sum(ec.count for ec in japanese_escorts)
 
                 # if no bombers on either side then convert interceptors to escorts 
                 if not allied_bombers and not japanese_bombers:
                     # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
                     japanese_escorts.extend(japanese_interceptors)
                     japanese_interceptors = []
-
-                # Run combat (Allied vs Japanese)
                 result_allied = resolve_air_to_air_combat(
                     interceptors=allied_interceptors,
                     escorts=japanese_escorts,
@@ -681,17 +686,31 @@ class DesktopUI:
                     night=False
                 )
 
+                # need to update the air operations chart for each side
+                # remove aircraft from air formations that have 0 or less count
+                # removed airformations that have no aircraft left
+                for af in allied:
+                    af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
+                    if not af.aircraft:
+                        #self.board.pieces.remove(Piece(name=af.name, side="Allied", position=af.position, gameModel=af))
+                        self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
+                for af in japanese:
+                    af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
+                    if not af.aircraft:
+                        #self.board.pieces.remove(Piece(name=af.name, side="Japanese", position=af.position, gameModel=af))
+                        self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
+                
                
                 # Optionally, show a popup with results
                 font = pygame.font.SysFont(None, 24)
                 lines = ["Combat Results:"]
-                lines.append(f"Allied Interceptors: {len(allied_interceptors)}")
-                lines.append(f"Allied Escorts: {len(allied_escorts)}")
-                lines.append(f"Allied Bombers: {len(allied_bombers)}")
+                lines.append(f"Allied Interceptors: {pre_combat_count_allied_interceptors}")
+                lines.append(f"Allied Escorts: {pre_combat_count_allied_escorts}")
+                lines.append(f"Allied Bombers: {pre_combat_count_allied_bombers}")
 
-                lines.append(f"Japanese Interceptors: {len(japanese_interceptors)}")
-                lines.append(f"Japanese Escorts: {len(japanese_escorts)}")
-                lines.append(f"Japanese Bombers: {len(japanese_bombers)}")
+                lines.append(f"Japanese Interceptors: {pre_combat_count_japanese_interceptors}")
+                lines.append(f"Japanese Escorts: {pre_combat_count_japanese_escorts}")
+                lines.append(f"Japanese Bombers: {pre_combat_count_japanese_bombers}")
                 
                 lines.append("Allied Combat Results:")
                 lines.append(f" {result_allied['interceptor_hits_on_bombers']}")
