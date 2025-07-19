@@ -484,32 +484,35 @@ def resolve_air_to_air_combat(
 
     # --- Remove losses ---
     # Remove hits from interceptors, escorts, and bombers
-    while hits_on_escorts > 0 and escorts:
-        ec = escorts.pop()
-        hits = min(ec.count, hits_on_escorts)
-        result["eliminated"]["escorts"].append((ec.type, hits))
-        hits_on_escorts -= hits
-        ec.count -= hits
-        if ec.count > 0:
-            escorts.append(ec)
+    # modify range_remaining if RF expended
+
+    def remove_hits(aircraft_list, hits, rf_expended):
+        """
+        Remove hits from aircraft in the list.
+        If hits exceed count, remove all and return excess hits.
+        If RF expended, decrement range_remaining.
+        """
+        while hits > 0 and aircraft_list:
+            ac = aircraft_list.pop()
+            hits_to_remove = min(ac.count, hits)
+            # Determine which category to add to eliminated
+            if ac in interceptors:
+                result["eliminated"]["interceptors"].append((ac.type, hits_to_remove))
+            elif ac in escorts:
+                result["eliminated"]["escorts"].append((ac.type, hits_to_remove))
+            else:
+                result["eliminated"]["bombers"].append((ac.type, hits_to_remove))
+            hits -= hits_to_remove
+            ac.count -= hits_to_remove
+            if rf_expended:
+                ac.range_remaining -= 1
+            if ac.count > 0:
+                aircraft_list.append(ac)
+
+    remove_hits(interceptors, hits_on_interceptors, rf_expended)
+    remove_hits(escorts, hits_on_escorts, rf_expended)  
+    remove_hits(bombers, hits_on_bombers, rf_expended)
     
-    while hits_on_interceptors > 0 and interceptors:
-        ic = interceptors.pop()
-        hits = min(ic.count, hits_on_interceptors)
-        result["eliminated"]["interceptors"].append((ic.type, hits))
-        hits_on_interceptors -= hits
-        ic.count -= hits
-        if ic.count > 0:
-            interceptors.append(ic)
-   
-    while hits_on_bombers > 0 and bombers:
-        bc = bombers.pop()
-        hits = min(bc.count, hits_on_bombers)
-        result["eliminated"]["bombers"].append((bc.type, hits))
-        hits_on_bombers -= hits
-        bc.count -= hits
-        if bc.count > 0:
-            bombers.append(bc)
     
     return result
 
