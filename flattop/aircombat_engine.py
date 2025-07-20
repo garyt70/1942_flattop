@@ -187,7 +187,6 @@ AirFormation attack on a Task Force or base is resolved in two steps: Anti-Aircr
 - **18.3.3 Level Bombing:**  
     Level bombing can be performed from high or low altitude. Level bombers may attack with GP or AP bombs. Each Air Factor that makes a level bombing attack from low altitude expends one RF. Air Factors that make a bombing attack from high altitude do not expend any RFs.
 
-**18.4** Bases can never be attacked.
 
 ### 18.5 Modifiers
 
@@ -366,7 +365,7 @@ def classify_aircraft(airformation_list):
 def roll_die():
     return random.randint(1, 6)
 
-def get_bht(aircraft:Aircraft, armed=False):
+def get_a2a_bht(aircraft:Aircraft, armed=False):
     # Returns the Basic Hit Table value for the aircraft, with modifiers for armament
     bht = getattr(aircraft.combat_data, "air_to_air", 0)
     # 16.10.4: If armed and type is in list, reduce BHT by 6
@@ -441,7 +440,7 @@ def resolve_air_to_air_combat(
         hits = 0
         for ac in aircraft_list:
             armed = ac.armament is not None
-            bht = get_bht(ac, armed=armed)
+            bht = get_a2a_bht(ac, armed=armed)
             bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ac)
             attack_factor = ac.count
             idx = get_attack_factor_index(attack_factor)
@@ -584,6 +583,122 @@ def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None
         results["hits_on_bombers"] = results.get("total_bombers_lost", 0) + bombers_lost
         print(f"Total bombers lost: {bombers_lost}")
     return results
+
+
+"""
+## 18. AIR ATTACK COMBAT
+
+**18.1** The attacker must now execute the attacks they declared before AA fire was resolved. They may have fewer planes than originally stated due to losses from AA fire, but may not change the allocation of planes or call off any attacks.
+
+**18.2** Each attack by each plane name is resolved as a separate attack and die roll.  
+*Exception: See 17.6.* No planes can be lost during Air Attack Combat.
+
+### 18.3 Types of Bombing Attacks
+
+- **18.3.1 Dive Bombing:**  
+    Dive bombers must begin the Combat Phase at high altitude and are at high altitude for Air-to-Air Combat. However, they are assumed to dive to low altitude during the Anti-Aircraft Combat Step and make their bombing attack from low altitude. Dive bombers may attack with GP or AP bombs. Each Air Factor that makes a dive bombing attack expends one RF.
+
+- **18.3.2 Torpedo Bombing:**  
+    Torpedo attacks must be made from low altitude and may only be made by planes that can carry, and are carrying, torpedoes. Each Air Factor that makes a torpedo bombing attack expends one RF.
+
+- **18.3.3 Level Bombing:**  
+    Level bombing can be performed from high or low altitude. Level bombers may attack with GP or AP bombs. Each Air Factor that makes a level bombing attack from low altitude expends one RF. Air Factors that make a bombing attack from high altitude do not expend any RFs.
+
+
+### 18.5 Modifiers
+
+- **18.5.1** If the target ship is crippled, the BHT is increased by two tables (+2).
+- **18.5.2** If the target ship is anchored, the BHT is increased by two tables (+2).
+- **18.5.3** If the combat is taking place in a hex with clouds, the BHT is reduced by two tables (-2).
+- **18.5.4** If the combat is taking place at night, the BHT is reduced by four tables (-4).
+
+*Example of Air Attack Combat:*  
+Continuing the example from Anti-Aircraft Combat, the Allied planes (8 Dauntless and 7 Avenger) now attack the CV Shokaku. The 8 Dauntless are making a dive bombing attack with AP bombs. The BHT is 7. The Allied player rolls a '3'. Two hits are scored, but these are doubled because the Japanese player states that there are planes in the Ready box. Four hits are scored.  
+The 6 Avengers are making a torpedo attack. The BHT is 6. The Allied player rolls a '1'. No hits are scored.  
+The Shokaku has taken four hits. In addition, the Japanese player must eliminate four Air Factors from those on the Shokaku. Air Attack Combat is now over.
+
+"""
+def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = "Level", clouds=False, night=False ):
+    """
+    Resolves air attack combat, aircraft attacking ships.
+    Args:
+        bombers: list of Aircraft objects attacking (after air-to-air combat)
+        ship: the ship being attacked
+        attack_type = "Level","Dive", "Torpedo"
+        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+    return
+        results: dict with results of AA fire, including hits and losses
+    """
+    
+    def get_a2s_bht(aircraft:Aircraft, attack_type="Level"):
+        # Returns the Basic Hit Table value for the aircraft, with modifiers 
+        attribute_str = ""
+        
+        attribute_str = f"{attack_type.lower()}_bombing_{aircraft.height.lower()}_ship_{aircraft.armament.lower()}"
+        bht = getattr(aircraft.combat_data, attribute_str, 0)        
+
+        return bht
+
+    def apply_air_attack_bht_modifiers(bht, ship:Ship, clouds=False, night=False ):
+        if clouds:
+            bht -= 1
+        if night:
+            bht -= 2
+        if ship.status == "Crippled":
+            bht += 2
+        if ship.status == "Anchored":
+            bht += 2
+
+        return max(1, bht)
+
+    def determine_hits(ac:Aircraft, ship:Ship, attack_type = "Level", clouds=False, night=False):
+        hits = 0
+    
+        bht = get_a2s_bht(ac, attack_type)
+        bht = apply_air_attack_bht_modifiers(bht, ship, clouds, night)
+        attack_factor = ac.count
+        idx = get_attack_factor_index(attack_factor)
+        if idx is not None:
+            hit_table = max(1, min(15, bht))
+            hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+            die = roll_die()
+            hits = resolve_die_roll(hit_table_result, die)
+            print(f"{ac.type} attacking {ship.name} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+            
+        return hits
+
+    #resolve attack on the ship
+    ac:Aircraft
+    results = {"bomber_hits_on_ship": AirCombatResult() }
+    total_hits = 0
+    for ac in bombers:
+        if ac.armament is None:
+            #bombers need to be armed to perform an attack.
+            continue
+        if ac.count <=0:
+            # no aircraft go through. probably shot down in a2a or anit-air combat.
+            continue
+        hits = determine_hits(ac, ship, attack_type, clouds, night )
+        ship.damage += hits
+        total_hits += hits
+        print(f"Bomber {ac.type} hits {hits} against ship {ship.name}.")
+        results["bomber_hits_on_ship"].add_hit(ac.type, hits)
+        if ship.damage >= ship.damage_factor:
+            ship.status = "Sunk"
+            print(f"Ship {ship.name}, sunk.")
+            #if the ship is a carrier then need apply destroyed aircraft
+            # if sunk, all aircraft are lost, otherwise hits number of aircraft are destroyed
+            #TODO implement aircraft damage logic
+
+        #resolve impact on range of aircraft
+        #all attacks other than high level bombing expend range factors
+        if not (attack_type == "Level" and ac.height == "High"):
+            ac.range_remaining -= 1
+    
+    results["bomber_hits_on_ship"].summary = f"Ship {ship.name} took {total_hits} hits."
+
+    return results
+
 
 
 

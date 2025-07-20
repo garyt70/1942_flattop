@@ -650,9 +650,11 @@ class Ship:
         self.attack_factor = gunnery_factor
         self.anti_air_factor = anti_air_factor
         self.move_factor = move_factor  # Default move factor for ships
+        self.damage_factor = damage_factor
+        self.damage = 0
 
     def __repr__(self):
-        return f"Ship(name={self.name}, type={self.type}, status={self.status}, " \
+        return f"Ship(name={self.name}, type={self.type}, status={self.status}, damage={self.damage}" \
                f"attack_factor={self.attack_factor}, aa_factor={self.anti_air_factor}, move_factor={self.move_factor})\n"
 
 

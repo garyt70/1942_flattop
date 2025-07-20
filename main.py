@@ -96,7 +96,10 @@ def scenario_one_setup():
     #add a test AirFormation to the Japanese chart
     airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
     airFormationOneJapanese.add_aircraft(AircraftFactory.create(AircraftType.ZERO, count=6))
-    airFormationOneJapanese.add_aircraft(AircraftFactory.create(AircraftType.VAL, count=4))
+    ac:Aircraft = AircraftFactory.create(AircraftType.VAL, count=4)
+    ac.armament = "AP"
+    ac.height = "Low"
+    airFormationOneJapanese.add_aircraft(ac)
 
     chartJapanase.air_formations[1] = airFormationOneJapanese  # Add the air formation to the Japanese chart
 

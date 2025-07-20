@@ -9,6 +9,7 @@ class AirFormationUI:
         self.screen = screen
         self.x = x
         self.y = y
+        self.height_btn_lst = []
 
     def draw(self):
         win_width, win_height = self.screen.get_size()
@@ -37,8 +38,8 @@ class AirFormationUI:
         # Draw aircraft list header and list
         y = popup_rect.top + margin + header_surf.get_height() + margin // 2
         y = AircraftDisplay.draw_aircraft_list_header(self.screen, self.air_formation.aircraft, popup_rect.left + margin, y)
-        y = AircraftDisplay.draw_aircraft_list(self.screen, self.air_formation.aircraft, popup_rect.left + margin, y + 5)
-
+        y, btn_list = AircraftDisplay.draw_aircraft_list_with_height_btn(self.screen, self.air_formation.aircraft, popup_rect.left + margin, y + 5)
+        self.height_btn_lst = btn_list
         pygame.display.flip()
 
         
@@ -47,8 +48,17 @@ class AirFormationUI:
         waiting = True
         while waiting:
             for popup_event in pygame.event.get():
-                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
+                if popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
                     waiting = False
                     if popup_event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+                elif popup_event.type == pygame.MOUSEBUTTONDOWN:
+                    waiting = False
+                    mx, my = popup_event.pos
+                    for btn in self.height_btn_lst:
+                        #need to think of a better way to handle zero ready facotr to prevent need for loop
+                        if btn.collidepoint(mx, my):
+                            waiting = True
+                            btn.handle_click()
+                            pygame.display.flip()

@@ -89,7 +89,36 @@ class AircraftOperationChartCommandWidget:
     def collidepoint(self, mx, my):
         return self.btn_rect.collidepoint(mx, my)
  
+class AircraftHeightChangeWidget:
+    def __init__(self, surface, aircraft:Aircraft, x, y):
+        self.aircraft=aircraft
+        self.pos_x = x
+        self.pos_y = y
+        self.surface = surface
+        self.btn_rect = pygame.Rect(x, y, 60, 30)
 
+    def draw(self):
+        """
+       Draws a button that displays the heigh of the aircraft
+        """
+        # Draw the button
+        pygame.draw.rect(self.surface, (0, 200, 0), self.btn_rect)
+        font = pygame.font.SysFont(None, 24)
+        btn_label = font.render(f"{self.aircraft.height}", True, (255, 255, 255))
+        self.surface.blit(btn_label, (self.pos_x + 8, self.pos_y + 2))
+
+    def handle_click(self):
+
+        if self.aircraft.height == "High":
+            self.aircraft.height = "Low"
+        else:
+            self.aircraft.height = "High"
+
+        self.draw()
+
+
+    def collidepoint(self, mx, my):
+        return self.btn_rect.collidepoint(mx, my)
 
 class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartCommandWidget):
     """
@@ -160,7 +189,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
 
 
 class AircraftDisplay:
-    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1250, 1300]
+    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300, 1360]
 
     def __init__(self):
         pass
@@ -283,6 +312,11 @@ class AircraftDisplay:
         surface.blit(font.render("Move", True, COLOR_FONT_HEADER), (x + columns[14], y))
         surface.blit(font.render("Range", True, COLOR_FONT_HEADER), (x + columns[15], y))
 
+        #armament
+        surface.blit(font.render("Armament", True, COLOR_FONT_HEADER), (x + columns[16], y))
+        #height
+        surface.blit(font.render("Height", True, COLOR_FONT_HEADER), (x + columns[17], y))
+
         y += 20
         return y
 
@@ -321,6 +355,16 @@ class AircraftDisplay:
             btn_list.append(btn)
             y = AircraftDisplay.draw_aircraft(surface, ac, x, y)
 
+        return y, btn_list
+    
+    @staticmethod
+    def draw_aircraft_list_with_height_btn (surface, aircraft_list, x, y):
+        btn_list = []
+        for ac in aircraft_list:
+            btn = AircraftHeightChangeWidget(surface, ac, x + AircraftDisplay.columns[17], y)
+            btn.draw()
+            btn_list.append(btn)
+            y = AircraftDisplay.draw_aircraft(surface, ac, x, y)
         return y, btn_list
 
 class AirOperationsTrackerDisplay:
