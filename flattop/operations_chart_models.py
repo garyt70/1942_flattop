@@ -430,6 +430,7 @@ class Aircraft:
         self.combat_data = acd  # Aircraft Combat Data instance
         self.range_remaining = range_factor #this is the remaining in air time available. Each turn increment reduces this.
         self.armament = None  # Placeholder for any armament data, GP, AP, Torpedo, etc.
+        self.height = "Low"  # Default height, can be "High" or "Low"
 
 
     def __repr__(self):

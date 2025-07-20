@@ -160,7 +160,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
 
 
 class AircraftDisplay:
-    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300]
+    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1250, 1300]
 
     def __init__(self):
         pass
@@ -211,6 +211,9 @@ class AircraftDisplay:
 
         #armament display
         surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
+
+        #display height
+        surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
         
         y += 20
 

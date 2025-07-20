@@ -54,7 +54,7 @@ class TaskForceScreen:
         y += 40
 
         # Table headers
-        headers = ["Name", "Type", "Attack", "Defence", "Move", "Air Ops"]
+        headers = ["Name", "Type", "Attack", "AA", "Move", "Air Ops"]
         col_widths = [140, 80, 60, 60, 60, 120]
         x_positions = [40]
         for w in col_widths[:-1]:
