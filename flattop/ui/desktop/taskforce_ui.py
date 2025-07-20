@@ -68,17 +68,16 @@ class TaskForceScreen:
         y += 5
 
         self.carrier_buttons.clear()
+        ship:Ship
         for ship in self.taskforce.ships:
             # Get ship properties, fallback to "N/A" if not present
             name = ship.name
             ship_type = ship.type
             attack = ship.attack_factor
-            defense = ship.defense_factor
+            defense = ship.anti_air_factor  # Changed from defense_factor to anti_air_factor
             move = ship.move_factor
             air_ops = ""
             is_carrier = isinstance(ship, Carrier)
-            base_symbol = CARRIER_SYMBOL if is_carrier else ""
-            base_rect = None
             
             row = [name, ship_type, str(attack), str(defense), str(move), air_ops]
             for i, value in enumerate(row):

@@ -160,8 +160,52 @@ Hits on plane units are recorded by eliminating Air Factors equal to the number 
 
 """
 
+"""
+AirFormation attack on a Task Force or base is resolved in two steps: Anti-Aircraft Combat and Air Attack Combat. The attacker must declare which targets all bombers are attacking before AA fire is resolved.
+
+17. ANTI-AIRCRAFT COMBAT
+
+17.1 Anti-aircraft fire (AA fire) affects only bombers that are attacking a Task Force (TF) or base. If the bombers do not attack, there is no AA fire. Interceptors and escorts are never subject to AA fire.
+
+17.2 Before AA fire is resolved, the attacker must declare which targets (Ships) all bombers are attacking. Bombers may attack any enemy units in the hex and may be divided in any manner among targets. Once attacks are
+
+## 18. AIR ATTACK COMBAT
+
+**18.1** The attacker must now execute the attacks they declared before AA fire was resolved. They may have fewer planes than originally stated due to losses from AA fire, but may not change the allocation of planes or call off any attacks.
+
+**18.2** Each attack by each plane name is resolved as a separate attack and die roll.  
+*Exception: See 17.6.* No planes can be lost during Air Attack Combat.
+
+### 18.3 Types of Bombing Attacks
+
+- **18.3.1 Dive Bombing:**  
+    Dive bombers must begin the Combat Phase at high altitude and are at high altitude for Air-to-Air Combat. However, they are assumed to dive to low altitude during the Anti-Aircraft Combat Step and make their bombing attack from low altitude. Dive bombers may attack with GP or AP bombs. Each Air Factor that makes a dive bombing attack expends one RF.
+
+- **18.3.2 Torpedo Bombing:**  
+    Torpedo attacks must be made from low altitude and may only be made by planes that can carry, and are carrying, torpedoes. Each Air Factor that makes a torpedo bombing attack expends one RF.
+
+- **18.3.3 Level Bombing:**  
+    Level bombing can be performed from high or low altitude. Level bombers may attack with GP or AP bombs. Each Air Factor that makes a level bombing attack from low altitude expends one RF. Air Factors that make a bombing attack from high altitude do not expend any RFs.
+
+**18.4** Bases can never be attacked.
+
+### 18.5 Modifiers
+
+- **18.5.1** If the target ship is crippled, the BHT is increased by two tables (+2).
+- **18.5.2** If the target ship is anchored, the BHT is increased by two tables (+2).
+- **18.5.3** If the combat is taking place in a hex with clouds, the BHT is reduced by two tables (-2).
+- **18.5.4** If the combat is taking place at night, the BHT is reduced by four tables (-4).
+
+*Example of Air Attack Combat:*  
+Continuing the example from Anti-Aircraft Combat, the Allied planes (8 Dauntless and 7 Avenger) now attack the CV Shokaku. The 8 Dauntless are making a dive bombing attack with AP bombs. The BHT is 7. The Allied player rolls a '3'. Two hits are scored, but these are doubled because the Japanese player states that there are planes in the Ready box. Four hits are scored.  
+The 6 Avengers are making a torpedo attack. The BHT is 6. The Allied player rolls a '1'. No hits are scored.  
+The Shokaku has taken four hits. In addition, the Japanese player must eliminate four Air Factors from those on the Shokaku. Air Attack Combat is now over.
+
+"""
+
+
 import random
-from flattop.operations_chart_models import AirFormation, Aircraft, AircraftType
+from flattop.operations_chart_models import AirFormation, Aircraft, AircraftType, TaskForce, Base, Ship
 
 # --- Combat Results Table Implementation ---
 # Each row is a Hit Table value (1-15), each column is an attack factor range.
@@ -322,16 +366,13 @@ def classify_aircraft(airformation_list):
 def roll_die():
     return random.randint(1, 6)
 
-def get_bht(aircraft:Aircraft, armed=False, die=None):
+def get_bht(aircraft:Aircraft, armed=False):
     # Returns the Basic Hit Table value for the aircraft, with modifiers for armament
     bht = getattr(aircraft.combat_data, "air_to_air", 0)
     # 16.10.4: If armed and type is in list, reduce BHT by 6
     ARMED_BHT_PENALTY_TYPES = {"Wildcat", "P-38", "P-39", "P-40", "Beaufighter", "Zero", "Rufe"}
     if armed and str(aircraft.type) in ARMED_BHT_PENALTY_TYPES:
         bht = max(1, bht - 6)
-    # If die is provided, adjust BHT based on die roll
-    if die is not None:
-        bht =max(1, resolve_die_roll(bht, die))
     return bht
 
 def apply_bht_modifiers(bht, rf_expended=True, clouds=False, night=False, armed=False, aircraft=None):
@@ -400,16 +441,17 @@ def resolve_air_to_air_combat(
         hits = 0
         for ac in aircraft_list:
             armed = ac.armament is not None
-            die = roll_die()
-            bht = get_bht(ac, armed=armed, die=die)
+            bht = get_bht(ac, armed=armed)
             bht = apply_bht_modifiers(bht, rf_expended, clouds, night, armed, ac)
             attack_factor = ac.count
             idx = get_attack_factor_index(attack_factor)
             if idx is None:
                 continue
             hit_table = max(1, min(15, bht))
-            hits = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
-            print(f"{ac.type} attacking {target_type} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hits {hits}")
+            hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+            die = roll_die()
+            hits += resolve_die_roll(hit_table_result, die)
+            print(f"{ac.type} attacking {target_type} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
         return hits
 
     # --- Interceptor to Escort Combat ---
@@ -490,6 +532,60 @@ def resolve_air_to_air_combat(
     
     
     return result
+
+def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None):
+    """
+    Resolves anti-aircraft fire against bombers attacking ships.
+    Args:
+        bombers: list of Aircraft objects attacking (after air-to-air combat)
+        taskforce: list of Ship objects being attacked
+        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+    return
+        results: dict with results of AA fire, including hits and losses
+    """
+    results = {}
+    ship:Ship
+    aa_factor = 0
+    hits = 0
+    for ship in taskforce.ships:
+        aa_factor += ship.anti_air_factor
+        
+    def get_aa_bht_modifier(bht, clouds=False, night=False):
+        # Apply AA modifiers to BHT
+        if clouds:
+            bht -= 1
+        if night:
+            bht -= 2
+        return max(1, bht)
+    
+    bht = 4  # Default BHT for AA fire
+    if aa_modifiers:
+        bht = get_aa_bht_modifier(bht, **aa_modifiers)
+    
+    idx = get_attack_factor_index(aa_factor)
+    hit_table = max(1, min(15, bht))
+    hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+    die = roll_die()
+    hits += resolve_die_roll(hit_table_result, die)
+    print(f"AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+
+    # Remove bombers hit (evenly distributed among attacking bombers)
+    total_hits = hits
+    bombers_lost = 0
+    for ac in bombers:
+        if bombers_lost < total_hits:
+            lost = min(ac.count, total_hits - bombers_lost)
+            ac.count -= lost
+            bombers_lost += lost
+            print(f"Bomber {ac.type} lost {lost} Air Factors.")
+            results[ac.type] = results.get(ac.type, 0) + lost
+                
+    if bombers_lost > 0:
+        results["hits_on_bombers"] = results.get("total_bombers_lost", 0) + bombers_lost
+        print(f"Total bombers lost: {bombers_lost}")
+    return results
+
+
 
 # Example usage:
 if __name__ == "__main__":

@@ -125,7 +125,7 @@ def scenario_one_setup():
     hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
-    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2)
+    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2, 4)
     carrierLexington.air_operations_config = AirOperationsConfiguration(
         name="Lexington",
         description="Configuration for air operations on Lexington",
@@ -140,13 +140,18 @@ def scenario_one_setup():
     carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DAUNTLESS, count=12),AircraftOperationsStatus.READY)
     carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DEVASTATOR, count=4),AircraftOperationsStatus.READY)
 
-    taskForce.add_ship(carrierLexington)  # Add the carrier to the task force
-    taskForce.add_ship(Ship("Pensecola", "CA", "operational",5,2,2))
-    taskForce.add_ship(Ship("Minneapolis", "CA", "operational",4,2,2))
-    taskForce.add_ship(Ship("San Francisco", "CA", "operational",4,2,2))
-    taskForce.add_ship(Ship("Indianapolis", "CA", "operational",4,2,2))
+    # Add ships to the task force with damage values based on Avalon Hill's Flattop boardgame
+    # CA (Heavy Cruiser): damage_factor = 3
+    # CV (Carrier): damage_factor = 4
+    # DD (Destroyer): damage_factor = 1
+
+    taskForce.add_ship(carrierLexington)  # CV Lexington, damage_factor=4 (already set above)
+    taskForce.add_ship(Ship("Pensecola", "CA", "operational", 3, 2, 2,3))      # CA Pensecola, damage_factor=3
+    taskForce.add_ship(Ship("Minneapolis", "CA", "operational", 3, 2, 2,3))    # CA Minneapolis, damage_factor=3
+    taskForce.add_ship(Ship("San Francisco", "CA", "operational", 3, 2, 2,3))  # CA San Francisco, damage_factor=3
+    taskForce.add_ship(Ship("Indianapolis", "CA", "operational", 3, 2, 2, 3))   # CA Indianapolis, damage_factor=3
     for i in range(10):
-        taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2))
+        taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
     
     chartAllied.task_forces[1] = taskForce
     hexboard_model.add_piece(Piece(name="Allied Task Force 1", side="Allied", position=Hex(20, 15), gameModel=taskForce))  # Add a piece for Allied Task Force

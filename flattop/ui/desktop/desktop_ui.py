@@ -3,11 +3,11 @@ import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
+from flattop.operations_chart_models import Aircraft, Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
-from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft
+from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_anti_aircraft_combat
 
 import flattop.ui.desktop.desktop_config as config
 
@@ -552,7 +552,13 @@ class DesktopUI:
                 and p.position == piece.position
                 and p.side != piece.side
             ]
-            if enemy_airformations:
+            enemy_taskforces = [
+                p for p in self.board.pieces
+                if isinstance(p.game_model, TaskForce)
+                and p.position == piece.position
+                and p.side != piece.side
+            ]
+            if enemy_airformations or enemy_taskforces:
                 menu_options.append("Combat")
 
         if piece.can_move and not piece.has_moved:
@@ -644,12 +650,12 @@ class DesktopUI:
                     return
 
                 # For simplicity, assume two sides: Allied and Japanese
-                allied = [p.game_model for p in hex_airformations if p.side == "Allied"]
-                japanese = [p.game_model for p in hex_airformations if p.side == "Japanese"]
+                allied_aircraft = [p.game_model for p in hex_airformations if p.side == "Allied"]
+                japanese_aircraft = [p.game_model for p in hex_airformations if p.side == "Japanese"]
 
                 # Gather aircraft by role (interceptor, escort, bomber)
-                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied)
-                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese)
+                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied_aircraft)
+                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese_aircraft)
 
                 pre_combat_count_allied_interceptors = sum(ic.count for ic in allied_interceptors)
                 pre_combat_count_allied_bombers = sum(b.count for b in allied_bombers)
@@ -689,12 +695,12 @@ class DesktopUI:
                 # need to update the air operations chart for each side
                 # remove aircraft from air formations that have 0 or less count
                 # removed airformations that have no aircraft left
-                for af in allied:
+                for af in allied_aircraft:
                     af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
                     if not af.aircraft:
                         #self.board.pieces.remove(Piece(name=af.name, side="Allied", position=af.position, gameModel=af))
                         self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
-                for af in japanese:
+                for af in japanese_aircraft:
                     af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
                     if not af.aircraft:
                         #self.board.pieces.remove(Piece(name=af.name, side="Japanese", position=af.position, gameModel=af))
@@ -729,6 +735,49 @@ class DesktopUI:
 
                 popup_text = "\n".join(lines)
                 self.show_combat_results(popup_text, pos)
+
+                ### execute anti aircraft combat ###
+                # the taskforce being attacked by the air formations need to be selected.
+                # find the allied taskforces in the hex with the japanese airformation and enable user to select one
+                # find the japanese taskforces in the hex with the allied airformation and enable user to select one
+                # display a popup with the taskforces and allow user to select one
+
+                def perform_anti_aircraft_combat(bombers:list[Aircraft], task_force_pieces:list[Piece], pos:tuple[int, int]):
+                    combat_outcome = None
+                    if (allied_taskforce_pieces and bombers):
+                        if len(task_force_pieces) == 1:
+                            # If there is only one taskforce on each side, then just use those
+                            tf_p = allied_taskforce_pieces[0]
+                        else:
+                            # Show a popup to select the taskforces
+                            tf_p:Piece = self.render_piece_selection_popup(task_force_pieces, pos)
+                        
+                        if tf_p:
+                            # Now we have the taskforces, we can resolve anti aircraft combat
+                            tf_selected:TaskForce = tf_p.game_model
+                                    
+                        if tf_selected:
+                            combat_outcome = resolve_anti_aircraft_combat( bombers, tf_selected)
+                        
+                    return combat_outcome
+                    
+                    
+                allied_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
+                result_allied_anti_aircraft = perform_anti_aircraft_combat(japanese_bombers, allied_taskforce_pieces, pos)
+                if result_allied_anti_aircraft:
+                    # Show the combat results for Allied anti aircraft combat
+                    allied_text = f"Allied Anti Aircraft Combat Results:\n"
+                    allied_text += f" {result_allied_anti_aircraft['hits_on_bombers']}"
+                    self.show_combat_results(allied_text, pos)              
+
+                japanese_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
+                result_japanese_anti_aircraft = perform_anti_aircraft_combat(allied_bombers, japanese_taskforce_pieces, pos)
+                if result_japanese_anti_aircraft:   
+                    # Show the combat results for Japanese anti aircraft combat
+                    japanese_text = f"Japanese Anti Aircraft Combat Results:\n"
+                    japanese_text += f" {result_japanese_anti_aircraft['hits_on_bombers']}"
+                    self.show_combat_results(japanese_text, pos)
+                
                 return
 
             case "Details":

@@ -184,10 +184,10 @@ Text from rule book
         header = f"Task Force {self.number}: {self.name}\n"
         if not self.ships:
             return header + "(No ships assigned)"
-        table = "Name           Type   Status      Attack  Defense  Move\n"
+        table = "Name           Type   Status      Attack  AA      Move\n"
         table += "-" * 55 + "\n"
         for ship in self.ships:
-            table += f"{ship.name:<15} {ship.type:<6} {ship.status:<10} {ship.attack_factor:<7} {ship.defense_factor:<8} {ship.move_factor:<4}\n"
+            table += f"{ship.name:<15} {ship.type:<6} {ship.status:<10} {ship.attack_factor:<7} {ship.anti_air_factor:<8} {ship.move_factor:<4}\n"
         return header + table
 
 class Base:
@@ -642,17 +642,17 @@ class AircraftType(Enum):
 
 class Ship:
     
-    def __init__(self, name, type, status, attack_factor=0, defense_factor=0, move_factor=2):
+    def __init__(self, name, type, status, gunnery_factor=0, anti_air_factor=0, move_factor=2, damage_factor=1):
         self.name = name
         self.type = type
         self.status = status
-        self.attack_factor = attack_factor
-        self.defense_factor = defense_factor
+        self.attack_factor = gunnery_factor
+        self.anti_air_factor = anti_air_factor
         self.move_factor = move_factor  # Default move factor for ships
 
     def __repr__(self):
         return f"Ship(name={self.name}, type={self.type}, status={self.status}, " \
-               f"attack_factor={self.attack_factor}, defense_factor={self.defense_factor}, move_factor={self.move_factor})\n"
+               f"attack_factor={self.attack_factor}, aa_factor={self.anti_air_factor}, move_factor={self.move_factor})\n"
 
 
 class Carrier(Ship):
@@ -664,8 +664,8 @@ class Carrier(Ship):
         status (str): The status of the carrier (e.g., "operational", "damaged").
     """
     
-    def __init__(self, name, type, status, attack_factor=0, defense_factor=0, move_factor=2):
-        super().__init__(name, "CV", status, attack_factor, defense_factor, move_factor)
+    def __init__(self, name, type, status, attack_factor=0, anti_air_factor=0, move_factor=2, damage_factor=4):
+        super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor)
         #a carrier is in effect a ship with a base  
         self.base = Base(name=f"{name} Base")
 
