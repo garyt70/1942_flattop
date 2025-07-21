@@ -202,6 +202,9 @@ class Base:
         self.side = side  # "Allied" or "Japanese"
         self.used_ready_factor = 0
         self.used_launch_factor = 0
+        #TODO: consider refactor Base to become Runway and then Base and Carrier have a runway. A Base can then have damage and anti-aircraft
+        self.damage = 0
+        self.anti_aircraft_factor = 4 #making this the default.
 
 
     """

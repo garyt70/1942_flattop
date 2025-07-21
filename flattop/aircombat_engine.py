@@ -532,7 +532,7 @@ def resolve_air_to_air_combat(
     
     return result
 
-def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None):
+def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None):
     """
     Resolves anti-aircraft fire against bombers attacking ships.
     Args:
@@ -587,6 +587,58 @@ def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None
         print(f"Total bombers lost: {bombers_lost}")
     return result
 
+def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
+    """
+    Resolves anti-aircraft fire against bombers attacking ships.
+    Args:
+        bombers: list of Aircraft objects attacking (after air-to-air combat)
+        taskforce: list of Ship objects being attacked
+        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+    return
+        result: dict with results of AA fire, including hits and losses
+    """
+    result = {"anti_aircraft": AirCombatResult(),
+            "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+            }
+    ship:Ship
+    aa_factor = base.anti_aircraft_factor
+    hits = 0
+        
+    def get_aa_bht_modifier(bht, clouds=False, night=False):
+        # Apply AA modifiers to BHT
+        if clouds:
+            bht -= 1
+        if night:
+            bht -= 2
+        return max(1, bht)
+    
+    bht = 4  # Default BHT for AA fire
+    if aa_modifiers:
+        bht = get_aa_bht_modifier(bht, **aa_modifiers)
+    
+    idx = get_attack_factor_index(aa_factor)
+    hit_table = max(1, min(15, bht))
+    hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+    die = roll_die()
+    hits += resolve_die_roll(hit_table_result, die)
+    result["anti_aircraft"].add_hit(base.name, hits)
+    print(f"{base.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+
+    # Remove bombers hit (evenly distributed among attacking bombers)
+    total_hits = hits
+    bombers_lost = 0
+    for ac in bombers:
+        if bombers_lost < total_hits:
+            lost = min(ac.count, total_hits - bombers_lost)
+            ac.count -= lost
+            bombers_lost += lost
+            print(f"Bomber {ac.type} lost {lost} Air Factors.")
+            result["eliminated"]["bombers"].append((ac.type, lost)) 
+                
+    if bombers_lost > 0:
+        result["anti_aircraft"].summary=f"{base.name} anti-aircraft fire destoryed {bombers_lost} bombers"
+        print(f"Total bombers lost: {bombers_lost}")
+    return result
 
 """
 ## 18. AIR ATTACK COMBAT
@@ -691,21 +743,117 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         if ship.damage >= ship.damage_factor:
             ship.status = "Sunk"
             print(f"Ship {ship.name}, sunk.")
-            #if the ship is a carrier then need apply destroyed aircraft
-            # if sunk, all aircraft are lost, otherwise hits number of aircraft are destroyed
-            #TODO implement aircraft damage logic
+            break
+            
+        #if the ship is a carrier then need apply destroyed aircraft
+         # if sunk, all aircraft are lost, otherwise hits number of aircraft are destroyed
+        #TODO implement aircraft damage logic
 
-        results["bomber_hits_on_ship"].summary = f"{ship.name} ({ship.type} took {total_hits})"
+        
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
         if not (attack_type == "Level" and ac.height == "High"):
             ac.range_remaining -= 1
+        
+        #remove spent armament
+        ac.armament = None
     
     results["bomber_hits_on_ship"].summary = f"Ship {ship.name} took {total_hits} hits."
 
     return results
 
+def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = "Level", clouds=False, night=False ):
+    """
+    Resolves air attack combat, aircraft attacking base.
+    Args:
+        bombers: list of Aircraft objects attacking (after air-to-air combat)
+        ship: the ship being attacked
+        attack_type = "Level","Dive", "Torpedo"
+        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+    return
+        results: dict with results of AA fire, including hits and losses
+    """
+    
+    def get_a2b_bht(aircraft:Aircraft, attack_type="Level"):
+        # Returns the Basic Hit Table value for the aircraft, with modifiers 
+        attribute_str = ""
+        
+        attribute_str = f"{attack_type.lower()}_bombing_{aircraft.height.lower()}_base_{aircraft.armament.lower()}"
+        bht = getattr(aircraft.combat_data, attribute_str, 0)        
 
+        return bht
+
+    def apply_air_attack_bht_modifiers(bht, base:Base, clouds=False, night=False ):
+        if clouds:
+            bht -= 1
+        if night:
+            bht -= 2
+        return max(1, bht)
+
+    def determine_hits(ac:Aircraft, base:Base, attack_type = "Level", clouds=False, night=False):
+        hits = 0
+    
+        bht = get_a2b_bht(ac, attack_type)
+        bht = apply_air_attack_bht_modifiers(bht, base, clouds, night)
+        attack_factor = ac.count
+        idx = get_attack_factor_index(attack_factor)
+        if idx is not None:
+            hit_table = max(1, min(15, bht))
+            hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
+            die = roll_die()
+            hits = resolve_die_roll(hit_table_result, die)
+            print(f"{ac.type} attacking {base.name} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+            
+        return hits
+
+    #resolve attack on the ship
+    ac:Aircraft
+    results = {"bomber_hits_on_base": AirCombatResult(),
+               "eliminated": {"aircraft": []}
+                }
+    total_hits = 0
+    for ac in bombers:
+        if ac.armament is None:
+            #bombers need to be armed to perform an attack.
+            continue
+        if ac.count <=0:
+            # no aircraft go through. probably shot down in a2a or anit-air combat.
+            continue
+        hits = determine_hits(ac, base, attack_type, clouds, night )
+        base.damage += hits
+        total_hits += hits
+        print(f"Bomber {ac.type} hits {hits} against base {base.name}.")
+        results["bomber_hits_on_base"].add_hit(ac.type, hits)
+        #resolve impact on range of aircraft
+        #all attacks other than high level bombing expend range factors
+        if not (attack_type == "Level" and ac.height == "High"):
+            ac.range_remaining -= 1
+        ac.armament = None #armament has been used.
+    
+    if total_hits > 0:
+        #TODO implement aircraft damage logic
+        # ready, just_landed, readying
+        
+        if len(base.air_operations_tracker.ready) > 0:
+            ac_list = base.air_operations_tracker.ready 
+            hit_tracker = total_hits
+            ac:Aircraft
+            for ac in ac_list:
+                hits_to_apply = min(hit_tracker, ac.count)
+                ac.count -= hits_to_apply
+                hit_tracker -= hits_to_apply
+                results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
+                print(f"Eliminated {hits_to_apply} from {ac.type}")
+                if ac.count <= 0:
+                    base.air_operations_tracker.ready.remove(ac)
+                if hit_tracker <= 0:
+                    break
+
+
+                    
+    results["bomber_hits_on_base"].summary = f"Base {base.name} took {total_hits} hits."
+
+    return results
 
 
 # Example usage:
