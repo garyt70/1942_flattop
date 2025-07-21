@@ -540,9 +540,11 @@ def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None
         taskforce: list of Ship objects being attacked
         aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
     return
-        results: dict with results of AA fire, including hits and losses
+        result: dict with results of AA fire, including hits and losses
     """
-    results = {}
+    result = {"anti_aircraft": AirCombatResult(),
+            "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+            }
     ship:Ship
     aa_factor = 0
     hits = 0
@@ -566,7 +568,8 @@ def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None
     hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
     die = roll_die()
     hits += resolve_die_roll(hit_table_result, die)
-    print(f"AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+    result["anti_aircraft"].add_hit(taskforce.name, hits)
+    print(f"{taskforce.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
 
     # Remove bombers hit (evenly distributed among attacking bombers)
     total_hits = hits
@@ -577,12 +580,12 @@ def resolve_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None
             ac.count -= lost
             bombers_lost += lost
             print(f"Bomber {ac.type} lost {lost} Air Factors.")
-            results[ac.type] = results.get(ac.type, 0) + lost
+            result["eliminated"]["bombers"].append((ac.type, lost)) 
                 
     if bombers_lost > 0:
-        results["hits_on_bombers"] = results.get("total_bombers_lost", 0) + bombers_lost
+        result["anti_aircraft"].summary=f"{taskforce.name} anti-aircraft fire destoryed {bombers_lost} bombers"
         print(f"Total bombers lost: {bombers_lost}")
-    return results
+    return result
 
 
 """
@@ -669,7 +672,9 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
 
     #resolve attack on the ship
     ac:Aircraft
-    results = {"bomber_hits_on_ship": AirCombatResult() }
+    results = {"bomber_hits_on_ship": AirCombatResult(),
+               "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+                }
     total_hits = 0
     for ac in bombers:
         if ac.armament is None:
@@ -690,6 +695,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
             # if sunk, all aircraft are lost, otherwise hits number of aircraft are destroyed
             #TODO implement aircraft damage logic
 
+        results["bomber_hits_on_ship"].summary = f"{ship.name} ({ship.type} took {total_hits})"
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
         if not (attack_type == "Level" and ac.height == "High"):

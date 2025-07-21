@@ -83,11 +83,14 @@ def scenario_one_setup():
     )
     baseRahulJapanese = Base("Rabul",side="Japanese", air_operations_config=air_operations_config)  # Create a base for the Japanese side
     baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=10),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.VAL, count=8),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=8),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=12),AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.VAL, count=8)
+    ac.armament = "AP"
+    ac.height = "Low"
+    baseRahulJapanese.air_operations_tracker.set_operations_status(ac,AircraftOperationsStatus.READY)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READYING)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=8),AircraftOperationsStatus.READYING)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READYING)
+    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=12),AircraftOperationsStatus.READYING)
 
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
@@ -140,8 +143,12 @@ def scenario_one_setup():
         plane_handling_type="SP"
     )
     carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=8),AircraftOperationsStatus.READY)
-    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DAUNTLESS, count=12),AircraftOperationsStatus.READY)
-    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DEVASTATOR, count=4),AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.DAUNTLESS, count=12)
+    ac.armament = "GP"
+    carrierLexington.air_operations.set_operations_status(ac,AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.DEVASTATOR, count=4)
+    ac.armament = "GP"
+    carrierLexington.air_operations.set_operations_status(ac,AircraftOperationsStatus.READY)
 
     # Add ships to the task force with damage values based on Avalon Hill's Flattop boardgame
     # CA (Heavy Cruiser): damage_factor = 3
