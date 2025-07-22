@@ -54,8 +54,8 @@ class TaskForceScreen:
         y += 40
 
         # Table headers
-        headers = ["Name", "Type", "Attack", "AA", "Move", "Air Ops"]
-        col_widths = [140, 80, 60, 60, 60, 120]
+        headers = ["Name", "Type", "Attack", "AA", "Move", "Damage", "Air Ops"]
+        col_widths = [140, 80, 60, 60, 60, 60, 120]
         x_positions = [40]
         for w in col_widths[:-1]:
             x_positions.append(x_positions[-1] + w)
@@ -76,6 +76,7 @@ class TaskForceScreen:
             attack = ship.attack_factor
             defense = ship.anti_air_factor  # Changed from defense_factor to anti_air_factor
             move = ship.move_factor
+            damage = ship.damage
             air_ops = ""
             is_carrier = isinstance(ship, Carrier)
             
@@ -88,7 +89,7 @@ class TaskForceScreen:
                 # Use a font that supports Unicode for the carrier symbol
                 unicode_font = pygame.font.SysFont("Segoe UI Emoji", 24)  # Common font for emoji support
                 symbol = unicode_font.render(CARRIER_SYMBOL, True, WHITE)
-                rect = symbol.get_rect(topleft=(x_positions[5], y))
+                rect = symbol.get_rect(topleft=(x_positions[6], y))
                 surface.blit(symbol, rect.topleft)
                 self.carrier_buttons.append((rect, ship.base))
             y += 32

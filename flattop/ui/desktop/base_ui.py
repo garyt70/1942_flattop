@@ -241,8 +241,8 @@ class AircraftDisplay:
         #armament display
         surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
 
-        #display height
-        surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
+        #display height - this is done via a widget for AirFormations.
+        #surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
         
         y += 20
 
