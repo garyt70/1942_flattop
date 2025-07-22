@@ -204,7 +204,7 @@ The Shokaku has taken four hits. In addition, the Japanese player must eliminate
 
 
 import random
-from flattop.operations_chart_models import AirFormation, Aircraft, AircraftType, TaskForce, Base, Ship
+from flattop.operations_chart_models import  Aircraft, AircraftType, TaskForce, Base, Ship, Carrier
 
 # --- Combat Results Table Implementation ---
 # Each row is a Hit Table value (1-15), each column is an attack factor range.
@@ -673,6 +673,29 @@ The 6 Avengers are making a torpedo attack. The BHT is 6. The Allied player roll
 The Shokaku has taken four hits. In addition, the Japanese player must eliminate four Air Factors from those on the Shokaku. Air Attack Combat is now over.
 
 """
+
+def _resolve_base_aircraft_hits(base:Base, total_hits:int, results:dict):
+    """
+    Resolve hits on aircraft at the base.
+    Distribute hits evenly across all aircraft in the ready, just_landed, and readying states.
+    """
+    ac_list = base.air_operations_tracker.ready + base.air_operations_tracker.just_landed + base.air_operations_tracker.readying
+    if len(ac_list) > 0:
+        hit_tracker = total_hits
+        for ac in ac_list:
+            hits_to_apply = min(hit_tracker, ac.count)
+            ac.count -= hits_to_apply
+            hit_tracker -= hits_to_apply
+            print(f"Eliminated {hits_to_apply} from {ac.type}")
+            results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
+            if ac.count <= 0:
+                for lst in [base.air_operations_tracker.ready, base.air_operations_tracker.just_landed, base.air_operations_tracker.readying]:
+                    if ac in lst:
+                        lst.remove(ac)
+            if hit_tracker <= 0:
+                break
+    return results
+
 def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = "Level", clouds=False, night=False ):
     """
     Resolves air attack combat, aircraft attacking ships.
@@ -724,8 +747,8 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
 
     #resolve attack on the ship
     ac:Aircraft
-    results = {"bomber_hits_on_ship": AirCombatResult(),
-               "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+    results = {"bomber_hits": AirCombatResult(),
+               "eliminated": {"aircraft": []}
                 }
     total_hits = 0
     for ac in bombers:
@@ -739,16 +762,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         ship.damage += hits
         total_hits += hits
         print(f"Bomber {ac.type} hits {hits} against ship {ship.name}.")
-        results["bomber_hits_on_ship"].add_hit(ac.type, hits)
-        if ship.damage >= ship.damage_factor:
-            ship.status = "Sunk"
-            print(f"Ship {ship.name}, sunk.")
-            break
-            
-        #if the ship is a carrier then need apply destroyed aircraft
-         # if sunk, all aircraft are lost, otherwise hits number of aircraft are destroyed
-        #TODO implement aircraft damage logic
-
+        results["bomber_hits"].add_hit(ac.type, hits)
         
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
@@ -757,8 +771,26 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         
         #remove spent armament
         ac.armament = None
+
+        if ship.damage >= ship.damage_factor:
+            ship.status = "Sunk"
+            print(f"Ship {ship.name}, sunk.")
+            break
     
-    results["bomber_hits_on_ship"].summary = f"Ship {ship.name} took {total_hits} hits."
+    if isinstance(ship, Carrier):
+        #if ship is sunk, remove all aircraft at the ship.
+        if ship.status == "Sunk":
+            for ac in ship.air_operations_tracker.ready + ship.air_operations_tracker.just_landed + ship.air_operations_tracker.readying:
+                results["eliminated"]["aircraft"].append((ac.type, ac.count))
+                print(f"Removing {ac.count} {ac.type} from sunk ship {ship.name}.")
+                ac.count = 0
+            ship.air_operations_tracker.ready.clear()
+            ship.air_operations_tracker.just_landed.clear()
+            ship.air_operations_tracker.readying.clear()
+        else:
+            results = _resolve_base_aircraft_hits(ship.base, total_hits, results)
+
+    results["bomber_hits"].summary = f"Ship {ship.name} took {total_hits} hits."
 
     return results
 
@@ -808,7 +840,7 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
 
     #resolve attack on the ship
     ac:Aircraft
-    results = {"bomber_hits_on_base": AirCombatResult(),
+    results = {"bomber_hits": AirCombatResult(),
                "eliminated": {"aircraft": []}
                 }
     total_hits = 0
@@ -823,35 +855,17 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
         base.damage += hits
         total_hits += hits
         print(f"Bomber {ac.type} hits {hits} against base {base.name}.")
-        results["bomber_hits_on_base"].add_hit(ac.type, hits)
+        results["bomber_hits"].add_hit(ac.type, hits)
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
         if not (attack_type == "Level" and ac.height == "High"):
             ac.range_remaining -= 1
         ac.armament = None #armament has been used.
-    
-    if total_hits > 0:
-        #TODO implement aircraft damage logic
-        # ready, just_landed, readying
-        
-        if len(base.air_operations_tracker.ready) > 0:
-            ac_list = base.air_operations_tracker.ready 
-            hit_tracker = total_hits
-            ac:Aircraft
-            for ac in ac_list:
-                hits_to_apply = min(hit_tracker, ac.count)
-                ac.count -= hits_to_apply
-                hit_tracker -= hits_to_apply
-                results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
-                print(f"Eliminated {hits_to_apply} from {ac.type}")
-                if ac.count <= 0:
-                    base.air_operations_tracker.ready.remove(ac)
-                if hit_tracker <= 0:
-                    break
 
+    results = _resolve_base_aircraft_hits(base, total_hits, results)
 
                     
-    results["bomber_hits_on_base"].summary = f"Base {base.name} took {total_hits} hits."
+    results["bomber_hits"].summary = f"Base {base.name} took {total_hits} hits."
 
     return results
 

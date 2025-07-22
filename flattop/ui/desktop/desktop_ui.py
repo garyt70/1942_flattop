@@ -755,7 +755,7 @@ class DesktopUI:
                     
                     result = None
                     if ship_selected:
-                        result = resolve_air_to_ship_combat(allied_bombers,ship_selected)
+                        result = resolve_air_to_ship_combat(bombers,ship_selected)
                         if ship_selected.status == "Sunk":
                             taskforce[0].game_model.ships.remove(ship_selected)
                     return result
@@ -821,19 +821,19 @@ class DesktopUI:
                 ## air combat against ship
                 if result_allied_ship_air_attack:
                     lines.append("Allied Air Attack Results")
-                    lines.append(result_allied_ship_air_attack["bomber_hits_on_ship"].summary)
+                    lines.append(result_allied_ship_air_attack["bomber_hits"].summary)
 
                 if result_japanese_ship_air_attack:
                     lines.append("Japanese Air Attacke Results")
-                    lines.append(result_japanese_ship_air_attack["bomber_hits_on_ship"].summary)
+                    lines.append(result_japanese_ship_air_attack["bomber_hits"].summary)
 
                 if result_allied_base_air_attack:
                     lines.append("Allied Air Attack Results")
-                    lines.append(result_allied_base_air_attack["bomber_hits_on_base"].summary)
+                    lines.append(result_allied_base_air_attack["bomber_hits"].summary)
 
                 if result_japanese_base_air_attack:
                     lines.append("Japanese Air Attacke Results")
-                    lines.append(result_japanese_base_air_attack["bomber_hits_on_base"].summary)
+                    lines.append(result_japanese_base_air_attack["bomber_hits"].summary)
 
 
                 popup_text = "\n".join(lines)
