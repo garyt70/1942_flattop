@@ -294,6 +294,10 @@ class TurnManager:
         self.turn_number = 1
         self.current_phase_index = 0
 
+    def is_night(self):
+        #determine if the turn hour is night
+        return self.current_hour < 6 or self.current_hour >= 18
+
     def __repr__(self):
         return (f"TurnManager(day={self.current_day}, hour={self.current_hour}, "
                 f"turn={self.turn_number}, phase='{self.current_phase}')")

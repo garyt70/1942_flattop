@@ -233,25 +233,38 @@ class DesktopUI:
         pygame.display.flip()
     
     def _draw_turn_info(self):
-        # Draws the current day and hour in the bottom right corner
+        # Draws the current day, hour, and phase in the bottom right corner
         font = pygame.font.SysFont(None, 28)
         day = self.turn_manager.current_day
         hour = self.turn_manager.current_hour
+        phase = self.turn_manager.current_phase if hasattr(self.turn_manager, "current_phase") else ""
         text = f"Day: {day}  Hour: {hour:02d}:00"
+        phase_text = f"Phase: {phase}"
         text_surf = font.render(text, True, (255, 255, 255))
+        phase_surf = font.render(phase_text, True, (255, 255, 0))
         text_rect = text_surf.get_rect()
+        phase_rect = phase_surf.get_rect()
         win_width, win_height = self.screen.get_size()
         margin = 24
+        spacing = 6
+        # Stack phase above time
+        phase_rect.bottomright = (win_width - margin, win_height - margin - text_rect.height - spacing)
         text_rect.bottomright = (win_width - margin, win_height - margin)
-        # Draw a semi-transparent background for readability
-        bg_rect = pygame.Rect(
+        # Draw semi-transparent backgrounds for readability
+        bg_rect_phase = pygame.Rect(
+            phase_rect.left - 8, phase_rect.top - 4,
+            phase_rect.width + 16, phase_rect.height + 8
+        )
+        bg_rect_time = pygame.Rect(
             text_rect.left - 8, text_rect.top - 4,
             text_rect.width + 16, text_rect.height + 8
         )
-        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect)
+        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect_phase)
+        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect_time)
+        self.screen.blit(phase_surf, phase_rect)
         self.screen.blit(text_surf, text_rect)
-        # Save for click detection
-        self._turn_info_rect = text_rect.copy()
+        # Save for click detection (use the union of both rects)
+        self._turn_info_rect = text_rect.union(phase_rect)
 
     def render_popup(self, piece:Piece, pos):
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
@@ -561,36 +574,39 @@ class DesktopUI:
 
         # If the piece is an AirFormation and it is in the same hex as a Base then show a menu option to land the AirFormation
         if isinstance(piece.game_model, AirFormation):
-            base_in_hex = any(
-                isinstance(p.game_model, (Base, TaskForce)) and p.position == piece.position and p.side == piece.side
-                for p in self.board.pieces
-            )
-            if base_in_hex and not piece.has_moved:
-                menu_options.append("Land")
+            if self.turn_manager.current_phase == "Air Operations":
+                base_in_hex = any(
+                    isinstance(p.game_model, (Base, TaskForce)) and p.position == piece.position and p.side == piece.side
+                    for p in self.board.pieces
+                )
+                if base_in_hex and not piece.has_moved:
+                    menu_options.append("Land")
 
+        # If the piece is a Base, show options to launch or land AirFormations
             # Check for enemy AirFormation in the same hex for combat
-            enemy_airformations = [
-                p for p in self.board.pieces
-                if isinstance(p.game_model, AirFormation)
-                and p.position == piece.position
-                and p.side != piece.side
-            ]
-            enemy_taskforces = [
-                p for p in self.board.pieces
-                if isinstance(p.game_model, TaskForce)
-                and p.position == piece.position
-                and p.side != piece.side
-            ]
-            enemy_base = [
-                p for p in self.board.pieces
-                if isinstance(p.game_model, Base)
-                and p.position == piece.position
-                and p.side != piece.side
-            ]
-            if enemy_airformations or enemy_taskforces or enemy_base:
-                menu_options.append("Combat")
+            if self.turn_manager.current_phase == "Combat":
+                enemy_airformations = [
+                    p for p in self.board.pieces
+                    if isinstance(p.game_model, AirFormation)
+                    and p.position == piece.position
+                    and p.side != piece.side
+                ]
+                enemy_taskforces = [
+                    p for p in self.board.pieces
+                    if isinstance(p.game_model, TaskForce)
+                    and p.position == piece.position
+                    and p.side != piece.side
+                ]
+                enemy_base = [
+                    p for p in self.board.pieces
+                    if isinstance(p.game_model, Base)
+                    and p.position == piece.position
+                    and p.side != piece.side
+                ]
+                if enemy_airformations or enemy_taskforces or enemy_base:
+                    menu_options.append("Combat")
 
-        if piece.can_move and not piece.has_moved:
+        if piece.can_move and not piece.has_moved and "Movement" in self.turn_manager.current_phase:
             menu_options.append("Move")
 
         menu_options.extend(["Details", "Cancel"])
@@ -692,6 +708,9 @@ class DesktopUI:
                 ### Air 2 Air Combat ###
                 result_allied_a2a = None
                 result_japanese_a2a = None
+
+                in_clouds = self.weather_manager.is_cloud_hex(piece.position)
+                at_night = self.turn_manager.is_night()
                 if len(sides) == 2:
                    
                     # For simplicity, assume two sides: Allied and Japanese
@@ -708,8 +727,8 @@ class DesktopUI:
                         escorts=japanese_escorts,
                         bombers=japanese_bombers,
                         rf_expended=True,
-                        clouds=False,
-                        night=False
+                        clouds=in_clouds,
+                        night=at_night
                     )
 
                     if not allied_bombers and not japanese_bombers:
@@ -722,8 +741,8 @@ class DesktopUI:
                         escorts=allied_escorts,
                         bombers=allied_bombers,
                         rf_expended=True,
-                        clouds=False,
-                        night=False
+                        clouds=in_clouds,
+                        night=at_night
                     )
 
                     # need to update the air operations chart for each side
@@ -778,17 +797,14 @@ class DesktopUI:
                     
                 allied_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
                 result_allied_anti_aircraft = perform_taskforce_anti_aircraft_combat(japanese_bombers, allied_taskforce_pieces, pos)
-                
                 japanese_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
                 result_japanese_anti_aircraft = perform_taskforce_anti_aircraft_combat(allied_bombers, japanese_taskforce_pieces, pos)
                 
                 allied_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == "Allied" and p.position == piece.position]
                 japanese_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == "Japanese" and p.position == piece.position]
                 #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
-                
                 if allied_base_pieces:
                     result_allied_anti_aircraft = perform_base_anti_aircraft_combat(japanese_bombers,allied_base_pieces[0].game_model)
-
                 #assume there is only ever one base
                 if japanese_base_pieces:
                     result_japanese_anti_aircraft = perform_base_anti_aircraft_combat(allied_bombers,japanese_base_pieces[0].game_model)
@@ -798,18 +814,20 @@ class DesktopUI:
                 def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
                     # this involves choosing which ship is attacked by which aircraft
                      #TODO implement logic to select ship to attack by which aircraft
+                     #TODO implement logic to select attack type (e.g. level, torpedo, dive bomber, etc.)
 
                      #TODO: simple combat for now, change this later
                     ship_selected:Ship = None
                     try:
                         #this is where selection needs to take place
                         ship_selected = taskforce[0].game_model.ships[0]
+                        attack_type_selected = "level"  # default attack type, can be changed later
                     except:
                         pass
                     
                     result = None
                     if ship_selected:
-                        result = resolve_air_to_ship_combat(bombers,ship_selected)
+                        result = resolve_air_to_ship_combat(bombers,ship_selected, attack_type=attack_type_selected, clouds=in_clouds, night=at_night)
                         if ship_selected.status == "Sunk":
                             taskforce[0].game_model.ships.remove(ship_selected)
                     return result
@@ -820,12 +838,12 @@ class DesktopUI:
 
                 result_allied_base_air_attack = None
                 if japanese_base_pieces:
-                    result_allied_base_air_attack = resolve_air_to_base_combat(allied_bombers, japanese_base_pieces[0].game_model)
+                    result_allied_base_air_attack = resolve_air_to_base_combat(allied_bombers, japanese_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
                 result_japanese_base_air_attack = None
                 if allied_base_pieces:
-                    result_japanese_base_air_attack = resolve_air_to_base_combat(japanese_bombers, allied_base_pieces[0].game_model)
-                
+                    result_japanese_base_air_attack = resolve_air_to_base_combat(japanese_bombers, allied_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+
                 # Optionally, show a popup with results
 
                 ## air-to-air summary
