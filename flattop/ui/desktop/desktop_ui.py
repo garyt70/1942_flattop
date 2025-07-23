@@ -513,11 +513,8 @@ class DesktopUI:
             if isinstance(moving_piece.game_model, AirFormation):
                 dest_hex_obj = self.board.get_hex(dest_hex.q, dest_hex.r)
                 # Check if any piece in the destination hex is a storm CloudMarker
-                for piece in self.board.pieces:
-                    if piece.position.q == dest_hex.q and piece.position.r == dest_hex.r:
-                        if isinstance(piece, CloudMarker) and piece.is_storm:
-                            # Do not allow move into storm
-                            return
+                if self.weather_manager.is_storm_hex(dest_hex_obj):
+                    return
 
             if distance <= max_move:
                 self.board.move_piece(moving_piece, dest_hex)
@@ -1104,15 +1101,40 @@ class DesktopUI:
                     mx, my = event.pos
                     # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
                     if next_phase_rect.collidepoint(mx, my):
-                        if phase_idx == len(phase_list) - 1:
-                            # Last phase: advance turn
-                            self.turn_manager.next_turn()
-                            self.board.reset_pieces_for_new_turn()
-                        else:
-                            # Advance to next phase
-                            self.turn_manager.next_phase()
-                            #TODO  - handle processing of a new phase
-                            # self.board.reset_pieces_for_new_phase()
+                       
+                        # Advance to next phase
+                        self.turn_manager.next_phase()
+                        #TODO  - handle processing of a new phase
+                        # 
+                        
+                        match self.turn_manager.current_phase_index:
+                            case 0:
+                                print("Weather Phase")
+                                self.weather_manager.wind_phase(self.turn_manager)
+                                self.weather_manager.cloud_phase(self.turn_manager)
+                            case 1:
+                                print("Air Operations Phase")
+                                
+                            case 2:
+                                print("Task Force Movement Plotting Phase")
+                            case 3:
+                                print("Shadowing Phase")
+                            case 4:
+                                print("Task Force Movement Execution Phase")
+                            case 5:
+                                print("Initiative Phase")
+                            case 6:
+                                print("Plane Movement Phase")
+                            case 7:
+                                print("Combat Phase")
+                            case 8:
+                                print("Repair Phase")
+                            case 9:
+                                print("Time Record Phase")
+                                self.board.reset_pieces_for_new_turn()
+
+
+
                         return
                     # Check if click is on a piece line
                     for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):

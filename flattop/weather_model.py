@@ -39,10 +39,6 @@ class CloudMarker(Piece):
         if board.is_valid_tile(new_hex):
             self.position = new_hex
 
-    def covered_hexes(self):
-        # Returns all hexes this cloud covers (itself and neighbors)
-        return set([self.position] + list(self.position.neighbors()))
-
     def __repr__(self):
         return f"CloudMarker(hex={self.position}, sector={self.sector}, type={self.cloud_type}, is_storm={self.is_storm})"
 
@@ -134,7 +130,7 @@ class WeatherManager:
             for cloud in self.cloud_markers:
                 wind = self.wind_directions[cloud.sector-1]
                 cloud.move(wind.direction, self.board)
-        self.update_storms()
+            self.update_storms()
 
     def update_storms(self):
         # Count how many cloud markers are in each hex (cloud.position)
@@ -169,17 +165,14 @@ class WeatherManager:
 
     def is_storm_hex(self, hex_obj):
         # Returns True if the hex is covered by 2+ clouds
-        from collections import Counter
-        hex_counts = Counter()
         for cloud in self.cloud_markers:
-            for h in cloud.covered_hexes():
-                hex_counts[h] += 1
-        return hex_counts[hex_obj] > 1
+            if cloud.is_storm and hex_obj == cloud.position:
+                return True
 
     def is_cloud_hex(self, hex_obj):
         # Returns True if the hex is covered by any cloud
         for cloud in self.cloud_markers:
-            if hex_obj in cloud.covered_hexes():
+            if hex_obj == cloud.position:
                 return True
         return False
 
