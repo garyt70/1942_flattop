@@ -1,5 +1,6 @@
 import pygame
 import flattop.ui.desktop.desktop_config as config
+import math
 
 
 # Import color and size constants from config
@@ -116,5 +117,56 @@ class PieceImageFactory:
             text = font.render(str(len(pieces)), True, (255, 255, 255))
             text_rect = text.get_rect(center=(surf.get_width() // 1.5, surf.get_height() // 1.5))
             surf.blit(text, text_rect)
+        return surf
+
+    @staticmethod
+    def cloud_image(size=HEX_SIZE):
+        """
+        Draws a semi-transparent blue/white circle for a cloud marker.
+        """
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        radius = size // 2
+        pygame.draw.circle(surf, (200, 200, 255, 120), center, radius)
+        # Optional: add a "C" label
+        font = pygame.font.SysFont(None, 18)
+        label = font.render("C", True, (80, 80, 255))
+        surf.blit(label, (center[0] - 8, center[1] - 8))
+        return surf
+
+    @staticmethod
+    def storm_image(size=HEX_SIZE):
+        """
+        Draws a semi-transparent dark gray/blue circle for a storm marker.
+        """
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        radius = size // 2
+        pygame.draw.circle(surf, (80, 80, 160, 160), center, radius)
+        # Optional: add an "S" label
+        font = pygame.font.SysFont(None, 18, bold=True)
+        label = font.render("S", True, (255, 255, 0))
+        surf.blit(label, (center[0] - 8, center[1] - 8))
+        return surf
+
+    @staticmethod
+    def wind_direction_image(direction, sector, size=HEX_SIZE):
+        """
+        Draws a wind direction arrow and sector label.
+        direction: 1-6 (hex direction)
+        sector: 1-8
+        """
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        center = (size // 2, size // 2)
+        arrow_length = size // 2
+        angle = (direction - 1) * 60  # 0 is east, 1 is NE, etc.
+        radians = math.radians(angle)
+        end_x = center[0] + arrow_length * math.cos(radians)
+        end_y = center[1] + arrow_length * math.sin(radians)
+        pygame.draw.line(surf, (255, 255, 0), center, (end_x, end_y), 3)
+        # Draw sector number
+        font = pygame.font.SysFont(None, 18)
+        label = font.render(f"W{sector}", True, (255, 255, 0))
+        surf.blit(label, (center[0] - 12, center[1] - 12))
         return surf
 

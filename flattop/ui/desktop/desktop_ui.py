@@ -11,6 +11,7 @@ from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
 
 import flattop.ui.desktop.desktop_config as config
+from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
 
 # Import color and size constants from config
@@ -57,8 +58,8 @@ class DesktopUI:
         run():
             Starts the UI event loop.
     """
-    
-    def __init__(self, board=HexBoardModel(10, 10), turn_manager=None):
+
+    def __init__(self, board=HexBoardModel(10, 10), turn_manager=None, weather_manager=None):
         self.board = board
         self.screen = None
         self.origin = (HEX_WIDTH // 2 + HEX_SPACING, HEX_HEIGHT // 2 + HEX_SPACING)
@@ -72,6 +73,13 @@ class DesktopUI:
             self.turn_manager = TurnManager()
         else:
             self.turn_manager = turn_manager
+
+        if weather_manager is None:
+            self.weather_manager = WeatherManager(self.board) 
+        else:
+            self.weather_manager = weather_manager
+
+        self.board.pieces.extend(self.weather_manager.get_cloud_pieces())
 
     def initialize(self):
         pygame.init()
@@ -155,8 +163,7 @@ class DesktopUI:
                     color = HEX_COLOR
                 center = self.hex_to_pixel(q, r)
                 self.draw_hex(center, color, HEX_BORDER)
-
-        # Draw the pieces on the board
+       
         hex_piece_map = {}
         for piece in self.board.pieces:
             pos = (piece.position.q, piece.position.r)
@@ -164,19 +171,51 @@ class DesktopUI:
                 hex_piece_map[pos] = []
             hex_piece_map[pos].append(piece)
 
+        #draw the weather pieces
         for (q, r), pieces in hex_piece_map.items():
             center = self.hex_to_pixel(q, r)
+            for piece in pieces:
+                if isinstance(piece, CloudMarker):
+                    if piece.is_storm:
+                        image = PieceImageFactory.storm_image()
+                    else:
+                        image = PieceImageFactory.cloud_image()
+                    rect = image.get_rect(center=center)
+                    self.screen.blit(image, rect)   
+                elif isinstance(piece.game_model, WindDirection):
+                    image = PieceImageFactory.wind_direction_image(piece.game_model.direction, piece.game_model.sector)
+                    rect = image.get_rect(center=center)
+                    self.screen.blit(image, rect)
+
+        #draw the game pieces
+        # Iterate through hex_piece_map to draw pieces
+        for (q, r), pieces in hex_piece_map.items():
+            center = self.hex_to_pixel(q, r)
+            #skip weather and wind direction pieces
+            isWeather = False
+            for wpiece in pieces:
+                if isinstance(wpiece, (CloudMarker, WindDirection)):
+                    isWeather = True
+                    
+            if isWeather:
+                continue
+
             if len(pieces) == 1:
                 piece = pieces[0]
                 color = COLOR_JAPANESE_PIECE if piece.side == "Japanese" else COLOR_ALLIED_PIECE
-                if piece.game_model.__class__.__name__ == "AirFormation":
+                if isinstance(piece.game_model, Ship):
+                    image = PieceImageFactory.ship_image(color)
+                elif isinstance(piece.game_model, Aircraft):
+                    image = PieceImageFactory.aircraft_image(color)
+                elif isinstance(piece.game_model, Carrier):
+                    image = PieceImageFactory.carrier_image(color)
+                elif isinstance(piece.game_model, AirFormation):
                     image = PieceImageFactory.airformation_image(color)
-                elif piece.game_model.__class__.__name__ == "Base":
+                elif isinstance(piece.game_model, Base):
                     image = PieceImageFactory.base_image(color)
-                elif piece.game_model.__class__.__name__ == "TaskForce":
+                elif isinstance(piece.game_model, TaskForce):
                     image = PieceImageFactory.taskforce_image(color)
-                else:
-                    image = PieceImageFactory.airformation_image(color)
+                
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
             else:

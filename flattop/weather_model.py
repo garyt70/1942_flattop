@@ -1,10 +1,10 @@
 import random
-from flattop.hex_board_game_model import Hex, TurnManager  # Import Hex for use in weather model
+from flattop.hex_board_game_model import Hex, Piece
 
 class WindDirection:
-    def __init__(self, sector, direction=1):
+    def __init__(self, sector, direction=None):
         self.sector = sector  # 1-8
-        self.direction = direction  # 1-6 (hex direction, see Flat Top rules)
+        self.direction = direction if direction is not None else random.randint(1, 6) # 1-6 (hex direction, see Flat Top rules)
 
     def change_direction(self, new_direction):
         self.direction = new_direction
@@ -12,11 +12,17 @@ class WindDirection:
     def __repr__(self):
         return f"WindDirection(sector={self.sector}, direction={self.direction})"
 
-class CloudMarker:
-    def __init__(self, hex_pos, sector, cloud_type="scattered"):
-        self.hex_pos = hex_pos  # Hex object
+class CloudMarker(Piece):
+    """
+    A cloud marker is a Piece on the board, with a sector and cloud type.
+    It can determine if it is a storm based on overlapping with other clouds.
+    """
+    def __init__(self, sector, hex_pos, cloud_type="scattered", primary=False):
+        # Name for display, side is always "Weather"
+        super().__init__(name="Cloud", side="Weather", position=hex_pos, gameModel=None)
         self.sector = sector    # 1-8
         self.cloud_type = cloud_type  # "scattered" or "front"
+        self.is_storm = False   # Will be set by WeatherManager
 
     def move(self, direction, board):
         # Move one hex in the given direction (1-6)
@@ -29,12 +35,16 @@ class CloudMarker:
             6: Hex(0, 1),    # SE
         }
         vec = direction_vectors.get(direction, Hex(1, 0))
-        new_hex = Hex(self.hex_pos.q + vec.q, self.hex_pos.r + vec.r)
+        new_hex = Hex(self.position.q + vec.q, self.position.r + vec.r)
         if board.is_valid_tile(new_hex):
-            self.hex_pos = new_hex
+            self.position = new_hex
+
+    def covered_hexes(self):
+        # Returns all hexes this cloud covers (itself and neighbors)
+        return set([self.position] + list(self.position.neighbors()))
 
     def __repr__(self):
-        return f"CloudMarker(hex={self.hex_pos}, sector={self.sector}, type={self.cloud_type})"
+        return f"CloudMarker(hex={self.position}, sector={self.sector}, type={self.cloud_type}, is_storm={self.is_storm})"
 
 class WeatherManager:
     def __init__(self, board, scenario_cloud_type="scattered"):
@@ -49,22 +59,42 @@ class WeatherManager:
             for sector in range(1, 9):
                 center_hex = self.get_directional_hex(sector)
                 for _ in range(4):
-                    cloud = CloudMarker(center_hex, sector, "scattered")
+                    cloud = CloudMarker(sector, center_hex, "scattered", primary=True)
                     die = random.randint(1, 6)
                     for _ in range(die):
                         cloud.move(die, self.board)
                     self.cloud_markers.append(cloud)
+                    #from this cloud marker create cloud coverage up to two hexes from the cloud marker
+                    # Create cloud markers one hex out in all 6 directions
+                    for direction in range(1, 7):
+                        one_hex_out = self.move_hex(cloud.position, direction, 1)
+                        self.cloud_markers.append(CloudMarker(sector, one_hex_out, "scattered"))
+                    # Create cloud markers two hexes out in all 6 directions
+                    for direction in range(1, 7):
+                        two_hex_out = self.move_hex(cloud.position, direction, 2)
+                        self.cloud_markers.append(CloudMarker(sector, two_hex_out, "scattered"))
+                    
         elif self.scenario_cloud_type == "front":
             for sector in range(1, 9):
                 center_hex = self.get_directional_hex(sector)
-                cloud_center = CloudMarker(center_hex, sector, "front")
-                cloud_ne = CloudMarker(self.move_hex(center_hex, 2, 5), sector, "front")
-                cloud_sw = CloudMarker(self.move_hex(center_hex, 5, 5), sector, "front")
+                cloud_center = CloudMarker(sector, center_hex, "front", primary=True)
+                cloud_ne = CloudMarker(sector, self.move_hex(center_hex, 2, 5), "front", primary=True)
+                cloud_sw = CloudMarker(sector, self.move_hex(center_hex, 5, 5), "front", primary=True)
                 self.cloud_markers.extend([cloud_center, cloud_ne, cloud_sw])
                 die = random.randint(1, 6)
                 for cloud in [cloud_center, cloud_ne, cloud_sw]:
                     for _ in range(die):
                         cloud.move(die, self.board)
+                        #from this cloud marker create cloud coverage up to two hexes from the cloud marker
+                        # Create cloud markers one hex out in all 6 directions
+                        for direction in range(1, 7):
+                            one_hex_out = self.move_hex(cloud.position, direction, 1)
+                            self.cloud_markers.append(CloudMarker(sector, one_hex_out, "scattered"))
+                        # Create cloud markers two hexes out in all 6 directions
+                        for direction in range(1, 7):
+                            two_hex_out = self.move_hex(cloud.position, direction, 2)
+                            self.cloud_markers.append(CloudMarker(sector, two_hex_out, "scattered"))
+        self.update_storms()
 
     def get_directional_hex(self, sector):
         # These should match your board's directional hexes
@@ -77,12 +107,20 @@ class WeatherManager:
     def move_hex(self, hex_obj, direction, distance):
         temp = Hex(hex_obj.q, hex_obj.r)
         for _ in range(distance):
-            cloud = CloudMarker(temp, 0)
-            cloud.move(direction, self.board)
-            temp = cloud.hex_pos
+            temp = Hex(temp.q, temp.r)
+            direction_vectors = {
+                1: Hex(1, 0),    # E
+                2: Hex(1, -1),   # NE
+                3: Hex(0, -1),   # NW
+                4: Hex(-1, 0),   # W
+                5: Hex(-1, 1),   # SW
+                6: Hex(0, 1),    # SE
+            }
+            vec = direction_vectors.get(direction, Hex(1, 0))
+            temp = Hex(temp.q + vec.q, temp.r + vec.r)
         return temp
 
-    def wind_phase(self, turn_manager: TurnManager):
+    def wind_phase(self, turn_manager):
         if turn_manager.current_hour in [6, 12, 18, 0]:
             for wind in self.wind_directions:
                 die = random.randint(1, 6)
@@ -91,53 +129,57 @@ class WeatherManager:
                 elif die == 6:
                     wind.direction = (wind.direction - 2) % 6 + 1
 
-    def cloud_phase(self, turn_manager: TurnManager):
+    def cloud_phase(self, turn_manager):
         if turn_manager.current_hour % 2 == 0:
             for cloud in self.cloud_markers:
                 wind = self.wind_directions[cloud.sector-1]
                 cloud.move(wind.direction, self.board)
+        self.update_storms()
 
-    def get_cloud_hexes(self):
-        cloud_hexes = set()
-        for cloud in self.cloud_markers:
-            cloud_hexes.add(cloud.hex_pos)
-            for neighbor in cloud.hex_pos.neighbors():
-                cloud_hexes.add(neighbor)
-                for n2 in neighbor.neighbors():
-                    cloud_hexes.add(n2)
-        return cloud_hexes
-
-    def get_storm_hexes(self):
+    def update_storms(self):
+        # Count how many cloud markers are in each hex (cloud.position)
         from collections import Counter
         hex_counts = Counter()
         for cloud in self.cloud_markers:
-            hexes = [cloud.hex_pos] + list(cloud.hex_pos.neighbors())
-            for h in hexes:
-                hex_counts[h] += 1
-        return {h for h, count in hex_counts.items() if count > 1}
+            hex_counts[cloud.position] += 1
+        # Optionally, you can store or return hex_counts if needed
+        # For now, just update is_storm based on cloud marker count in its hex
+        for cloud in self.cloud_markers:
+            cloud.is_storm = hex_counts[cloud.position] > 1
 
-    def is_storm_hex(self, hex_obj):
-        return hex_obj in self.get_storm_hexes()
+    def get_cloud_pieces(self):
+        # Return all cloud markers as Piece objects (for display)
+        return self.cloud_markers
 
-    def is_cloud_hex(self, hex_obj):
-        return hex_obj in self.get_cloud_hexes()
+    def get_wind_pieces(self):
+        # Return wind markers as dicts for display
+        pieces = []
+        for wind in self.wind_directions:
+            piece = Piece("Wind", "Weather", position=self.get_directional_hex(wind.sector), gameModel=wind)
+            pieces.append(piece)
+        return pieces
+           
 
     def as_pieces(self):
-        # Return weather as a list of "pieces" for display on the board
+        # Return all weather as pieces for display (clouds as Piece, wind as dict)
         pieces = []
-        for cloud in self.cloud_markers:
-            pieces.append({
-                "type": "cloud",
-                "hex": cloud.hex_pos,
-                "sector": cloud.sector,
-                "cloud_type": cloud.cloud_type
-            })
-        for wind in self.wind_directions:
-            pieces.append({
-                "type": "wind",
-                "sector": wind.sector,
-                "direction": wind.direction,
-                "hex": self.get_directional_hex(wind.sector)
-            })
+        pieces.extend(self.get_cloud_pieces())
+        pieces.extend(self.get_wind_pieces())
         return pieces
+
+    def is_storm_hex(self, hex_obj):
+        # Returns True if the hex is covered by 2+ clouds
+        from collections import Counter
+        hex_counts = Counter()
+        for cloud in self.cloud_markers:
+            for h in cloud.covered_hexes():
+                hex_counts[h] += 1
+        return hex_counts[hex_obj] > 1
+
+    def is_cloud_hex(self, hex_obj):
+        # Returns True if the hex is covered by any cloud
+        for cloud in self.cloud_markers:
+            if hex_obj in cloud.covered_hexes():
+                return True
+        return False
 
