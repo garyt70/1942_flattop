@@ -797,10 +797,10 @@ class DesktopUI:
 
                 def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], task_force_pieces:list[Piece], pos:tuple[int, int]):
                     combat_outcome = None
-                    if (allied_taskforce_pieces and bombers):
+                    if (task_force_pieces and bombers):
                         if len(task_force_pieces) == 1:
                             # If there is only one taskforce on each side, then just use those
-                            tf_p = allied_taskforce_pieces[0]
+                            tf_p = task_force_pieces[0]
                         else:
                             # Show a popup to select the taskforces
                             tf_p:Piece = self.render_piece_selection_popup(task_force_pieces, pos)

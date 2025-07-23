@@ -282,6 +282,7 @@ class TurnManager:
             self.current_hour = 0
             self.current_day += 1
         self.current_phase_index = 0
+        self.side_with_initiative = None  # Reset initiative at the start of a new turn
         self._decide_initiative("Allied", "Japanese")  # Reset initiative for new turn
 
     def _decide_initiative(self, player1, player2):

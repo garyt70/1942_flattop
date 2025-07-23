@@ -67,14 +67,13 @@ class AircraftOperationChartCommandWidget:
 
         change_value = 0
 
-        if self.from_aircraft.count > 0:
-            # Find or create to_aircraft
-            if self.to_aircraft is None:
+        if self.to_aircraft is None:
                 self.to_aircraft = self.from_aircraft.copy()
                 self.to_aircraft.count = 0
 
-            # Update counts
-            self.from_aircraft.count -= 1
+        if self.to_aircraft.count < self.from_aircraft.count:
+            # Update counts.  Don't want to update from_count until action to create airformation performed
+            #self.from_aircraft.count -= 1
             self.to_aircraft.count += 1
             change_value = 1
         
@@ -482,6 +481,8 @@ class BaseUIDisplay:
             for btn in self.ready_btn_list:
                 if btn.to_aircraft:
                     airformation.add_aircraft(btn.to_aircraft)
+                     #reduce the count of the from_aircraft by to_aircraft.count
+                    btn.from_aircraft.count -= btn.to_aircraft.count
                 if btn.from_aircraft.count <= 0:
                     self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
 
@@ -503,6 +504,9 @@ class BaseUIDisplay:
                 if btn.to_aircraft:
                     #move the aircraft from just landed to readying
                     self.base.air_operations_tracker.readying.append(btn.to_aircraft)
+                    #reduce the count of the from_aircraft by to_aircraft.count
+                    btn.from_aircraft.count -= btn.to_aircraft.count
+                    #if the from_aircraft count is zero then remove it from just landed
                     if btn.from_aircraft.count <=0:
                         self.base.air_operations_tracker.just_landed.remove(btn.from_aircraft)
                     btn.to_aircraft = None
@@ -512,6 +516,8 @@ class BaseUIDisplay:
                 if btn.to_aircraft:
                     #move the aircraft from readying to ready
                     self.base.air_operations_tracker.ready.append(btn.to_aircraft)
+                    #reduce the count of the from_aircraft by to_aircraft.count
+                    btn.from_aircraft.count -= btn.to_aircraft.count
                     if btn.from_aircraft.count <=0:
                         self.base.air_operations_tracker.readying.remove(btn.from_aircraft)
                     btn.to_aircraft = None

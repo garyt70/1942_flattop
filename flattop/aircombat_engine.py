@@ -711,8 +711,12 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
     def get_a2s_bht(aircraft:Aircraft, attack_type="Level"):
         # Returns the Basic Hit Table value for the aircraft, with modifiers 
         attribute_str = ""
-        
-        attribute_str = f"{attack_type.lower()}_bombing_{aircraft.height.lower()}_ship_{aircraft.armament.lower()}"
+        if aircraft.armament == "Torpedo":
+            attribute_str = f"torpedo_bombing_ship"
+        elif attack_type == "Dive":
+            attribute_str = f"dive_bombing_ship_{aircraft.armament.lower()}"
+        else:
+            attribute_str = f"level_bombing_{aircraft.height.lower()}_ship_{aircraft.armament.lower()}"
         bht = getattr(aircraft.combat_data, attribute_str, 0)        
 
         return bht
@@ -779,14 +783,15 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
     
     if isinstance(ship, Carrier):
         #if ship is sunk, remove all aircraft at the ship.
-        if ship.status == "Sunk":
-            for ac in ship.air_operations_tracker.ready + ship.air_operations_tracker.just_landed + ship.air_operations_tracker.readying:
+        carrier:Carrier = ship
+        if carrier.status == "Sunk":
+            for ac in carrier.air_operations.ready + carrier.air_operations.just_landed + carrier.air_operations.readying:
                 results["eliminated"]["aircraft"].append((ac.type, ac.count))
-                print(f"Removing {ac.count} {ac.type} from sunk ship {ship.name}.")
+                print(f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}.")
                 ac.count = 0
-            ship.air_operations_tracker.ready.clear()
-            ship.air_operations_tracker.just_landed.clear()
-            ship.air_operations_tracker.readying.clear()
+            carrier.air_operations.ready.clear()
+            carrier.air_operations.just_landed.clear()
+            carrier.air_operations.readying.clear()
         else:
             results = _resolve_base_aircraft_hits(ship.base, total_hits, results)
 
@@ -809,8 +814,10 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
     def get_a2b_bht(aircraft:Aircraft, attack_type="Level"):
         # Returns the Basic Hit Table value for the aircraft, with modifiers 
         attribute_str = ""
-        
-        attribute_str = f"{attack_type.lower()}_bombing_{aircraft.height.lower()}_base_{aircraft.armament.lower()}"
+        if attack_type == "Dive":
+            attribute_str = f"dive_bombing_base_{aircraft.armament.lower()}"
+        else:
+            attribute_str = f"{attack_type.lower()}_bombing_{aircraft.height.lower()}_base_{aircraft.armament.lower()}"
         bht = getattr(aircraft.combat_data, attribute_str, 0)        
 
         return bht

@@ -80,7 +80,7 @@ class TaskForceScreen:
             air_ops = ""
             is_carrier = isinstance(ship, Carrier)
             
-            row = [name, ship_type, str(attack), str(defense), str(move), air_ops]
+            row = [name, ship_type, str(attack), str(defense), str(move), str(damage), air_ops]
             for i, value in enumerate(row):
                 txt = SMALL_FONT.render(value, True, WHITE)
                 surface.blit(txt, (x_positions[i], y))
