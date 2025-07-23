@@ -233,24 +233,44 @@ class DesktopUI:
         pygame.display.flip()
     
     def _draw_turn_info(self):
-        # Draws the current day, hour, and phase in the bottom right corner
+        # Draws the current day, hour, phase, and initiative in the bottom right corner
         font = pygame.font.SysFont(None, 28)
         day = self.turn_manager.current_day
         hour = self.turn_manager.current_hour
         phase = self.turn_manager.current_phase if hasattr(self.turn_manager, "current_phase") else ""
+        initiative = getattr(self.turn_manager, "side_with_initiative", None)
+        initiative_text = f"Initiative: {initiative}" if initiative else ""
         text = f"Day: {day}  Hour: {hour:02d}:00"
         phase_text = f"Phase: {phase}"
+
         text_surf = font.render(text, True, (255, 255, 255))
         phase_surf = font.render(phase_text, True, (255, 255, 0))
+        initiative_surf = font.render(initiative_text, True, (0, 255, 255)) if initiative_text else None
+
         text_rect = text_surf.get_rect()
         phase_rect = phase_surf.get_rect()
+        initiative_rect = initiative_surf.get_rect() if initiative_surf else None
+
         win_width, win_height = self.screen.get_size()
         margin = 24
         spacing = 6
-        # Stack phase above time
-        phase_rect.bottomright = (win_width - margin, win_height - margin - text_rect.height - spacing)
+
+        # Stack initiative above phase, phase above time
+        if initiative_surf:
+            initiative_rect.bottomright = (win_width - margin, win_height - margin - text_rect.height - spacing - phase_rect.height - spacing)
+            phase_rect.bottomright = (win_width - margin, win_height - margin - text_rect.height - spacing)
+        else:
+            phase_rect.bottomright = (win_width - margin, win_height - margin - text_rect.height - spacing)
         text_rect.bottomright = (win_width - margin, win_height - margin)
+
         # Draw semi-transparent backgrounds for readability
+        bg_rects = []
+        if initiative_surf:
+            bg_rect_initiative = pygame.Rect(
+            initiative_rect.left - 8, initiative_rect.top - 4,
+            initiative_rect.width + 16, initiative_rect.height + 8
+            )
+            bg_rects.append(bg_rect_initiative)
         bg_rect_phase = pygame.Rect(
             phase_rect.left - 8, phase_rect.top - 4,
             phase_rect.width + 16, phase_rect.height + 8
@@ -259,12 +279,21 @@ class DesktopUI:
             text_rect.left - 8, text_rect.top - 4,
             text_rect.width + 16, text_rect.height + 8
         )
-        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect_phase)
-        pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect_time)
+        bg_rects.extend([bg_rect_phase, bg_rect_time])
+
+        for bg_rect in bg_rects:
+            pygame.draw.rect(self.screen, (30, 30, 30, 180), bg_rect)
+
+        if initiative_surf:
+            self.screen.blit(initiative_surf, initiative_rect)
         self.screen.blit(phase_surf, phase_rect)
         self.screen.blit(text_surf, text_rect)
-        # Save for click detection (use the union of both rects)
-        self._turn_info_rect = text_rect.union(phase_rect)
+
+        # Save for click detection (use the union of all rects)
+        rects = [text_rect, phase_rect]
+        if initiative_rect:
+            rects.append(initiative_rect)
+        self._turn_info_rect = rects[0].unionall(rects[1:])
 
     def render_popup(self, piece:Piece, pos):
         #TODO: consider using pygame menu for popups and dialogs as well as menu option
@@ -584,7 +613,7 @@ class DesktopUI:
 
         # If the piece is a Base, show options to launch or land AirFormations
             # Check for enemy AirFormation in the same hex for combat
-            if self.turn_manager.current_phase == "Combat":
+            if "Combat" in self.turn_manager.current_phase:
                 enemy_airformations = [
                     p for p in self.board.pieces
                     if isinstance(p.game_model, AirFormation)
@@ -1127,32 +1156,26 @@ class DesktopUI:
                         
                         match self.turn_manager.current_phase_index:
                             case 0:
-                                print("Weather Phase")
+                                print("Starting a new turn")
                                 self.weather_manager.wind_phase(self.turn_manager)
                                 self.weather_manager.cloud_phase(self.turn_manager)
-                            case 1:
+                                self.board.reset_pieces_for_new_turn()
+                            
                                 print("Air Operations Phase")
                                 
-                            case 2:
+                            case 1:
                                 print("Task Force Movement Plotting Phase")
-                            case 3:
+                            case 2:
                                 print("Shadowing Phase")
-                            case 4:
+                            case 3:
                                 print("Task Force Movement Execution Phase")
-                            case 5:
-                                print("Initiative Phase")
-                            case 6:
+                            case 4:
                                 print("Plane Movement Phase")
-                            case 7:
+                            case 5:
                                 print("Combat Phase")
-                            case 8:
+                            case 6:
                                 print("Repair Phase")
-                            case 9:
-                                print("Time Record Phase")
-                                self.board.reset_pieces_for_new_turn()
-
-
-
+                    
                         return
                     # Check if click is on a piece line
                     for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):

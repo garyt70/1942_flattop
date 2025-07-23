@@ -242,16 +242,13 @@ class TurnManager:
     """
 
     PHASES = [
-        "Weather Phase",
         "Air Operations Phase",
         "Task Force Movement Plotting Phase",
         "Shadowing Phase",
         "Task Force Movement Execution Phase",
-        "Initiative Phase",
         "Plane Movement Phase",
         "Combat Phase",
         "Repair Phase",
-        "Time Record Phase"
     ]
 
     def __init__(self, total_days=1):
@@ -260,6 +257,7 @@ class TurnManager:
         self.current_hour = 0  # 0 to 23
         self.turn_number = 1
         self.current_phase_index = 0
+        self._decide_initiative("Allied", "Japanese")  # Default players, can be set later
 
     @property
     def current_phase(self):
@@ -284,6 +282,22 @@ class TurnManager:
             self.current_hour = 0
             self.current_day += 1
         self.current_phase_index = 0
+        self._decide_initiative("Allied", "Japanese")  # Reset initiative for new turn
+
+    def _decide_initiative(self, player1, player2):
+        """
+        During the Initiative Phase in the Sequence of Play, both players roll one die. The player with the higher roll gains the initiative for that turn. If the die roll is a tie, the player who did not have the initiative last turn gains the initiative this turn. The player with the initiative will go first during the Plane Movement Phase.
+        """
+        import random
+        roll1 = random.randint(1, 6)
+        roll2 = random.randint(1, 6)
+        if roll1 > roll2:
+            self.side_with_initiative = player1
+        elif roll2 > roll1:
+            self.side_with_initiative = player2
+        else:
+            # Tie goes to the player who did not have initiative last turn
+            self.side_with_initiative = player2 if self.side_with_initiative == player1 else player1
 
     def reset(self):
         """
