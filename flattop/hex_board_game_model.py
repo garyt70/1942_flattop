@@ -216,7 +216,7 @@ class HexBoardModel:
                 tf:TaskForce
                 tf = piece.game_model
                 carrier_list = tf.get_carriers()
-                if carrier_list is not None:
+                if len(carrier_list) > 0:
                     cv:Carrier
                     cv = carrier_list[0]
                     cv.base.reset_for_new_turn()
@@ -243,7 +243,6 @@ class TurnManager:
 
     PHASES = [
         "Air Operations Phase",
-        "Task Force Movement Plotting Phase",
         "Shadowing Phase",
         "Task Force Movement Execution Phase",
         "Plane Movement Phase",

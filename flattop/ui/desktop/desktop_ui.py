@@ -1162,18 +1162,15 @@ class DesktopUI:
                                 self.board.reset_pieces_for_new_turn()
                             
                                 print("Air Operations Phase")
-                                
                             case 1:
-                                print("Task Force Movement Plotting Phase")
-                            case 2:
                                 print("Shadowing Phase")
+                            case 2:
+                                print("Task Force Movement Phase")
                             case 3:
-                                print("Task Force Movement Execution Phase")
-                            case 4:
                                 print("Plane Movement Phase")
-                            case 5:
+                            case 4:
                                 print("Combat Phase")
-                            case 6:
+                            case 5:
                                 print("Repair Phase")
                     
                         return
