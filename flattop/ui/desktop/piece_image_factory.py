@@ -101,7 +101,12 @@ class PieceImageFactory:
         max_show = min(len(pieces), 4)
 
         def piece_color(piece):
-            return COLOR_ALLIED_PIECE if getattr(piece, "side", "") == "Allied" else COLOR_JAPANESE_PIECE
+            color = (200, 200, 255, 120) # assume cloud or storm
+            if getattr(piece, "side", "") == "Allied":
+                color = COLOR_ALLIED_PIECE
+            elif getattr(piece, "side", "") == "Japanese":
+                color = COLOR_JAPANESE_PIECE
+            return color
 
         # Draw from bottom to top so the top piece is fully visible
         for i in range(max_show):

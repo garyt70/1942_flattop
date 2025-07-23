@@ -160,7 +160,7 @@ class WeatherManager:
         return pieces
            
 
-    def as_pieces(self):
+    def get_weather_pieces(self):
         # Return all weather as pieces for display (clouds as Piece, wind as dict)
         pieces = []
         pieces.extend(self.get_cloud_pieces())

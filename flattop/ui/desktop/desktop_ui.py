@@ -79,7 +79,7 @@ class DesktopUI:
         else:
             self.weather_manager = weather_manager
 
-        self.board.pieces.extend(self.weather_manager.get_cloud_pieces())
+        self.board.pieces.extend(self.weather_manager.get_weather_pieces())
 
     def initialize(self):
         pygame.init()
@@ -192,12 +192,12 @@ class DesktopUI:
         for (q, r), pieces in hex_piece_map.items():
             center = self.hex_to_pixel(q, r)
             #skip weather and wind direction pieces
-            isWeather = False
+            isOnlyWeather = True
             for wpiece in pieces:
-                if isinstance(wpiece, (CloudMarker, WindDirection)):
-                    isWeather = True
-                    
-            if isWeather:
+                if not (isinstance(wpiece, (CloudMarker)) or isinstance(wpiece.game_model, WindDirection)):
+                    isOnlyWeather = False
+
+            if isOnlyWeather:
                 continue
 
             if len(pieces) == 1:
@@ -464,6 +464,13 @@ class DesktopUI:
         original_button = event.button
 
         pieces = self.get_pieces_at_pixel(event.pos)
+        if len(pieces) > 0:
+            isOnlyWeather = (len(pieces) == sum(1 for wpiece in pieces
+                                                if (isinstance(wpiece, (CloudMarker)) or isinstance(wpiece.game_model, WindDirection))))
+            if isOnlyWeather:
+                # If only weather pieces are present, ignore the click
+                return
+        
         if len(pieces) == 1:
             piece = pieces[0]
         elif len(pieces) > 1:
@@ -501,6 +508,17 @@ class DesktopUI:
             start_hex = moving_piece.position
             distance = self.get_distance(start_hex, dest_hex)
             max_move = moving_piece.movement_factor
+
+            # Prevent AirFormation from moving into a storm hex
+            if isinstance(moving_piece.game_model, AirFormation):
+                dest_hex_obj = self.board.get_hex(dest_hex.q, dest_hex.r)
+                # Check if any piece in the destination hex is a storm CloudMarker
+                for piece in self.board.pieces:
+                    if piece.position.q == dest_hex.q and piece.position.r == dest_hex.r:
+                        if isinstance(piece, CloudMarker) and piece.is_storm:
+                            # Do not allow move into storm
+                            return
+
             if distance <= max_move:
                 self.board.move_piece(moving_piece, dest_hex)
             # else: ignore move (could add feedback)
