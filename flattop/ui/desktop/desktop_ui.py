@@ -2,7 +2,7 @@ import pygame
 import sys
 import math
 
-from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
+from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, get_distance  # Adjust import as needed
 from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
@@ -418,34 +418,20 @@ class DesktopUI:
             return Hex(q, r)
         return None
     
-    def get_distance(self, start_hex, dest_hex):
-        # Calculate distance using offset coordinates (odd-q vertical layout)
-        # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
-        # Convert offset (odd-q) coordinates to cube coordinates for accurate distance calculation
-        def offset_to_cube(q, r):
-            # Odd-q vertical layout
-            x = q
-            z = r - (q - (q & 1)) // 2
-            y = -x - z
-            return (x, y, z)
-        start_cube = offset_to_cube(start_hex.q, start_hex.r)
-        dest_cube = offset_to_cube(dest_hex.q, dest_hex.r)
-        dx = dest_cube[0] - start_cube[0]
-        dy = dest_cube[1] - start_cube[1]
-        dz = dest_cube[2] - start_cube[2]
-        distance = max(abs(dx), abs(dy), abs(dz))
-        #print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
-        return distance
+    
 
     def show_max_move_distance(self, piece:Piece):
         # Highlight all hexes within the piece's movement range
-        max_move = piece.movement_factor
+        max_move = piece.movement_factor - piece.phase_move_count
+        if max_move <= 0:
+            return
+        
         start_hex = piece.position
 
         for q in range(self.board.width):
             for r in range(self.board.height):
                 dest_hex = Hex(q, r)
-                distance = self.get_distance(start_hex, dest_hex)
+                distance = get_distance(start_hex, dest_hex)
                 if distance <= max_move:
                     center = self.hex_to_pixel(q, r)
                     # Draw a semi-transparent overlay on the hex
@@ -548,8 +534,8 @@ class DesktopUI:
         dest_hex = self.pixel_to_hex_coord(mouse_x, mouse_y)
         if dest_hex:
             start_hex = moving_piece.position
-            distance = self.get_distance(start_hex, dest_hex)
-            max_move = moving_piece.movement_factor
+            distance = get_distance(start_hex, dest_hex)
+            max_move = moving_piece.movement_factor - moving_piece.phase_move_count
 
             # Prevent AirFormation from moving into a storm hex
             if isinstance(moving_piece.game_model, AirFormation):

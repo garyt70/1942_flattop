@@ -52,6 +52,7 @@ class Piece:
         self.position = position  # A Hex object
         self._game_model = gameModel  # Optional reference to the game model, which can be an AirFormation or TaskForce, Base, etc.
         self.has_moved = False  # Flag to track if the piece has moved
+        self.phase_move_count = 0  # Count hexes moved into in the current phase
 
     @property
     def game_model(self):
@@ -115,10 +116,16 @@ class Piece:
             target_hex (Hex): The target position to move the piece to.
         """
 
+        distance = get_distance(self.position, target_hex)
+
         #only AirFormation and TaskForce can move
         if self.can_move and not self.has_moved:
            self.position = target_hex
-           self.has_moved = True
+           self.phase_move_count += distance
+           if self.phase_move_count < self.movement_factor:
+               self.has_moved = False # still available moves in this phase
+           else:
+               self.has_moved = True
 
     def __repr__(self):
         """
@@ -236,6 +243,24 @@ class HexBoardModel:
                     cv = carrier_list[0]
                     cv.base.reset_for_new_turn()
 
+def get_distance(start_hex: Hex, dest_hex: Hex):
+    # Calculate distance using offset coordinates (odd-q vertical layout)
+    # See: https://www.redblobgames.com/grids/hexagons/#distances-offset
+    # Convert offset (odd-q) coordinates to cube coordinates for accurate distance calculation
+    def offset_to_cube(q, r):
+            # Odd-q vertical layout
+            x = q
+            z = r - (q - (q & 1)) // 2
+            y = -x - z
+            return (x, y, z)
+    start_cube = offset_to_cube(start_hex.q, start_hex.r)
+    dest_cube = offset_to_cube(dest_hex.q, dest_hex.r)
+    dx = dest_cube[0] - start_cube[0]
+    dy = dest_cube[1] - start_cube[1]
+    dz = dest_cube[2] - start_cube[2]
+    distance = max(abs(dx), abs(dy), abs(dz))
+    #print(f"Cube distance from {start_hex} to {dest_hex}: {distance}")
+    return distance
 
 class TurnManager:
     """
