@@ -1046,6 +1046,47 @@ class DesktopUI:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return None
 
+    def _get_pieces_for_turn_change(self):
+        """
+        Move phase = get all pieces that can move but have not moved yet.
+        Combat phase = get all pieces that can attack but have not attacked yet.
+        Air Operations phase = get all bases that have available Launch or Ready Factor count.
+
+        """
+        all_pieces:list[Piece] = self.board.pieces
+        action_available_pieces = []
+        if self.turn_manager.current_phase == "Plane Movement":
+            action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, AirFormation)]
+        elif self.turn_manager.current_phase == "Task Force Movement":
+            action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, TaskForce)]
+        elif self.turn_manager.current_phase == "Combat":
+            action_available_pieces = [p for p in all_pieces if p.can_attack]
+        elif self.turn_manager.current_phase == "Air Operations":
+            bases = []  
+            for piece in all_pieces:
+                base = None
+                if isinstance(piece.game_model, Base):
+                    base = piece.game_model
+                elif isinstance(piece.game_model, TaskForce):
+                    carriers: list[Carrier] = piece.game_model.get_carriers()
+                    if len(carriers) > 0:
+                        # If the TaskForce has carriers, use the first carrier's air operations chart
+                        base = carriers[0].base
+
+                # Check if the base has any aircraft that can launch or are ready
+                if base:
+                    air_op_config = base.air_operations_config
+                    if base.used_launch_factor < air_op_config.launch_factor_max or \
+                        base.used_ready_factor < air_op_config.ready_factors:
+                        air_op_tracker = base.air_operations_tracker
+
+                        # Check if the base has any aircraft that can launch or are ready
+                        # If the base has an air operations tracker, check if it has any aircraft that can launch or are ready
+                        if len(air_op_tracker.ready) + len(air_op_tracker.readying) + len(air_op_tracker.just_landed) > 0:
+                            action_available_pieces.append(piece)
+            
+        return action_available_pieces
+
     def show_turn_change_popup(self):
         # Display a scrollable popup listing all pieces that can move but have not moved yet,
         # and allow the user to advance the phase or turn only if all phases are complete.
@@ -1060,13 +1101,13 @@ class DesktopUI:
         phase_idx = phase_list.index(current_phase) if current_phase in phase_list else 0
 
         # Filter pieces that can move and have not moved (for this phase, if applicable)
-        unmoved = [p for p in self.board.pieces if getattr(p, "can_move", False) and not getattr(p, "has_moved", False)]
+        unmoved = self._get_pieces_for_turn_change()
         lines = [
             f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
             for i, piece in enumerate(unmoved)
         ]
         if not lines:
-            lines = ["No pieces can move this phase."]
+            lines = ["No pieces can act this phase."]
 
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
         header_surf = header_font.render(f"Phase: {current_phase}", True, (255, 255, 0))

@@ -91,6 +91,21 @@ class Piece:
         can_move = isinstance(self._game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce))
 
         return can_move
+    
+    @property
+    def can_attack(self):
+        """
+        Determines if the piece can attack based on its game model type. And if it has the can_attack attribute.
+
+        Returns:
+            bool: True if the piece can attack, False otherwise.
+        """
+        can_attack = False
+        if isinstance(self._game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce)):
+            can_attack = self._game_model.can_attack
+
+        return can_attack
+        
 
     def move(self, target_hex):
         """
@@ -244,7 +259,7 @@ class TurnManager:
     PHASES = [
         "Air Operations",
         "Shadowing",
-        "Task Force Movement Execution",
+        "Task Force Movement",
         "Plane Movement",
         "Combat",
         "Repair",

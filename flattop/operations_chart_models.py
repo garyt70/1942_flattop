@@ -180,6 +180,18 @@ Text from rule book
             max_move = min(getattr(ship, "move_factor", 0) for ship in self.ships)
         return max_move
 
+    @property
+    def can_attack(self):
+        """
+        Checks if any ship in the Task Force can attack.
+        A ship can attack if it has an attack factor greater than 0.
+        """
+        #TODO: consider if there needs to be a setter to set if an attack has taken place
+        for ship in self.ships:
+            if getattr(ship, "attack_factor", 0) > 0:
+                return True
+        return False
+
     def __repr__(self):
         header = f"Task Force {self.number}: {self.name}\n"
         if not self.ships:
@@ -341,6 +353,17 @@ class AirFormation:
         if self.aircraft:
             max_move = min(ac.move_factor for ac in self.aircraft)
         return max_move
+    
+    @property
+    def can_attack(self):
+        """
+        loop through the aircraft in the formation and check if any of them can attack.
+        They can attack if they have armament
+        """
+        for ac in self.aircraft:
+            if ac.armament:
+                return True
+        return False
 
     def __repr__(self):
         header = f"Air Formation {self.number}: {self.name}\n"
