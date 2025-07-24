@@ -242,12 +242,12 @@ class TurnManager:
     """
 
     PHASES = [
-        "Air Operations Phase",
-        "Shadowing Phase",
-        "Task Force Movement Execution Phase",
-        "Plane Movement Phase",
-        "Combat Phase",
-        "Repair Phase",
+        "Air Operations",
+        "Shadowing",
+        "Task Force Movement Execution",
+        "Plane Movement",
+        "Combat",
+        "Repair",
     ]
 
     def __init__(self, total_days=1):
@@ -256,6 +256,7 @@ class TurnManager:
         self.current_hour = 0  # 0 to 23
         self.turn_number = 1
         self.current_phase_index = 0
+        self.side_with_initiative = None  # Player with initiative, can be set later
         self._decide_initiative("Allied", "Japanese")  # Default players, can be set later
 
     @property

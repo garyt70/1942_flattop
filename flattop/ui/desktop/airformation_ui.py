@@ -18,8 +18,8 @@ class AirFormationUI:
         
         font = pygame.font.SysFont(None, 24)
         header_font = pygame.font.SysFont(None, 28, bold=True)
-        popup_width = int(win_width * 0.9)
-        popup_height = int(win_height * 0.9)
+        popup_width = int(win_width * 0.98)
+        popup_height = int(win_height * 0.98)
         popup_rect = pygame.Rect(
             10,
             10,
@@ -57,8 +57,7 @@ class AirFormationUI:
                     waiting = False
                     mx, my = popup_event.pos
                     for btn in self.height_btn_lst:
-                        #need to think of a better way to handle zero ready facotr to prevent need for loop
                         if btn.collidepoint(mx, my):
                             waiting = True
-                            btn.handle_click()
+                            btn.handle_click(popup_event)
                             pygame.display.flip()

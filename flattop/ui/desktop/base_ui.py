@@ -94,30 +94,56 @@ class AircraftHeightChangeWidget:
         self.pos_x = x
         self.pos_y = y
         self.surface = surface
-        self.btn_rect = pygame.Rect(x, y, 60, 30)
+        self._height_btn_rect = pygame.Rect(x, y, 60, 30)
+        self._armament_btn_rect = pygame.Rect(x + 70, y, 60, 30)
 
     def draw(self):
         """
        Draws a button that displays the heigh of the aircraft
         """
         # Draw the button
-        pygame.draw.rect(self.surface, (0, 200, 0), self.btn_rect)
+        pygame.draw.rect(self.surface, (0, 200, 0), self._height_btn_rect)
         font = pygame.font.SysFont(None, 24)
         btn_label = font.render(f"{self.aircraft.height}", True, (255, 255, 255))
         self.surface.blit(btn_label, (self.pos_x + 8, self.pos_y + 2))
 
-    def handle_click(self):
+        #draw button for attack type
+        attack_type = self.aircraft.attack_type
+        pygame.draw.rect(self.surface, (0, 200, 0), self._armament_btn_rect)
+        font = pygame.font.SysFont(None, 24)
+        btn_label = font.render(f"{attack_type}", True, (255, 255, 255))
+        self.surface.blit(btn_label, (self._armament_btn_rect.x + 8, 
+                                      self._armament_btn_rect.y + 2))
 
+    def _handle_height_click(self):
         if self.aircraft.height == "High":
             self.aircraft.height = "Low"
         else:
             self.aircraft.height = "High"
 
+    def _handle_attack_type_click(self):
+        # torpedo attach is handled by armament type in combat resolution
+        if self.aircraft.attack_type == "Dive":
+            self.aircraft.attack_type = "Level"
+        elif self.aircraft.attack_type == "Level":
+            self.aircraft.attack_type = "Dive"
+
+    def handle_click(self, event=None):
+
+        mx, my = pygame.mouse.get_pos()
+
+        #check which button was clicked
+        if self._height_btn_rect.collidepoint(mx, my):
+            self._handle_height_click()
+        elif self._armament_btn_rect.collidepoint(mx, my):
+            self._handle_attack_type_click()
+
         self.draw()
 
 
     def collidepoint(self, mx, my):
-        return self.btn_rect.collidepoint(mx, my)
+        # Returns True if either button is clicked
+        return self._height_btn_rect.collidepoint(mx, my) or self._armament_btn_rect.collidepoint(mx, my)
 
 class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartCommandWidget):
     """
@@ -188,7 +214,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
 
 
 class AircraftDisplay:
-    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300, 1360]
+    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300, 1360, 1420]
 
     def __init__(self):
         pass
@@ -242,6 +268,8 @@ class AircraftDisplay:
 
         #display height - this is done via a widget for AirFormations.
         #surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
+
+        #display attack type - this is done via a widget for AirFormations.
         
         y += 20
 
@@ -312,9 +340,11 @@ class AircraftDisplay:
         surface.blit(font.render("Range", True, COLOR_FONT_HEADER), (x + columns[15], y))
 
         #armament
-        surface.blit(font.render("Armament", True, COLOR_FONT_HEADER), (x + columns[16], y))
+        surface.blit(font.render("Armed", True, COLOR_FONT_HEADER), (x + columns[16], y))
         #height
         surface.blit(font.render("Height", True, COLOR_FONT_HEADER), (x + columns[17], y))
+        #attack type
+        surface.blit(font.render("Attack", True, COLOR_FONT_HEADER), (x + columns[18], y))
 
         y += 20
         return y
@@ -388,8 +418,9 @@ class AirOperationsTrackerDisplay:
     def draw_aircraft(self, aircraft: Aircraft, x, y):
         return AircraftDisplay.draw_aircraft(self.surface, aircraft, x, y)
 
-    def draw(self):
+    def draw(self, pos = (10, 90)):
         columns = self.columns
+        self.pos = pos
         x, y = self.pos
         title = self.font.render("Air Operations Tracker", True, COLOR_FONT_HEADER)
         self.surface.blit(title, (x, y))
@@ -435,7 +466,8 @@ class AirOperationsConfigurationDisplay:
         self.pos = pos
         self.font = pygame.font.SysFont(None, 24)
 
-    def draw(self):     
+    def draw(self, pos=(10, 10)):
+        self.pos = pos
         x, y = self.pos
         title = self.font.render("Air Operations Configuration", True, (255, 255, 255))
         self.surface.blit(title, (x, y))
@@ -458,6 +490,12 @@ class AirOperationsConfigurationDisplay:
 
 
 class BaseUIDisplay:
+    POS_USED_LAUNCH_FACTOR_BOX = (900, 115)
+    POS_USED_READY_FACTOR_BOX = (250, 115)
+    POS_HEADER_BOX = (10, 60)
+    POS_DETAILS_BOX = (10, 175)
+
+
     def __init__(self, base:Base, surface):
         self.surface = surface
         self.base = base
@@ -538,7 +576,7 @@ class BaseUIDisplay:
                         self.temp_launch_factor += 1
                         #redraw the launch factor
                         self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor + self.temp_launch_factor})", 
-                                                                True, (255, 255, 255),(50, 50, 50)), (900, 65))
+                                                                True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_LAUNCH_FACTOR_BOX)
                         pygame.display.flip()
                     break
 
@@ -551,7 +589,7 @@ class BaseUIDisplay:
                         #redraw the ready factor value
                         self.surface.blit(
                                 pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
-                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                                                                    True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
                         pygame.display.flip()
                     break
             #see if any of the readying button have been clicked
@@ -562,7 +600,7 @@ class BaseUIDisplay:
                         #redraw the ready factor value
                         self.surface.blit(
                                 pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
-                                                                    True, (255, 255, 255),(50, 50, 50)), (250, 65))
+                                                                    True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
                         pygame.display.flip()
                     break
 
@@ -611,8 +649,8 @@ class BaseUIDisplay:
         # Draw a popup background for the takforce details
         font = pygame.font.SysFont(None, 24)
         header_font = pygame.font.SysFont(None, 28, bold=True)
-        popup_width = int(win_width * 0.9)
-        popup_height = int(win_height * 0.9)
+        popup_width = int(win_width - margin)
+        popup_height = int(win_height - margin)
         popup_rect = pygame.Rect(
             10,
             10,
@@ -622,14 +660,20 @@ class BaseUIDisplay:
         pygame.draw.rect(self.surface, COLOR_BG, popup_rect)
         pygame.draw.rect(self.surface, COLOR_BORDER, popup_rect, 2)
 
-        self.config_display.draw()
+        #draw title
+        title_text = header_font.render(f"{self.base.name} Air Operations -  (Damage {self.base.damage})", True, COLOR_FONT_HEADER, COLOR_FONT_BG)
+        title_rect = title_text.get_rect(center=(popup_rect.centerx, popup_rect.top + 20))
+        self.surface.blit(title_text, title_rect)
+
+        # Draw the header text
+        self.config_display.draw(pos=BaseUIDisplay.POS_HEADER_BOX)
         self.tracker_display.used_launch_factor = self.base.used_launch_factor + getattr(self, "temp_launch_factor", 0)
         self.tracker_display.used_ready_factor = self.base.used_ready_factor + getattr(self, "temp_ready_factor", 0)
-        self.tracker_display.draw()
+        self.tracker_display.draw(pos=BaseUIDisplay.POS_DETAILS_BOX)
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
-                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), (250, 65))
+                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
-                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), (900, 65))
+                                                                 True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_LAUNCH_FACTOR_BOX)
         #self.surface.blit(self.font.render("LF (Max)", True, COLOR_YELLOW), (x + 800, y))
         self.ready_btn_list = self.tracker_display.ready_btn_list
         self.just_landed_btn_list = self.tracker_display.just_landed_btn_list
