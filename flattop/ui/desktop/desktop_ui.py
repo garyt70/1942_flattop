@@ -6,6 +6,7 @@ from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, get_distance
 from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
+from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
@@ -705,12 +706,12 @@ class DesktopUI:
                 # Group by side
                 sides = set(p.side for p in hex_airformations)
                 
-                allied_aircraft = [p.game_model for p in hex_airformations if p.side == "Allied"]
-                japanese_aircraft = [p.game_model for p in hex_airformations if p.side == "Japanese"]
+                allied_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Allied"]
+                japanese_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Japanese"]
 
                 # Gather aircraft by role (interceptor, escort, bomber)
-                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied_aircraft)
-                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese_aircraft)
+                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied_aircraft_pieces)
+                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese_aircraft_pieces)
 
                 pre_combat_count_allied_interceptors = sum(ic.count for ic in allied_interceptors)
                 pre_combat_count_allied_bombers = sum(b.count for b in allied_bombers)
@@ -763,12 +764,12 @@ class DesktopUI:
                     # need to update the air operations chart for each side
                     # remove aircraft from air formations that have 0 or less count
                     # removed airformations that have no aircraft left
-                    for af in allied_aircraft:
+                    for af in allied_aircraft_pieces:
                         af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
                         if not af.aircraft:
                             #self.board.pieces.remove(Piece(name=af.name, side="Allied", position=af.position, gameModel=af))
                             self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
-                    for af in japanese_aircraft:
+                    for af in japanese_aircraft_pieces:
                         af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
                         if not af.aircraft:
                             #self.board.pieces.remove(Piece(name=af.name, side="Japanese", position=af.position, gameModel=af))
@@ -828,14 +829,26 @@ class DesktopUI:
 
                 def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
                     # this involves choosing which ship is attacked by which aircraft
-                     #TODO implement logic to select ship to attack by which aircraft
-                     #TODO implement logic to select attack type (e.g. level, torpedo, dive bomber, etc.)
+                     #TODO implement logic with a UI to select ship to attack by which aircraft
+                     # thinking is to be able to allocate aircraft to attack specific ships
+                    # and then resolve the combat for each ship
+
+                    if not bombers or not taskforce:
+                        return None
+
+                    if len(bombers) == 0:
+                        return None
+
+
+                    ui = BomberAllocationUI(self.screen, taskforce.ships, bombers)
+                    allocation = ui.handle_events()
+                    print(allocation)
 
                      #TODO: simple combat for now, change this later
                     ship_selected:Ship = None
                     try:
                         #this is where selection needs to take place
-                        ship_selected = taskforce[0].game_model.ships[0]
+                        ship_selected = taskforce.ships[0]
                         attack_type_selected = "level"  # default attack type, can be changed later
                     except:
                         pass
@@ -847,9 +860,31 @@ class DesktopUI:
                             taskforce[0].game_model.ships.remove(ship_selected)
                     return result
                 
-                #allied attach ship
-                result_allied_ship_air_attack = perform_air_to_ship_combat(allied_aircraft,japanese_taskforce_pieces)
-                result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers, allied_taskforce_pieces)
+                #allied attack ship
+                # airplanes attacking ships need to select a taskforce
+                result_allied_ship_air_attack = None
+                
+                if len(japanese_taskforce_pieces) == 1:
+                    japanese_taskforce = japanese_taskforce_pieces[0].game_model
+                    result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
+                elif len(japanese_taskforce_pieces)>1:
+                    # Show a popup to select the taskforces
+                    piece_selected = self.render_piece_selection_popup(japanese_taskforce_pieces, pos)
+                    japanese_taskforce:TaskForce = piece_selected.game_model if piece_selected else None
+                    if japanese_taskforce:
+                        result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
+                #japanese attack ship
+                result_japanese_ship_air_attack = None
+                if len(allied_taskforce_pieces) == 1:
+                    allied_taskforce = allied_taskforce_pieces[0].game_model
+                    result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
+                elif len(allied_taskforce_pieces) > 1:
+                    # Show a popup to select the taskforces
+                    piece_selected = self.render_piece_selection_popup(allied_taskforce_pieces, pos)
+                    allied_taskforce:TaskForce = piece_selected.game_model if piece_selected else None  
+                    if allied_taskforce:
+                        result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
+
 
                 result_allied_base_air_attack = None
                 if japanese_base_pieces:
