@@ -1151,107 +1151,108 @@ class DesktopUI:
         )
         scroll_offset = 0
 
-        while True:
-            # Draw popup background and border
-            self.render_screen()  # Redraw board behind popup
-            pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
-            pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
-            # Draw header
-            y = popup_rect.top + margin
-            self.screen.blit(header_surf, (popup_rect.left + margin, y))
-            y += header_surf.get_height() + margin // 2
+        needs_redraw = True
+        running = True
+        while running:
+            if needs_redraw:
+                self.render_screen()  # Redraw board behind popup
+                pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
+                pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
+                # Draw header
+                y = popup_rect.top + margin
+                self.screen.blit(header_surf, (popup_rect.left + margin, y))
+                y += header_surf.get_height() + margin // 2
 
-            # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
-            next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, y))
-            if unmoved:
-                pygame.draw.rect(self.screen, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
-                self.screen.blit(next_phase_surf, next_phase_rect.topleft)
-            else:
-                pygame.draw.rect(self.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
-                self.screen.blit(next_phase_surf, next_phase_rect.topleft)
-            y += next_phase_rect.height + margin // 2
+                # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
+                next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, y))
+                if unmoved:
+                    pygame.draw.rect(self.screen, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
+                    self.screen.blit(next_phase_surf, next_phase_rect.topleft)
+                else:
+                    pygame.draw.rect(self.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
+                    self.screen.blit(next_phase_surf, next_phase_rect.topleft)
+                y += next_phase_rect.height + margin // 2
 
-            # Draw visible lines with scrolling
-            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-                ts = text_surfaces[i]
-                text_rect = ts.get_rect()
-                text_rect.topleft = (popup_rect.left + margin, y)
-                self.screen.blit(ts, text_rect)
-                y += line_height
+                # Draw visible lines with scrolling
+                for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+                    ts = text_surfaces[i]
+                    text_rect = ts.get_rect()
+                    text_rect.topleft = (popup_rect.left + margin, y)
+                    self.screen.blit(ts, text_rect)
+                    y += line_height
 
-            # Draw scroll indicators if needed
-            if scroll_offset > 0:
-                up_arrow = font.render("^", True, (255, 255, 255))
-                self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
-            if scroll_offset + visible_lines < len(text_surfaces):
-                down_arrow = font.render("v", True, (255, 255, 255))
-                self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
+                # Draw scroll indicators if needed
+                if scroll_offset > 0:
+                    up_arrow = font.render("^", True, (255, 255, 255))
+                    self.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
+                if scroll_offset + visible_lines < len(text_surfaces):
+                    down_arrow = font.render("v", True, (255, 255, 255))
+                    self.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
 
-            pygame.display.flip()
+                pygame.display.flip()
+                needs_redraw = False
 
-            # Wait for user interaction
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
+            event = pygame.event.wait()
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
+                    scroll_offset += 1
+                    needs_redraw = True
+                elif event.key == pygame.K_UP and scroll_offset > 0:
+                    scroll_offset -= 1
+                    needs_redraw = True
+                elif pygame.K_1 <= event.key <= pygame.K_9:
+                    idx = event.key - pygame.K_1 + scroll_offset
+                    if 0 <= idx < len(unmoved):
+                        self.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
                         return
-                    elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
-                        scroll_offset += 1
-                    elif event.key == pygame.K_UP and scroll_offset > 0:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = event.pos
+                # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
+                if next_phase_rect.collidepoint(mx, my):
+                    # Advance to next phase
+                    self.turn_manager.next_phase()
+                    #TODO  - handle processing of a new phase
+                    match self.turn_manager.current_phase_index:
+                        case 0:
+                            print("Starting a new turn")
+                            self.weather_manager.wind_phase(self.turn_manager)
+                            self.weather_manager.cloud_phase(self.turn_manager)
+                            self.board.reset_pieces_for_new_turn()
+                            print("Air Operations Phase")
+                        case 1:
+                            print("Shadowing Phase")
+                        case 2:
+                            print("Task Force Movement Phase")
+                        case 3:
+                            print("Plane Movement Phase")
+                        case 4:
+                            print("Combat Phase")
+                        case 5:
+                            print("Repair Phase")
+                    return
+                # Check if click is on a piece line
+                for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+                    ts = text_surfaces[i]
+                    text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+                    if text_rect.collidepoint(mx, my):
+                        self.show_piece_menu(unmoved[i], event.pos)
+                        return
+                # Scroll up/down if click on arrows
+                if scroll_offset > 0:
+                    up_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.top + margin, 20, 20)
+                    if up_arrow_rect.collidepoint(mx, my):
                         scroll_offset -= 1
-                    elif pygame.K_1 <= event.key <= pygame.K_9:
-                        idx = event.key - pygame.K_1 + scroll_offset
-                        if 0 <= idx < len(unmoved):
-                            self.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
-                            return
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    mx, my = event.pos
-                    # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
-                    if next_phase_rect.collidepoint(mx, my):
-                       
-                        # Advance to next phase
-                        self.turn_manager.next_phase()
-                        #TODO  - handle processing of a new phase
-                        # 
-                        
-                        match self.turn_manager.current_phase_index:
-                            case 0:
-                                print("Starting a new turn")
-                                self.weather_manager.wind_phase(self.turn_manager)
-                                self.weather_manager.cloud_phase(self.turn_manager)
-                                self.board.reset_pieces_for_new_turn()
-                            
-                                print("Air Operations Phase")
-                            case 1:
-                                print("Shadowing Phase")
-                            case 2:
-                                print("Task Force Movement Phase")
-                            case 3:
-                                print("Plane Movement Phase")
-                            case 4:
-                                print("Combat Phase")
-                            case 5:
-                                print("Repair Phase")
-                    
-                        return
-                    # Check if click is on a piece line
-                    for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-                        ts = text_surfaces[i]
-                        text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
-                        if text_rect.collidepoint(mx, my):
-                            self.show_piece_menu(unmoved[i], event.pos)
-                            return
-                    # Scroll up/down if click on arrows
-                    if scroll_offset > 0:
-                        up_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.top + margin, 20, 20)
-                        if up_arrow_rect.collidepoint(mx, my):
-                            scroll_offset -= 1
-                    if scroll_offset + visible_lines < len(text_surfaces):
-                        down_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.bottom - margin - 20, 20, 20)
-                        if down_arrow_rect.collidepoint(mx, my):
-                            scroll_offset += 1
+                        needs_redraw = True
+                if scroll_offset + visible_lines < len(text_surfaces):
+                    down_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.bottom - margin - 20, 20, 20)
+                    if down_arrow_rect.collidepoint(mx, my):
+                        scroll_offset += 1
+                        needs_redraw = True
 
     def run(self):
         """
