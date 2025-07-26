@@ -22,7 +22,7 @@ class BomberAllocationUI:
             for _ in range(len(ships))
         ]
         self.font = pygame.font.SysFont(None, 24)
-        self.header_font = pygame.font.SysFont(None, 28, bold=True)
+        self.header_font = pygame.font.SysFont(None, 20, bold=True)
         self.margin = 16
         self.cell_size = 60
         self.button_size = 24
@@ -31,44 +31,107 @@ class BomberAllocationUI:
     def draw(self):
         self.screen.fill((30, 30, 30))
         margin = self.margin
-        cell = self.cell_size
+        cell_width = 120
+        cell_height = 50
+        header_height = 60
         btn = self.button_size
 
-        # Draw bomber headers (columns)
+        # Calculate grid dimensions
+        grid_start_x = margin
+        grid_start_y = margin + header_height
+        
+        # Draw title
+        title_surf = self.header_font.render("Bomber Allocation", True, (255, 255, 255))
+        self.screen.blit(title_surf, (margin, margin // 2))
+
+        # Draw column headers (aircraft types)
+        # First column is for ship names (empty header)
+        header_y = margin + 30
+        
+        # Draw "Ships" header
+        ships_header = self.header_font.render("Ships", True, (255, 255, 200))
+        self.screen.blit(ships_header, (grid_start_x + 10, header_y))
+        
+        # Draw aircraft type headers
         for j, bomber in enumerate(self.bombers):
-            label = f"{bomber.type.value} ({bomber.count})"
+            label = f"{bomber.type.value}"
+            available = f"({bomber.count} avail)"
+            allocated = f"({self.get_total_allocated(j)} used)"
+            
+            x = grid_start_x + (j + 1) * cell_width
+            
+            # Aircraft type name
             surf = self.header_font.render(label, True, (200, 200, 255))
-            x = margin + (j + 1) * cell
-            y = margin
-            self.screen.blit(surf, (x, y))
+            self.screen.blit(surf, (x + 10, header_y))
+            
+            # Available count
+            avail_surf = self.font.render(available, True, (150, 255, 150))
+            self.screen.blit(avail_surf, (x + 60, header_y))
 
-        # Draw ship names (rows)
-        for i, ship in enumerate(self.ships):
-            label = f"{ship.name} ({ship.status})"
-            surf = self.header_font.render(label, True, (255, 255, 200))
-            x = margin
-            y = margin + (i + 1) * cell
-            self.screen.blit(surf, (x, y))
+            # Used count
+            used_surf = self.font.render(allocated, True, (255, 150, 150))
+            self.screen.blit(used_surf, (x + 10, header_y + 20))
 
-        # Draw allocation grid
+        # Draw grid lines and content
+        for i in range(len(self.ships) + 1):  # +1 for header row
+            y = grid_start_y + i * cell_height
+            # Horizontal lines
+            pygame.draw.line(self.screen, (100, 100, 100), 
+                           (grid_start_x, y), 
+                           (grid_start_x + (len(self.bombers) + 1) * cell_width, y))
+
+        for j in range(len(self.bombers) + 2):  # +1 for ship column, +1 for end line
+            x = grid_start_x + j * cell_width
+            # Vertical lines
+            pygame.draw.line(self.screen, (100, 100, 100), 
+                           (x, grid_start_y), 
+                           (x, grid_start_y + len(self.ships) * cell_height))
+
+        # Draw ship names and allocation data
         for i, ship in enumerate(self.ships):
+            y = grid_start_y + i * cell_height
+            
+            # Ship name in first column
+            ship_label = f"{ship.name}"
+            status_label = f"({ship.status})"
+            ship_surf = self.font.render(ship_label, True, (255, 255, 200))
+            status_surf = self.font.render(status_label, True, (200, 200, 150))
+            self.screen.blit(ship_surf, (grid_start_x + 10, y + 10))
+            self.screen.blit(status_surf, (grid_start_x + 10, y + 25))
+
+            # Allocation cells for each bomber type
             for j, bomber in enumerate(self.bombers):
-                x = margin + (j + 1) * cell
-                y = margin + (i + 1) * cell
-                # Draw allocation number
+                x = grid_start_x + (j + 1) * cell_width
+                
+                # Cell background
+                cell_rect = pygame.Rect(x + 2, y + 2, cell_width - 4, cell_height - 4)
+                pygame.draw.rect(self.screen, (50, 50, 50), cell_rect)
+                
+                # Allocation number (centered)
                 alloc = self.allocation[i][j]
                 alloc_surf = self.font.render(str(alloc), True, (255, 255, 255))
-                self.screen.blit(alloc_surf, (x + cell // 2 - 8, y + cell // 2 - 8))
-                # Draw + button
-                plus_rect = pygame.Rect(x + cell - btn, y, btn, btn)
-                pygame.draw.rect(self.screen, (0, 200, 0), plus_rect)
+                alloc_rect = alloc_surf.get_rect()
+                alloc_rect.center = (x + cell_width // 2, y + cell_height // 2 - 5)
+                self.screen.blit(alloc_surf, alloc_rect)
+                
+                # + button (top right)
+                plus_rect = pygame.Rect(x + cell_width - btn - 5, y + 5, btn, btn)
+                color = (0, 200, 0) if self.get_total_allocated(j) < bomber.count else (100, 100, 100)
+                pygame.draw.rect(self.screen, color, plus_rect)
                 plus_surf = self.font.render("+", True, (255, 255, 255))
-                self.screen.blit(plus_surf, (plus_rect.x + 6, plus_rect.y + 2))
-                # Draw - button
-                minus_rect = pygame.Rect(x + cell - btn, y + btn + 2, btn, btn)
-                pygame.draw.rect(self.screen, (200, 0, 0), minus_rect)
+                plus_text_rect = plus_surf.get_rect()
+                plus_text_rect.center = plus_rect.center
+                self.screen.blit(plus_surf, plus_text_rect)
+                
+                # - button (bottom right)
+                minus_rect = pygame.Rect(x + cell_width - btn - 5, y + cell_height - btn - 5, btn, btn)
+                color = (200, 0, 0) if alloc > 0 else (100, 100, 100)
+                pygame.draw.rect(self.screen, color, minus_rect)
                 minus_surf = self.font.render("-", True, (255, 255, 255))
-                self.screen.blit(minus_surf, (minus_rect.x + 8, minus_rect.y + 2))
+                minus_text_rect = minus_surf.get_rect()
+                minus_text_rect.center = minus_rect.center
+                self.screen.blit(minus_surf, minus_text_rect)
+                
                 # Store rects for click detection
                 if not hasattr(self, "button_rects"):
                     self.button_rects = {}
