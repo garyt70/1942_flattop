@@ -214,6 +214,7 @@ class HexBoardModel:
         piece : Piece
         for piece in self.pieces:
             piece.has_moved = False
+            piece.phase_move_count = 0  # Reset the move count for the new turn
             # If the piece is an AirFormation, update aircraft ranges and remove those out of fuel
             if isinstance(piece.game_model, AirFormation):
                 af: AirFormation = piece.game_model
