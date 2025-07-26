@@ -65,11 +65,11 @@ class BomberAllocationUI:
             self.screen.blit(surf, (x + 10, header_y))
             
             # Available count
-            avail_surf = self.font.render(available, True, (150, 255, 150))
+            avail_surf = self.header_font.render(available, True, (150, 255, 150))
             self.screen.blit(avail_surf, (x + 60, header_y))
 
             # Used count
-            used_surf = self.font.render(allocated, True, (255, 150, 150))
+            used_surf = self.header_font.render(allocated, True, (255, 150, 150))
             self.screen.blit(used_surf, (x + 10, header_y + 20))
 
         # Draw grid lines and content
