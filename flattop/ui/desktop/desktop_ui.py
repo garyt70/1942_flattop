@@ -1,3 +1,4 @@
+from asyncio import Task
 import pygame
 import sys
 import math
@@ -621,9 +622,12 @@ class DesktopUI:
                 ]
                 if enemy_airformations or enemy_taskforces or enemy_base:
                     menu_options.append("Combat")
-
-        if piece.can_move and not piece.has_moved and "Movement" in self.turn_manager.current_phase:
-            menu_options.append("Move")
+        # airformation and plane move phase then enable move option
+        if piece.can_move and not piece.has_moved:
+            if isinstance(piece.game_model, AirFormation) and self.turn_manager.current_phase in ["Plane Movement"]:
+                menu_options.append("Move")
+            elif isinstance(piece.game_model, TaskForce) and self.turn_manager.current_phase in ["Task Force Movement"]:
+                menu_options.append("Move")
 
         menu_options.extend(["Details", "Cancel"])
 
