@@ -177,7 +177,7 @@ affects all hexes on the island.
 
 **7.10** Some units (ships and bases) carry radar which in some cases improves observation (in both day and night turns). Radar is unaffected by Cloud markers. However, radar can only observe air units at high altitude; it canno observe planes at low altitude or ships. In addition, al bases and ships with radar may observe enemy air units a high altitude at a distance of three hexes (in both day am night turns); the Condition Number is l, (See 7.13) 
 
-**7.11** To use the Observation Tables, players should fin the type of observing unit, the type of unit being observed and the weather condition of the hex being observed, an cross index this with the distance between the observing unit and the unit being observed. The distance betwee two is measured by counting the hex occupied by the unit being observed but not the hex the observing unit and the unit being observed are in the same hex. Note that there is one table for day turns and one for night turns. 
+**7.11** To use the Observation Tables, players should find the type of observing unit, the type of unit being observed and the weather condition of the hex being observed, an cross index this with the distance between the observing unit and the unit being observed. The distance betwee two is measured by counting the hex occupied by the unit being observed but not the hex the observing unit and the unit being observed are in the same hex. Note that there is one table for day turns and one for night turns. 
 
 **7.12** The Condition Numbers.
 

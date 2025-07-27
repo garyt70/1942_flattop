@@ -177,14 +177,14 @@ class BomberAllocationUI:
 
     def get_allocation_result(self):
         """
-        Returns a dict: {ship: {bomber_type: count}}
+        Returns a dict: {ship: {bomber (Aircraft): count}}
         """
         result = {}
         for i, ship in enumerate(self.ships):
             result[ship] = {}
             for j, bomber in enumerate(self.bombers):
                 if self.allocation[i][j] > 0:
-                    result[ship][bomber.type] = self.allocation[i][j]
+                    result[ship][bomber] = self.allocation[i][j]
         return result
 
 # Example usage:

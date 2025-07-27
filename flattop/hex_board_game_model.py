@@ -106,6 +106,44 @@ class Piece:
             can_attack = self._game_model.can_attack
 
         return can_attack
+    
+    @property
+    def can_observe(self):
+        """
+        Determines if the piece can observe based on its game model type.
+
+        Returns:
+            bool: True if the piece can observe, False otherwise.
+        """
+        can_observe = False
+        if self._game_model is not None:
+            if hasattr(self._game_model, 'can_observe'):
+                can_observe = self._game_model.can_observe
+        
+        return can_observe
+
+    @property
+    def has_been_observed(self):
+        """
+        Determines if the piece has been observed based on its game model type.
+
+        Returns:
+            bool: True if the piece has been observed, False otherwise.
+        """
+        has_been_observed = False
+        if self._game_model is not None:
+            if hasattr(self._game_model, 'has_been_observed'):
+                has_been_observed = self._game_model.has_been_observed
+
+        return has_been_observed
+
+        
+        has_been_observed = False
+        if self._game_model is not None:
+            if hasattr(self._game_model, 'has_been_observed'):
+                has_been_observed = self._game_model.has_been_observed
+        
+        return has_been_observed
         
 
     def move(self, target_hex):

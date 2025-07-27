@@ -844,21 +844,22 @@ class DesktopUI:
                     allocation = ui.handle_events()
                     print(allocation)
 
-                     #TODO: simple combat for now, change this later
-                    ship_selected:Ship = None
-                    try:
-                        #this is where selection needs to take place
-                        ship_selected = taskforce.ships[0]
-                        attack_type_selected = "level"  # default attack type, can be changed later
-                    except:
-                        pass
+                    if not allocation:
+                        # If no allocation was made, return None
+                        return None
                     
-                    result = None
-                    if ship_selected:
-                        result = resolve_air_to_ship_combat(bombers,ship_selected, attack_type=attack_type_selected, clouds=in_clouds, night=at_night)
-                        if ship_selected.status == "Sunk":
-                            taskforce[0].game_model.ships.remove(ship_selected)
-                    return result
+                    # Resolve combat for each ship in the taskforce
+                    # and return the results
+                    results = []
+                    for ship, allocated_bombers in allocation.items():
+                        if allocated_bombers:
+                            result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
+                            results.append(result)
+                            if ship.status == "Sunk":
+                                taskforce.ships.remove(ship)
+                    return results
+
+                
                 
                 #allied attack ship
                 # airplanes attacking ships need to select a taskforce
@@ -942,19 +943,24 @@ class DesktopUI:
                 
                 ## air combat against ship
                 if result_allied_ship_air_attack:
-                    lines.append("Allied Air Attack Results")
-                    lines.append(result_allied_ship_air_attack["bomber_hits"].summary)
+                    lines.append("Allied Air Attack Results against Ship")
+                    #loop through the results and add the summary for each ship
+                    for result in result_allied_ship_air_attack:
+                        if result:
+                            lines.append(result["bomber_hits"].summary)
 
                 if result_japanese_ship_air_attack:
-                    lines.append("Japanese Air Attacke Results")
-                    lines.append(result_japanese_ship_air_attack["bomber_hits"].summary)
+                    lines.append("Japanese Air Attack Results against Ship")
+                    for result in result_japanese_ship_air_attack:
+                        if result:
+                            lines.append(result["bomber_hits"].summary)
 
                 if result_allied_base_air_attack:
-                    lines.append("Allied Air Attack Results")
+                    lines.append("Allied Air Attack Results against Base")
                     lines.append(result_allied_base_air_attack["bomber_hits"].summary)
 
                 if result_japanese_base_air_attack:
-                    lines.append("Japanese Air Attacke Results")
+                    lines.append("Japanese Air Attack Results against Base")
                     lines.append(result_japanese_base_air_attack["bomber_hits"].summary)
 
 

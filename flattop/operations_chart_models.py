@@ -103,6 +103,8 @@ Text from rule book
         self.side = side
         self.ships = []
         self.japanese_bb_air_factors = {}  # {ship: air_factor_count}
+        self.can_observe = True
+        self.has_been_observed = False
 
     def add_ship(self, ship):
         if not isinstance(ship, Ship):
@@ -217,6 +219,7 @@ class Base:
         #TODO: consider refactor Base to become Runway and then Base and Carrier have a runway. A Base can then have damage and anti-aircraft
         self.damage = 0
         self.anti_aircraft_factor = 4 #making this the default.
+        self.can_observe = True  # Base can observe air units at high altitude
 
 
     """
@@ -316,6 +319,8 @@ class AirFormation:
         self.side = side  # "Allied" or "Japanese"
         self.launch_hour = launch_hour
         self.height = "High"  # Default height, can be "High" or "Low"
+        self.can_observe = True
+        self.has_been_observed = False
 
     """
     Each turn reduces the range available for each aircraft type in the formation.
