@@ -21,7 +21,7 @@ class PieceImageFactory:
     """
 
     @staticmethod
-    def airformation_image(color, size=HEX_SIZE):
+    def airformation_image(color, size=HEX_SIZE, observed=False):
         # Circle with a simple "plane" icon (horizontal line and tail)
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
         center = (size // 2, size // 2)
@@ -30,6 +30,11 @@ class PieceImageFactory:
         # Draw a simple plane: a line with a tail
         pygame.draw.line(surf, (255, 255, 255), (center[0] - radius//2, center[1]), (center[0] + radius//2, center[1]), 2)
         pygame.draw.line(surf, (255, 255, 255), (center[0], center[1]), (center[0], center[1] + radius//2), 2)
+        if observed:
+            #draw a smaill circle coloured orange at the top right corner of the image
+            pygame.draw.circle(surf, (255, 165, 0), (size - 5, 5), 5)
+            # draw a small white border around the orange circle
+            pygame.draw.circle(surf, (255, 255, 255), (size - 5, 5), 5, 1)
         return surf
 
     @staticmethod
@@ -57,7 +62,7 @@ class PieceImageFactory:
         return surf
 
     @staticmethod
-    def taskforce_image(color, size=HEX_SIZE):
+    def taskforce_image(color, size=HEX_SIZE, observed=False):
         # Draw a fleet of 4 ships (rectangles) in formation, top-down view, on a square playing piece with background color
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
         # Draw the square playing piece background
@@ -86,6 +91,11 @@ class PieceImageFactory:
                 bridge_x = x + ship_w // 2 - bridge_w // 2
                 bridge_y = y
                 pygame.draw.rect(surf, outline_color, (bridge_x, bridge_y, bridge_w, bridge_h))
+        if observed:
+            # Draw a small circle in the top right corner to indicate observation
+            pygame.draw.circle(surf, (255, 165, 0), (size - 5, 5), 5)
+            # Draw a small white border around the orange circle
+            pygame.draw.circle(surf, (255, 255, 255), (size - 5, 5), 5, 1)
         return surf
 
     @staticmethod

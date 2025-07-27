@@ -123,27 +123,16 @@ class Piece:
         return can_observe
 
     @property
-    def has_been_observed(self):
+    def observed_condition(self):
         """
-        Determines if the piece has been observed based on its game model type.
-
-        Returns:
-            bool: True if the piece has been observed, False otherwise.
+        see obsevervation_rules.py for details on what the conditions are.
         """
-        has_been_observed = False
+        observed_condition = 0
         if self._game_model is not None:
-            if hasattr(self._game_model, 'has_been_observed'):
-                has_been_observed = self._game_model.has_been_observed
-
-        return has_been_observed
-
-        
-        has_been_observed = False
-        if self._game_model is not None:
-            if hasattr(self._game_model, 'has_been_observed'):
-                has_been_observed = self._game_model.has_been_observed
-        
-        return has_been_observed
+            if hasattr(self._game_model, 'observed_condition'):
+                observed_condition = self._game_model.observed_condition
+        # If the game model has a has_been_observed attribute, return its value
+        return observed_condition
         
 
     def move(self, target_hex):
@@ -245,6 +234,18 @@ class HexBoardModel:
         for piece in self.pieces:
             print(piece)
 
+    def get_pieces_by_side(self, side):
+        """
+        Returns a list of pieces owned by the specified side.
+        
+        Args:
+            side (str): The side to filter pieces by (e.g., "Allied", "Japanese").
+        
+        Returns:
+            list: A list of Piece objects owned by the specified side.
+        """
+        return [piece for piece in self.pieces if piece.side == side]
+
     def reset_pieces_for_new_turn(self):
         """
         Resets the has_moved flag for all pieces at the start of a new turn.
@@ -269,6 +270,7 @@ class HexBoardModel:
                     #the airformation is destroyed
                     self.pieces.remove(piece)
                     print(f"Air Formation {af.name}, ran out of fuel")
+                af.reset_for_new_turn()
             elif isinstance(piece.game_model, Base):
                 base: Base
                 base = piece.game_model

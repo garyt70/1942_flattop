@@ -63,7 +63,7 @@ class TestDesktopUI(unittest.TestCase):
 
     def test_render_screen(self):
         # Should not raise
-        self.ui.render_screen()
+        self.ui.draw()
 
     def test_piece_movement_updates_board(self):
         # Simulate moving the piece to a new hex

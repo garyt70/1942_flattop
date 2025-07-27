@@ -82,6 +82,7 @@ class DesktopUI:
             self.weather_manager = weather_manager
 
         self.board.pieces.extend(self.weather_manager.get_weather_pieces())
+        self.perform_observation_at_new_turn()
 
     def initialize(self):
         pygame.init()
@@ -141,7 +142,7 @@ class DesktopUI:
                 return piece
         return None
     
-    def render_screen(self):
+    def draw(self):
         self.screen.fill(BG_COLOR)
 
         # Draw the hexes on the board
@@ -203,20 +204,14 @@ class DesktopUI:
                 continue
 
             if len(pieces) == 1:
-                piece = pieces[0]
+                piece:Piece = pieces[0]
                 color = COLOR_JAPANESE_PIECE if piece.side == "Japanese" else COLOR_ALLIED_PIECE
-                if isinstance(piece.game_model, Ship):
-                    image = PieceImageFactory.ship_image(color)
-                elif isinstance(piece.game_model, Aircraft):
-                    image = PieceImageFactory.aircraft_image(color)
-                elif isinstance(piece.game_model, Carrier):
-                    image = PieceImageFactory.carrier_image(color)
-                elif isinstance(piece.game_model, AirFormation):
-                    image = PieceImageFactory.airformation_image(color)
+                if isinstance(piece.game_model, AirFormation):
+                    image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0)
                 elif isinstance(piece.game_model, Base):
                     image = PieceImageFactory.base_image(color)
                 elif isinstance(piece.game_model, TaskForce):
-                    image = PieceImageFactory.taskforce_image(color)
+                    image = PieceImageFactory.taskforce_image(color, observed=piece.observed_condition > 0)
                 
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
@@ -466,7 +461,7 @@ class DesktopUI:
                     self._dragging = False
 
             #self.screen.fill(BG_COLOR)
-            self.render_screen()
+            self.draw()
             pygame.display.flip()
 
         pygame.quit()
@@ -548,6 +543,10 @@ class DesktopUI:
 
             if distance <= max_move:
                 self.board.move_piece(moving_piece, dest_hex)
+                #perform observation for just this piece
+                if moving_piece.can_observe:
+                    self._perform_observation(moving_piece)
+
             # else: ignore move (could add feedback)
         self._moving_piece = None
         self._moving_piece_offset = (0, 0)  # Reset the offset after moving
@@ -1118,6 +1117,60 @@ class DesktopUI:
             
         return action_available_pieces
 
+    def _perform_observation(self, piece: Piece):
+        """
+        Perform observation for a single piece.
+        This is called when a piece is moved and can observe.
+        """
+        from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT
+        weather_manager: WeatherManager = self.weather_manager
+        turn_type = TURN_NIGHT if self.turn_manager.is_night else TURN_DAY
+        # Get all pieces that can observe
+        target_pieces: list[Piece] = [p for p in self.board.pieces if p.side != piece.side and not isinstance(p, CloudMarker)]
+        for target in target_pieces:
+            target_location = target.position
+            distance = get_distance(piece.position, target.position)
+            result = attempt_observation(
+                piece.game_model, target.game_model, weather_manager,
+                target_location, distance, turn_type)
+            
+                
+    def perform_observation_at_new_turn(self):
+        """
+        Desktop UI has WeatherManager and TurnManager, so we can use them to perform the observation phase.
+        The observation phase occurs during the start of a new game
+
+        Observation is performed by looping through pieces on one side to see if they can observe pieces on the other side.
+        Each piece that can observe will attempt to observe the target piece.
+        The target piece is the piece that is being observed.
+        """
+        from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT
+        weather_manager: WeatherManager = self.weather_manager
+        turn_type = TURN_NIGHT if self.turn_manager.is_night else TURN_DAY
+        # Get all pieces that can observe
+        all_pieces = self.board.pieces
+        allied_pieces: list[Piece] = [p for p in all_pieces if p.side == "Allied"]
+        japanese_pieces: list[Piece] = [p for p in all_pieces if p.side == "Japanese"]
+        # Loop through Allied pieces and attempt to observe Japanese pieces
+        for observer in allied_pieces:
+            if observer.can_observe:
+                for target in japanese_pieces:
+                    target_location = target.position
+                    distance = get_distance(observer.position, target.position)
+                    result = attempt_observation(
+                        observer.game_model, target.game_model, weather_manager,
+                        target_location, distance, turn_type)
+                    
+        for observer in japanese_pieces:
+            if observer.can_observe:
+                for target in allied_pieces:
+                    target_location = target.position
+                    distance = get_distance(observer.position, target.position)
+                    result = attempt_observation(
+                        observer.game_model, target.game_model, weather_manager,
+                        target_location, distance, turn_type)
+                    
+
     def show_turn_change_popup(self):
         # Display a scrollable popup listing all pieces that can move but have not moved yet,
         # and allow the user to advance the phase or turn only if all phases are complete.
@@ -1165,7 +1218,7 @@ class DesktopUI:
         running = True
         while running:
             if needs_redraw:
-                self.render_screen()  # Redraw board behind popup
+                self.draw()  # Redraw board behind popup
                 pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
                 pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
                 # Draw header
@@ -1224,24 +1277,27 @@ class DesktopUI:
                 mx, my = event.pos
                 # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
                 if next_phase_rect.collidepoint(mx, my):
-                    # Advance to next phase
+                    # Advance to next phase, this will also handle turn change if at last phase
                     self.turn_manager.next_phase()
-                    #TODO  - handle processing of a new phase
                     match self.turn_manager.current_phase_index:
                         case 0:
                             print("Starting a new turn")
                             self.weather_manager.wind_phase(self.turn_manager)
                             self.weather_manager.cloud_phase(self.turn_manager)
                             self.board.reset_pieces_for_new_turn()
+                            self.perform_observation_at_new_turn()
                             print("Air Operations Phase")
                         case 1:
                             print("Shadowing Phase")
                         case 2:
                             print("Task Force Movement Phase")
+                            # no action this phase, just a placeholder. Menus change to Task Force Movement
                         case 3:
                             print("Plane Movement Phase")
+                            # no action this phase, just a placeholder. Menus change to Plane Movement
                         case 4:
                             print("Combat Phase")
+                            # no action this phase, just a placeholder. Menus change to Combat
                         case 5:
                             print("Repair Phase")
                     return

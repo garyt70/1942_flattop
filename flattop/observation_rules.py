@@ -216,7 +216,7 @@ import random
 from flattop.hex_board_game_model import Hex, Piece, get_distance
 from flattop.operations_chart_models import AirFormation, TaskForce, Base, Ship, Aircraft
 from flattop.weather_model import WeatherManager, CloudMarker
-from flattop.ui.desktop.desktop_ui import DesktopUI
+
 
 TURN_DAY = "day"
 TURN_NIGHT = "night"
@@ -240,15 +240,16 @@ def search_table_roll(is_cloud=False, is_night=False):
 # Returns Condition Number (1, 2, or 3) or None if not observable
 # This is a simplified version for core logic, can be expanded for full table
 
-def get_condition_number(observer, target, weather_manager, hex_coord, distance, turn_type, radar=False):
+def get_condition_number(observer, target, weather_manager:WeatherManager, hex_coord, distance, turn_type, radar=False):
     """
     Returns the Condition Number for observation based on observer/target types, weather, distance, turn type, and radar.
     Uses WeatherManager to determine weather at hex_coord.
     """
     # Get weather at hex
-    if weather_manager.is_storm_hex(hex_coord):
-        return None
     weather = weather_manager.get_weather_at_hex(hex_coord)
+    if weather == "storm":
+        return None
+    
     is_cloud = weather == "cloud"
     is_clear = weather == "clear"
     # Night turn: only certain observations allowed
@@ -395,22 +396,28 @@ def report_observation(condition_number, target):
     return {"present": False}
 
 # --- Main observation logic ---
-def attempt_observation(observer, target, weather_manager, hex_coord, distance, turn_type, radar=False, airformation_attempts=False, ui:DesktopUI=None):
+def attempt_observation(observer, target, weather_manager : WeatherManager, hex_coord:Hex, distance:int, turn_type):
     """
     Attempts to observe a target from an observer, applying all rules.
     Returns observation report dict or None if not observed.
-    Integrates with WeatherManager and optionally DesktopUI for display.
+    Integrates with WeatherManager.
     """
     # Storm hex: no observation
     if weather_manager.is_storm_hex(hex_coord):
         return None
-    # AirFormation must declare and roll if attempting observation
+    
+    if distance > 3:
+        return None
+    
+    # check if observer has radar
+    radar = False
+    if isinstance(observer, (TaskForce, Base)):
+        radar = observer.has_radar
+
     weather = weather_manager.get_weather_at_hex(hex_coord)
     is_cloud = weather == "cloud"
     is_night = turn_type == TURN_NIGHT
     if isinstance(observer, AirFormation):
-        if not airformation_attempts:
-            return None
         # Roll on Search Table
         if not search_table_roll(is_cloud, is_night):
             return None
@@ -419,18 +426,24 @@ def attempt_observation(observer, target, weather_manager, hex_coord, distance, 
     if condition_number is None:
         return None
     result = report_observation(condition_number, target)
-    # Integrate with UI: show popup if UI provided
-    if ui is not None:
-        ui.render_popup_text(str(result), hex_coord)
+    if result:
+        set_piece_observed(target, condition_number)
+        print(f"{observer} observed {target} with Condition Number {condition_number}: {result}")
+    else:
+        set_piece_observed(target, 0)  # Mark as unobserved
     return result
 
 # --- Utility: Mark piece as observed/unobserved ---
-def set_piece_observed(piece, observed=True):
-    piece.observed = observed
+def set_piece_observed(piece, observation_condition):
+    
+    if not isinstance(observation_condition, int) or observation_condition < 0:
+        raise ValueError("Observation condition must be a non-negative integer.")
+    if hasattr(piece, 'observed_condition'):
+        piece.observed_condition = observation_condition
 
 # --- Utility: Remove unobserved pieces from mapboard ---
 def remove_unobserved_pieces(pieces):
-    return [p for p in pieces if getattr(p, "observed", False)]
+    return [p for p in pieces if getattr(p, "observed_condition", 0) > 0]
 
 # --- Example usage ---
 
@@ -465,7 +478,7 @@ def remove_unobserved_pieces(pieces):
 # turn_type = TURN_DAY
 # result = attempt_observation(
 #     af, tf, weather_manager, hex_coord, distance, turn_type,
-#     radar=False, airformation_attempts=True, ui=ui
+#     radar=False, airformation_attempts=True
 # )
 # # This will display a popup with the observation result at the hex location
 #
@@ -481,7 +494,7 @@ def remove_unobserved_pieces(pieces):
 #                 turn_type = TURN_DAY if not turn_manager.is_night() else TURN_NIGHT
 #                 result = attempt_observation(
 #                     piece.game_model, target.game_model, weather_manager,
-#                     hex_coord, distance, turn_type, radar=False, airformation_attempts=True, ui=ui
+#                     hex_coord, distance, turn_type, radar=False, airformation_attempts=True
 #                 )
 #                 if result:
 #                     set_piece_observed(target, True)

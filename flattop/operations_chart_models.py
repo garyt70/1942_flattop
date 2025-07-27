@@ -104,7 +104,8 @@ Text from rule book
         self.ships = []
         self.japanese_bb_air_factors = {}  # {ship: air_factor_count}
         self.can_observe = True
-        self.has_been_observed = False
+        self.observed_condition = 0
+        self.has_radar = False  # Indicates if this Task Force has radar capabilities
 
     def add_ship(self, ship):
         if not isinstance(ship, Ship):
@@ -170,6 +171,14 @@ Text from rule book
 
     def get_av_cav(self):
         return [ship for ship in self.ships if getattr(ship, "type", None) in {"AV", "CAV"}]
+    
+    def reset_for_new_turn(self):
+        """
+        Resets the Task Force for a new turn.
+        This can include resetting observed conditions, etc.
+        """
+        self.observed_condition = 0
+        # Reset any other state as needed
 
     @property
     def movement_factor(self):
@@ -220,6 +229,7 @@ class Base:
         self.damage = 0
         self.anti_aircraft_factor = 4 #making this the default.
         self.can_observe = True  # Base can observe air units at high altitude
+        self.has_radar = False  # Base has no radar capabilities by default
 
 
     """
@@ -320,7 +330,7 @@ class AirFormation:
         self.launch_hour = launch_hour
         self.height = "High"  # Default height, can be "High" or "Low"
         self.can_observe = True
-        self.has_been_observed = False
+        self.observed_condition = 0
 
     """
     Each turn reduces the range available for each aircraft type in the formation.
@@ -369,6 +379,9 @@ class AirFormation:
             if ac.armament:
                 return True
         return False
+    
+    def reset_for_new_turn(self):
+        self.observed_condition = 0
 
     def __repr__(self):
         header = f"Air Formation {self.number}: {self.name}\n"
@@ -703,6 +716,7 @@ class Carrier(Ship):
         super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor)
         #a carrier is in effect a ship with a base  
         self.base = Base(name=f"{name} Base")
+        self.has_radar = False  # Carriers do not have radar by default 
 
     
     @property

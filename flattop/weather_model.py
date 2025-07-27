@@ -175,4 +175,11 @@ class WeatherManager:
             if hex_obj == cloud.position:
                 return True
         return False
+    
+    def get_weather_at_hex(self, hex_obj):
+        # Returns "cloud" if hex is covered by any cloud, "storm" if storm, else "clear"
+        for cloud in self.cloud_markers:
+            if hex_obj == cloud.position:
+                return "storm" if cloud.is_storm else "cloud"
+        return "clear"
 
