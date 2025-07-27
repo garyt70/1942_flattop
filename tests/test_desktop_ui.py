@@ -3,7 +3,7 @@ import pygame
 import sys
 import math
 
-from flattop.hex_board_game_model import HexBoardModel, Hex, Piece
+from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, get_distance
 from flattop.operations_chart_models import AirFormation
 from flattop.ui.desktop.desktop_ui import DesktopUI, PieceImageFactory, HEX_SIZE, HEX_COLOR, HEX_BORDER
 
@@ -52,7 +52,7 @@ class TestDesktopUI(unittest.TestCase):
     def test_get_distance(self):
         h1 = Hex(0, 0)
         h2 = Hex(2, 2)
-        dist = self.ui.get_distance(h1, h2)
+        dist = get_distance(h1, h2)
         self.assertIsInstance(dist, int)
         self.assertGreaterEqual(dist, 0)
 
@@ -86,7 +86,7 @@ class TestGetDistance(unittest.TestCase):
     def test_distance_same_hex(self):
         h1 = Hex(1, 1)
         h2 = Hex(1, 1)
-        dist = self.ui.get_distance(h1, h2)
+        dist = get_distance(h1, h2)
         self.assertEqual(dist, 0)
 
     def test_distance_adjacent_hexes(self):
@@ -98,26 +98,26 @@ class TestGetDistance(unittest.TestCase):
         ]
         for h2 in neighbors:
             with self.subTest(h2=h2):
-                dist = self.ui.get_distance(h1, h2)
+                dist = get_distance(h1, h2)
                 self.assertEqual(dist, 1)
 
     def test_distance_diagonal(self):
         h1 = Hex(0, 0)
         h2 = Hex(2, 2)
-        dist = self.ui.get_distance(h1, h2)
+        dist = get_distance(h1, h2)
         self.assertEqual(dist, 3)
 
     def test_distance_far_apart(self):
         h1 = Hex(0, 0)
         h2 = Hex(4, 4)
-        dist = self.ui.get_distance(h1, h2)
+        dist = get_distance(h1, h2)
         self.assertIsInstance(dist, int)
         self.assertGreater(dist, 0)
 
     def test_distance_negative_coords(self):
         h1 = Hex(4, 4)
         h2 = Hex(3, 2)
-        dist = self.ui.get_distance(h1, h2)
+        dist = get_distance(h1, h2)
         self.assertEqual(dist, 2)
 if __name__ == "__main__":
     unittest.main()
