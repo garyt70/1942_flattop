@@ -99,7 +99,7 @@ class PieceImageFactory:
         return surf
 
     @staticmethod
-    def stack_image(pieces, size=HEX_SIZE):
+    def stack_image(pieces, size=HEX_SIZE, observed=False):
         """
         Draws a stack indicator for multiple pieces in a hex, as overlapping squares.
         Each square is the same size as the hex, but offset so the stack is visible.
@@ -132,6 +132,12 @@ class PieceImageFactory:
             text = font.render(str(len(pieces)), True, (255, 255, 255))
             text_rect = text.get_rect(center=(surf.get_width() // 1.5, surf.get_height() // 1.5))
             surf.blit(text, text_rect)
+
+        if observed:
+            # Draw a small circle in the top right corner to indicate observation
+            pygame.draw.circle(surf, (255, 165, 0), (size - 5, 5), 5)
+            # Draw a small white border around the orange circle
+            pygame.draw.circle(surf, (255, 255, 255), (size - 5, 5), 5, 1)
         return surf
 
     @staticmethod

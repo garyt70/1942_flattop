@@ -217,7 +217,8 @@ class DesktopUI:
                 self.screen.blit(image, rect)
             else:
                 # Render stack image for multiple pieces
-                image = PieceImageFactory.stack_image(pieces)
+                #identify if any pieces have been observed
+                image = PieceImageFactory.stack_image(pieces, observed=any(p.observed_condition > 0 for p in pieces))
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
 
