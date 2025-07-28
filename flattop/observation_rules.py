@@ -214,7 +214,7 @@ Observation logic for Flattop game, implementing rules from observation_rules.py
 
 import random
 from flattop.hex_board_game_model import Hex, Piece, get_distance
-from flattop.operations_chart_models import AirFormation, TaskForce, Base, Ship, Aircraft
+from flattop.operations_chart_models import AirFormation, Carrier, TaskForce, Base, Ship, Aircraft
 from flattop.weather_model import WeatherManager, CloudMarker
 
 
@@ -427,19 +427,24 @@ def attempt_observation(observer, target, weather_manager : WeatherManager, hex_
         return None
     result = report_observation(condition_number, target)
     if result:
-        set_piece_observed(target, condition_number)
+        set_game_model_observed(target, condition_number)
         print(f"{observer} observed {target} with Condition Number {condition_number}: {result}")
     else:
-        set_piece_observed(target, 0)  # Mark as unobserved
+        set_game_model_observed(target, 0)  # Mark as unobserved
     return result
 
 # --- Utility: Mark piece as observed/unobserved ---
-def set_piece_observed(piece, observation_condition):
-    
+def set_game_model_observed(game_model, observation_condition:int):
+    # can't actually set piece observed condition. Needs to be done against the game model
+    if not isinstance(game_model, (Piece, AirFormation, TaskForce, Base, Carrier)):
+        pass  # Not a valid game model type, assume its weather or similar
+    if observation_condition is None:
+        raise ValueError("Observation condition cannot be None.")
     if not isinstance(observation_condition, int) or observation_condition < 0:
         raise ValueError("Observation condition must be a non-negative integer.")
-    if hasattr(piece, 'observed_condition'):
-        piece.observed_condition = observation_condition
+    
+    if game_model is not None:
+        game_model.observed_condition = observation_condition
 
 # --- Utility: Remove unobserved pieces from mapboard ---
 def remove_unobserved_pieces(pieces):

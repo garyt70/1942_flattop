@@ -1032,10 +1032,13 @@ class DesktopUI:
         margin = 10
         font = pygame.font.SysFont(None, 24)
         # Show: Piece name, type, and side
+        # Filter out CloudMarker pieces
+        filtered_pieces = [piece for piece in pieces if not isinstance(piece, CloudMarker)]
         lines = [
             f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
-            for i, piece in enumerate(pieces)
+            for i, piece in enumerate(filtered_pieces)
         ]
+        pieces = filtered_pieces  # Update pieces to match lines for selection logic below
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
         popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
         popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
@@ -1079,98 +1082,23 @@ class DesktopUI:
 
     def _get_pieces_for_turn_change(self):
         """
-        Move phase = get all pieces that can move but have not moved yet.
-        Combat phase = get all pieces that can attack but have not attacked yet.
-        Air Operations phase = get all bases that have available Launch or Ready Factor count.
-
+        Use game_engine to get actionable pieces for the current phase.
         """
-        all_pieces:list[Piece] = self.board.pieces
-        action_available_pieces = []
-        if self.turn_manager.current_phase == "Plane Movement":
-            action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, AirFormation)]
-        elif self.turn_manager.current_phase == "Task Force Movement":
-            action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, TaskForce)]
-        elif self.turn_manager.current_phase == "Combat":
-            action_available_pieces = [p for p in all_pieces if p.can_attack]
-        elif self.turn_manager.current_phase == "Air Operations":
-            bases = []  
-            for piece in all_pieces:
-                base = None
-                if isinstance(piece.game_model, Base):
-                    base = piece.game_model
-                elif isinstance(piece.game_model, TaskForce):
-                    carriers: list[Carrier] = piece.game_model.get_carriers()
-                    if len(carriers) > 0:
-                        # If the TaskForce has carriers, use the first carrier's air operations chart
-                        base = carriers[0].base
-
-                # Check if the base has any aircraft that can launch or are ready
-                if base:
-                    air_op_config = base.air_operations_config
-                    if base.used_launch_factor < air_op_config.launch_factor_max or \
-                        base.used_ready_factor < air_op_config.ready_factors:
-                        air_op_tracker = base.air_operations_tracker
-
-                        # Check if the base has any aircraft that can launch or are ready
-                        # If the base has an air operations tracker, check if it has any aircraft that can launch or are ready
-                        if len(air_op_tracker.ready) + len(air_op_tracker.readying) + len(air_op_tracker.just_landed) > 0:
-                            action_available_pieces.append(piece)
-            
-        return action_available_pieces
+        from flattop.game_engine import get_actionable_pieces
+        return get_actionable_pieces(self.board, self.turn_manager)
 
     def _perform_observation(self, piece: Piece):
         """
-        Perform observation for a single piece.
-        This is called when a piece is moved and can observe.
+        Perform observation for a single piece using game_engine logic.
         """
-        from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT
-        weather_manager: WeatherManager = self.weather_manager
-        turn_type = TURN_NIGHT if self.turn_manager.is_night else TURN_DAY
-        # Get all pieces that can observe
-        target_pieces: list[Piece] = [p for p in self.board.pieces if p.side != piece.side and not isinstance(p, CloudMarker)]
-        for target in target_pieces:
-            target_location = target.position
-            distance = get_distance(piece.position, target.position)
-            result = attempt_observation(
-                piece.game_model, target.game_model, weather_manager,
-                target_location, distance, turn_type)
-            
-                
+        from flattop.game_engine import perform_observation_for_piece
+        perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
     def perform_observation_at_new_turn(self):
         """
-        Desktop UI has WeatherManager and TurnManager, so we can use them to perform the observation phase.
-        The observation phase occurs during the start of a new game
-
-        Observation is performed by looping through pieces on one side to see if they can observe pieces on the other side.
-        Each piece that can observe will attempt to observe the target piece.
-        The target piece is the piece that is being observed.
+        Perform the observation phase for both sides using game_engine logic.
         """
-        from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT
-        weather_manager: WeatherManager = self.weather_manager
-        turn_type = TURN_NIGHT if self.turn_manager.is_night else TURN_DAY
-        # Get all pieces that can observe
-        all_pieces = self.board.pieces
-        allied_pieces: list[Piece] = [p for p in all_pieces if p.side == "Allied"]
-        japanese_pieces: list[Piece] = [p for p in all_pieces if p.side == "Japanese"]
-        # Loop through Allied pieces and attempt to observe Japanese pieces
-        for observer in allied_pieces:
-            if observer.can_observe:
-                for target in japanese_pieces:
-                    target_location = target.position
-                    distance = get_distance(observer.position, target.position)
-                    result = attempt_observation(
-                        observer.game_model, target.game_model, weather_manager,
-                        target_location, distance, turn_type)
-                    
-        for observer in japanese_pieces:
-            if observer.can_observe:
-                for target in allied_pieces:
-                    target_location = target.position
-                    distance = get_distance(observer.position, target.position)
-                    result = attempt_observation(
-                        observer.game_model, target.game_model, weather_manager,
-                        target_location, distance, turn_type)
-                    
+        from flattop.game_engine import perform_observation_phase
+        perform_observation_phase(self.board, self.weather_manager, self.turn_manager)
 
     def show_turn_change_popup(self):
         # Display a scrollable popup listing all pieces that can move but have not moved yet,
