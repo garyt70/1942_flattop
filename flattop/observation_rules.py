@@ -428,22 +428,20 @@ def attempt_observation(observer, target, weather_manager : WeatherManager, hex_
     if condition_number is None:
         return None
     observer_result = report_observation(condition_number, target)
-    if result:
+    if observer_result:
         set_game_model_observed(target, condition_number)
         result.append(observer_result)
         print(f"{observer} observed {target} with Condition Number {condition_number}: {result}")
-        
-        #now check if the target can observe the observer
-        target_condition_number = get_condition_number(target, observer, weather_manager, hex_coord, distance, turn_type, radar)
-        if target_condition_number is not None:
-            target_result = report_observation(target_condition_number, observer)
-            if target_result:
-                set_game_model_observed(observer, target_condition_number)
-                print(f"{target} observed {observer} with Condition Number {target_condition_number}: {target_result}")
-                result.append(target_result)
-    else:
-        set_game_model_observed(target, 0)  # Mark as unobserved
+    #now check if the target can observe the observer
+    target_condition_number = get_condition_number(target, observer, weather_manager, hex_coord, distance, turn_type, radar)
+    if target_condition_number is not None:
+        target_result = report_observation(target_condition_number, observer)
+        if target_result:
+            set_game_model_observed(observer, target_condition_number)
+            print(f"{target} observed {observer} with Condition Number {target_condition_number}: {target_result}")
+            result.append(target_result)
     return result
+
 
 # --- Utility: Mark piece as observed/unobserved ---
 def set_game_model_observed(game_model, observation_condition:int):

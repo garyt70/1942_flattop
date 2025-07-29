@@ -14,17 +14,18 @@ def perform_observation_for_piece(piece: Piece, board, weather_manager, turn_man
     """
     turn_type = TURN_NIGHT if turn_manager.is_night() else TURN_DAY
     observed_targets = []
-    for target in board.pieces:
-        # Filter out CloudMarker pieces
-        if target.side != piece.side and not isinstance(target.game_model, CloudMarker):
-            target_location = target.position
-            distance = get_distance(piece.position, target_location)
-            result = attempt_observation(
-                piece.game_model, target.game_model, weather_manager,
-                target_location, distance, turn_type
-            )
-            if result:
-                observed_targets.append(result)
+    #get a list of pieces that are not cloud pieces and are not the same side as the observer piece
+    #this should automatically exclude cloud markers
+    pieces = [p for p in board.pieces if p.side != piece.side and not isinstance(p, CloudMarker)]
+    for target in pieces:
+        target_location = target.position
+        distance = get_distance(piece.position, target_location)
+        result = attempt_observation(
+            piece.game_model, target.game_model, weather_manager,
+            target_location, distance, turn_type
+        )
+        if result:
+            observed_targets.append(result)
 
     return observed_targets
 
