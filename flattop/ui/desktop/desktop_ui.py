@@ -726,7 +726,7 @@ class DesktopUI:
                 # Perform landing action for the AirFormation
                 if isinstance(piece.game_model, AirFormation):
                     # Perform the landing action
-                    perform_land_piece_action(piece.game_model, self.board, piece.position)
+                    perform_land_piece_action(piece, self.board, piece.position)
                     self._moving_piece = None
                     self._moving_piece_offset = None
 

@@ -105,7 +105,7 @@ def perform_turn_start_actions(board:HexBoardModel, weather_manager:WeatherManag
     # Additional game logic (AI, combat, movement validation, etc.) can be added here.
 
 
-def perform_land_piece_action(airformation:AirFormation, board:HexBoardModel, hex:Hex):
+def perform_land_piece_action(piece:Piece, board:HexBoardModel, hex:Hex):
     #landing an AirFormation sets the aircraft to the Base's air operations chart
                 # and removes the AirFormation piece from the board
                 # the aircraft are added to the Base's air operations chart will have a Just Landed status
@@ -130,7 +130,8 @@ def perform_land_piece_action(airformation:AirFormation, board:HexBoardModel, he
         
     if base:
         # Add aircraft to the Base's air operations chart
+        airformation:AirFormation = piece.game_model
         for aircraft in airformation.aircraft:
             base.air_operations_tracker.set_operations_status(aircraft, AircraftOperationsStatus.JUST_LANDED)
         # Remove the AirFormation piece from the board
-        board.pieces.remove(airformation)
+        board.pieces.remove(piece)
