@@ -32,7 +32,7 @@ COLOR_ALLIED_PIECE = config.COLOR_ALLIED_PIECE
 # You may need to define or import PieceImageFactory if not already present
 # from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 
-def perform_ui_air_combat(screen, piece:Piece,pieces:list[Piece], board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
+def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
     """
     Handles the air combat UI logic for a given piece.
     This function will display the air combat UI and handle user interactions.
@@ -242,7 +242,13 @@ def perform_ui_air_combat(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         "result_allied_ship_air_attack": result_allied_ship_air_attack,
         "result_japanese_ship_air_attack": result_japanese_ship_air_attack,
         "result_allied_base_air_attack": result_allied_base_air_attack,
-        "result_japanese_base_air_attack": result_japanese_base_air_attack
+        "result_japanese_base_air_attack": result_japanese_base_air_attack,
+        "pre_combat_count_allied_interceptors": pre_combat_count_allied_interceptors,
+        "pre_combat_count_allied_bombers": pre_combat_count_allied_bombers,
+        "pre_combat_count_allied_escorts": pre_combat_count_allied_escorts,
+        "pre_combat_count_japanese_interceptors": pre_combat_count_japanese_interceptors,
+        "pre_combat_count_japanese_bombers": pre_combat_count_japanese_bombers,
+        "pre_combat_count_japanese_escorts": pre_combat_count_japanese_escorts
     }
 
     return combat_results
@@ -725,6 +731,7 @@ class DesktopUI:
                     self._moving_piece_offset = None
 
             case "Combat":
+                """
                 # Find all AirFormations in the hex
                 hex_airformations = [
                     p for p in self.board.pieces
@@ -922,78 +929,13 @@ class DesktopUI:
                 result_japanese_base_air_attack = None
                 if allied_base_pieces:
                     result_japanese_base_air_attack = resolve_air_to_base_combat(japanese_bombers, allied_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
-
+                """
+                results = perform_air_combat_ui(self.screen, piece, self.board.pieces, self.board, self.weather_manager, self.turn_manager)
                 # Optionally, show a popup with results
 
                 ## air-to-air summary
-                font = pygame.font.SysFont(None, 24)
                 
-                lines = ["Combat Results:"]
-                
-                lines.append(f"Allied Interceptors: {pre_combat_count_allied_interceptors}")
-                lines.append(f"Allied Escorts: {pre_combat_count_allied_escorts}")
-                lines.append(f"Allied Bombers: {pre_combat_count_allied_bombers}")
-            
-                lines.append(f"Japanese Interceptors: {pre_combat_count_japanese_interceptors}")
-                lines.append(f"Japanese Escorts: {pre_combat_count_japanese_escorts}")
-                lines.append(f"Japanese Bombers: {pre_combat_count_japanese_bombers}")
-                lines.append("-----------------------")
-
-                if result_allied_a2a:
-                    
-                    lines.append("Allied Air 2 Air Combat Results:")
-                    lines.append(f" {result_allied_a2a['interceptor_hits_on_bombers']}")
-                    lines.append(f" {result_allied_a2a['interceptor_hits_on_escorts']}")
-                    lines.append(f" {result_allied_a2a['escort_hits_on_interceptors']}")
-                    lines.append(f" {result_allied_a2a['bomber_hits_on_interceptors']}")
-                if result_japanese_a2a:
-                    lines.append("Japanese Air 2 Air Combat Results:")
-                    lines.append(f" {result_japanese_a2a['interceptor_hits_on_bombers']}")
-                    lines.append(f" {result_japanese_a2a['interceptor_hits_on_escorts']}")
-                    lines.append(f" {result_japanese_a2a['escort_hits_on_interceptors']}")
-                    lines.append(f" {result_japanese_a2a['bomber_hits_on_interceptors']}")
-                
-                
-                lines.append(f"\n")
-
-                ## anti-aircraft summary ##
-                if result_allied_anti_aircraft:
-                    # Show the combat results for Allied anti aircraft combat
-                    lines.append(f"Allied Anti Aircraft Combat Results:")
-                    lines.append(f" {result_allied_anti_aircraft['anti_aircraft'].summary}")
-                    
-
-                if result_japanese_anti_aircraft:   
-                    # Show the combat results for Japanese anti aircraft combat
-                    lines.append(f"Japanese Anti Aircraft Combat Results:")
-                    lines.append(f" {result_japanese_anti_aircraft['anti_aircraft'].summary}")
-                
-                
-                ## air combat against ship
-                if result_allied_ship_air_attack:
-                    lines.append("Allied Air Attack Results against Ship")
-                    #loop through the results and add the summary for each ship
-                    for result in result_allied_ship_air_attack:
-                        if result:
-                            lines.append(result["bomber_hits"].summary)
-
-                if result_japanese_ship_air_attack:
-                    lines.append("Japanese Air Attack Results against Ship")
-                    for result in result_japanese_ship_air_attack:
-                        if result:
-                            lines.append(result["bomber_hits"].summary)
-
-                if result_allied_base_air_attack:
-                    lines.append("Allied Air Attack Results against Base")
-                    lines.append(result_allied_base_air_attack["bomber_hits"].summary)
-
-                if result_japanese_base_air_attack:
-                    lines.append("Japanese Air Attack Results against Base")
-                    lines.append(result_japanese_base_air_attack["bomber_hits"].summary)
-
-
-                popup_text = "\n".join(lines)
-                self.show_combat_results(popup_text, pos)
+                self.show_combat_results(results, pos)
                 
                 return
                 
@@ -1014,7 +956,84 @@ class DesktopUI:
                 # Cancel just returns, nothing to do
                 return
 
-    def show_combat_results(self, text, pos):
+    def show_combat_results(self, results, pos):
+
+
+        font = pygame.font.SysFont(None, 24)
+                
+        lines = ["Combat Results:"]
+        
+        lines.append(f"Allied Interceptors: {results['pre_combat_count_allied_interceptors']}")
+        lines.append(f"Allied Escorts: {results['pre_combat_count_allied_escorts']}")
+        lines.append(f"Allied Bombers: {results['pre_combat_count_allied_bombers']}")
+    
+        lines.append(f"Japanese Interceptors: {results['pre_combat_count_japanese_interceptors']}")
+        lines.append(f"Japanese Escorts: {results['pre_combat_count_japanese_escorts']}")
+        lines.append(f"Japanese Bombers: {results['pre_combat_count_japanese_bombers']}")
+        lines.append("-----------------------")
+        result_allied_a2a = results.get("result_allied_a2a")
+        result_japanese_a2a = results.get("result_japanese_a2a")
+        result_allied_anti_aircraft = results.get("result_allied_anti_aircraft")
+        result_japanese_anti_aircraft = results.get("result_japanese_anti_aircraft")
+        result_allied_ship_air_attack = results.get("result_allied_ship_air_attack")
+        result_japanese_ship_air_attack = results.get("result_japanese_ship_air_attack")
+        result_allied_base_air_attack = results.get("result_allied_base_air_attack")
+        result_japanese_base_air_attack = results.get("result_japanese_base_air_attack")
+        if result_allied_a2a:
+            
+            lines.append("Allied Air 2 Air Combat Results:")
+            lines.append(f" {result_allied_a2a['interceptor_hits_on_bombers']}")
+            lines.append(f" {result_allied_a2a['interceptor_hits_on_escorts']}")
+            lines.append(f" {result_allied_a2a['escort_hits_on_interceptors']}")
+            lines.append(f" {result_allied_a2a['bomber_hits_on_interceptors']}")
+        if result_japanese_a2a:
+            lines.append("Japanese Air 2 Air Combat Results:")
+            lines.append(f" {result_japanese_a2a['interceptor_hits_on_bombers']}")
+            lines.append(f" {result_japanese_a2a['interceptor_hits_on_escorts']}")
+            lines.append(f" {result_japanese_a2a['escort_hits_on_interceptors']}")
+            lines.append(f" {result_japanese_a2a['bomber_hits_on_interceptors']}")
+        
+        
+        lines.append(f"\n")
+
+        ## anti-aircraft summary ##
+        if result_allied_anti_aircraft:
+            # Show the combat results for Allied anti aircraft combat
+            lines.append(f"Allied Anti Aircraft Combat Results:")
+            lines.append(f" {result_allied_anti_aircraft['anti_aircraft'].summary}")
+            
+
+        if result_japanese_anti_aircraft:   
+            # Show the combat results for Japanese anti aircraft combat
+            lines.append(f"Japanese Anti Aircraft Combat Results:")
+            lines.append(f" {result_japanese_anti_aircraft['anti_aircraft'].summary}")
+        
+        
+        ## air combat against ship
+        if result_allied_ship_air_attack:
+            lines.append("Allied Air Attack Results against Ship")
+            #loop through the results and add the summary for each ship
+            for result in result_allied_ship_air_attack:
+                if result:
+                    lines.append(result["bomber_hits"].summary)
+
+        if result_japanese_ship_air_attack:
+            lines.append("Japanese Air Attack Results against Ship")
+            for result in result_japanese_ship_air_attack:
+                if result:
+                    lines.append(result["bomber_hits"].summary)
+
+        if result_allied_base_air_attack:
+            lines.append("Allied Air Attack Results against Base")
+            lines.append(result_allied_base_air_attack["bomber_hits"].summary)
+
+        if result_japanese_base_air_attack:
+            lines.append("Japanese Air Attack Results against Base")
+            lines.append(result_japanese_base_air_attack["bomber_hits"].summary)
+
+
+        text = "\n".join(lines)
+
         # Display a popup with the combat results
         win_width, win_height = self.screen.get_size()
         margin = 10
