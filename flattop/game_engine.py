@@ -1,7 +1,7 @@
 """
 Game engine logic for Flattop. This module contains all non-UI game logic and actions, so it can be used by both human and computer players.
 """
-from flattop.hex_board_game_model import Piece, get_distance
+from flattop.hex_board_game_model import Hex, HexBoardModel, Piece, TurnManager, get_distance
 from flattop.operations_chart_models import AirFormation, TaskForce, Base, Carrier, AircraftOperationsStatus
 from flattop.weather_model import WeatherManager, CloudMarker
 from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT, set_game_model_observed
@@ -15,18 +15,17 @@ def perform_observation_for_piece(piece: Piece, board, weather_manager, turn_man
     turn_type = TURN_NIGHT if turn_manager.is_night() else TURN_DAY
     observed_targets = []
     for target in board.pieces:
-        if target.side != piece.side and not isinstance(target, CloudMarker):
+        # Filter out CloudMarker pieces
+        if target.side != piece.side and not isinstance(target.game_model, CloudMarker):
             target_location = target.position
-            distance = get_distance(piece.position, target.position)
+            distance = get_distance(piece.position, target_location)
             result = attempt_observation(
                 piece.game_model, target.game_model, weather_manager,
                 target_location, distance, turn_type
             )
             if result:
-                set_game_model_observed(target.game_model, True)
-                observed_targets.append(target)
-            else:
-                set_game_model_observed(target.game_model, False)
+                observed_targets.append(result)
+
     return observed_targets
 
 
@@ -95,4 +94,42 @@ def get_actionable_pieces(board, turn_manager):
     return action_available_pieces
 
 
-# Additional game logic (AI, combat, movement validation, etc.) can be added here.
+def perform_turn_start_actions(board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
+    print("Starting a new turn")
+    weather_manager.wind_phase(turn_manager)
+    weather_manager.cloud_phase(turn_manager)
+    board.reset_pieces_for_new_turn()
+    perform_observation_phase(board, weather_manager, turn_manager)
+
+    # Additional game logic (AI, combat, movement validation, etc.) can be added here.
+
+
+def perform_land_piece_action(airformation:AirFormation, board:HexBoardModel, hex:Hex):
+    #landing an AirFormation sets the aircraft to the Base's air operations chart
+                # and removes the AirFormation piece from the board
+                # the aircraft are added to the Base's air operations chart will have a Just Landed status
+    
+    # Find the Base in the same hex as the AirFormation
+    base_piece:Piece = next(
+        (p for p in board.pieces if isinstance(p.game_model, (Base, TaskForce)) and p.position == hex),
+        None
+    )
+    base:Base = None
+    if base_piece:
+        if isinstance(base_piece.game_model, Base):
+            base = base_piece.game_model
+            # Ensure the Base has an air operations tracker
+        if isinstance(base_piece.game_model, TaskForce):
+            tf:TaskForce = base_piece.game_model
+            #loop through the ships to ensure there is a carrier. If there is a carrier, then set the base to the carrier's air operations chart
+            for ship in tf.ships:  
+                if isinstance(ship, Carrier):
+                    base = ship.base
+                    break 
+        
+    if base:
+        # Add aircraft to the Base's air operations chart
+        for aircraft in airformation.aircraft:
+            base.air_operations_tracker.set_operations_status(aircraft, AircraftOperationsStatus.JUST_LANDED)
+        # Remove the AirFormation piece from the board
+        board.pieces.remove(airformation)

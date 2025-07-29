@@ -2,11 +2,12 @@
 import sys
 import pygame
 
-from flattop.hex_board_game_model import Piece
+from flattop.hex_board_game_model import Hex, Piece
 from flattop.operations_chart_models import AirFormation, Base, TaskForce
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
+from flattop.weather_model import CloudMarker
 
 
 def draw_turn_info_popup(desktop):
@@ -76,7 +77,6 @@ def draw_turn_info_popup(desktop):
 def draw_game_model_popup(desktop, piece, pos):
     """
     Draws a popup for the given piece at the specified position.
-    This is a placeholder function to be implemented.
     """
     #TODO: consider using pygame menu for popups and dialogs as well as menu option
         # Calculate maximum popup size (20% of display area, but allow up to 90% of height)
@@ -186,3 +186,56 @@ def draw_game_model_popup(desktop, piece, pos):
                     pygame.quit()
                     sys.exit()
 
+def draw_piece_selection_popup(surface, pieces:list[Piece], pos:Hex):
+        # Display a popup with a list of pieces and let the user select one
+        win_width, win_height = surface.get_size()
+        margin = 10
+        font = pygame.font.SysFont(None, 24)
+        # Show: Piece name, type, and side
+        # Filter out CloudMarker pieces
+        filtered_pieces = [piece for piece in pieces if not isinstance(piece, CloudMarker)]
+        lines = [
+            f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
+            for i, piece in enumerate(filtered_pieces)
+        ]
+        pieces = filtered_pieces  # Update pieces to match lines for selection logic below
+        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        popup_rect = pygame.Rect(
+            win_width // 2 - popup_width // 2,
+            win_height // 2 - popup_height // 2,
+            popup_width,
+            popup_height
+        )
+        pygame.draw.rect(surface, (50, 50, 50), popup_rect)
+        pygame.draw.rect(surface, (200, 200, 200), popup_rect, 2)
+        y = popup_rect.top + margin
+        for ts in text_surfaces:
+            text_rect = ts.get_rect()
+            text_rect.topleft = (popup_rect.left + margin, y)
+            surface.blit(ts, text_rect)
+            y += ts.get_height() + margin // 2
+        pygame.display.flip()
+
+        # Wait for user to click on a line or press a number key
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if pygame.K_1 <= event.key <= pygame.K_9:
+                        idx = event.key - pygame.K_1
+                        if idx < len(pieces):
+                            return pieces[idx]
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = event.pos
+                    if popup_rect.collidepoint(mx, my):
+                        rel_y = my - popup_rect.top - margin
+                        line_height = text_surfaces[0].get_height() + margin // 2
+                        idx = rel_y // line_height
+                        if 0 <= idx < len(pieces):
+                            return pieces[idx]
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return None
