@@ -1,4 +1,5 @@
 from asyncio import Task
+from turtle import pos
 import pygame
 import sys
 import math
@@ -62,6 +63,26 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     pre_combat_count_japanese_bombers = sum(b.count for b in japanese_bombers)
     pre_combat_count_japanese_escorts = sum(ec.count for ec in japanese_escorts)
 
+    allied_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
+    japanese_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
+
+    #perform UI selection of taskforces and plane allocation
+    allied_taskforce_p:Piece = None
+    if len(allied_taskforce_pieces) > 1:
+        # Show a popup to select the taskforces
+        allied_taskforce_p:Piece = draw_piece_selection_popup(screen, allied_taskforce_pieces, pos)
+    elif len(allied_taskforce_pieces) == 1:
+        # If there is only one taskforce on each side, then just use those
+        allied_taskforce_p = allied_taskforce_pieces[0]
+        
+    japanese_taskforce_p:Piece = None
+    if len(japanese_taskforce_pieces) > 1:
+        # Show a popup to select the taskforces
+        japanese_taskforce_p:Piece = draw_piece_selection_popup(screen, japanese_taskforce_pieces, pos)
+    elif len(japanese_taskforce_pieces) == 1:
+        # If there is only one taskforce on each side, then just use those
+        japanese_taskforce_p = japanese_taskforce_pieces[0]
+
     ### Air 2 Air Combat ###
     result_allied_a2a = None
     result_japanese_a2a = None
@@ -120,23 +141,11 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     # find the japanese taskforces in the hex with the allied airformation and enable user to select one
     # display a popup with the taskforces and allow user to select one
 
-    def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], task_force_pieces:list[Piece], pos:tuple[int, int]):
+    def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], taskforce:TaskForce, pos:tuple[int, int]):
         combat_outcome = None
-        if (task_force_pieces and bombers):
-            if len(task_force_pieces) == 1:
-                # If there is only one taskforce on each side, then just use those
-                tf_p = task_force_pieces[0]
-            else:
-                # Show a popup to select the taskforces
-                tf_p:Piece = draw_piece_selection_popup(screen, task_force_pieces, pos)
-            
-            if tf_p:
-                # Now we have the taskforces, we can resolve anti aircraft combat
-                tf_selected:TaskForce = tf_p.game_model
-                        
-            if tf_selected:
-                combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, tf_selected, {"clouds": in_clouds, "night": at_night})
-            
+        if (taskforce and bombers):
+            combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, taskforce, {"clouds": in_clouds, "night": at_night})
+
         return combat_outcome
 
     def perform_base_anti_aircraft_combat(bombers:list[Aircraft], base:Base):
@@ -147,13 +156,14 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         return combat_outcome
 
 
-    ### Anti-Aircraft combat ### 
-        
-    allied_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
-    result_allied_anti_aircraft = perform_taskforce_anti_aircraft_combat(japanese_bombers, allied_taskforce_pieces, piece.position)
-    japanese_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
-    result_japanese_anti_aircraft = perform_taskforce_anti_aircraft_combat(allied_bombers, japanese_taskforce_pieces, piece.position)
-    
+    ### Anti-Aircraft combat ###
+    result_allied_anti_aircraft = None
+    result_japanese_anti_aircraft = None
+    if allied_taskforce_p:
+        result_allied_anti_aircraft = perform_taskforce_anti_aircraft_combat(japanese_bombers, allied_taskforce_p.game_model, piece.position)
+    if japanese_taskforce_p:
+        result_japanese_anti_aircraft = perform_taskforce_anti_aircraft_combat(allied_bombers, japanese_taskforce_p.game_model, piece.position)
+
     allied_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side == "Allied" and p.position == piece.position]
     japanese_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side == "Japanese" and p.position == piece.position]
     #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
@@ -202,27 +212,13 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     #allied attack ship
     # airplanes attacking ships need to select a taskforce
     result_allied_ship_air_attack = None
-    
-    if len(japanese_taskforce_pieces) == 1:
-        japanese_taskforce = japanese_taskforce_pieces[0].game_model
-        result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
-    elif len(japanese_taskforce_pieces)>1:
-        # Show a popup to select the taskforces
-        piece_selected = draw_piece_selection_popup(screen,japanese_taskforce_pieces, piece.position)
-        japanese_taskforce:TaskForce = piece_selected.game_model if piece_selected else None
-        if japanese_taskforce:
-            result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
+
+    if japanese_taskforce_p:
+        result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce_p.game_model)
     #japanese attack ship
     result_japanese_ship_air_attack = None
-    if len(allied_taskforce_pieces) == 1:
-        allied_taskforce = allied_taskforce_pieces[0].game_model
-        result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
-    elif len(allied_taskforce_pieces) > 1:
-        # Show a popup to select the taskforces
-        piece_selected = draw_piece_selection_popup(screen, allied_taskforce_pieces, piece.position)
-        allied_taskforce:TaskForce = piece_selected.game_model if piece_selected else None  
-        if allied_taskforce:
-            result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
+    if allied_taskforce_p:
+        result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce_p.game_model)
 
 
     result_allied_base_air_attack = None
