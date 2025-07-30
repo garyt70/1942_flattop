@@ -88,32 +88,36 @@ class AircraftOperationChartCommandWidget:
     def collidepoint(self, mx, my):
         return self.btn_rect.collidepoint(mx, my)
  
-class AircraftHeightChangeWidget:
+class AircraftAirFormationCommandWidget:
     def __init__(self, surface, aircraft:Aircraft, x, y):
         self.aircraft=aircraft
         self.pos_x = x
         self.pos_y = y
         self.surface = surface
-        self._height_btn_rect = pygame.Rect(x, y, 60, 30)
-        self._armament_btn_rect = pygame.Rect(x + 70, y, 60, 30)
+        self._height_btn_rect = None
+        self._attach_type_btn_rect = None
 
     def draw(self):
-        """
-       Draws a button that displays the heigh of the aircraft
-        """
-        # Draw the button
+        columns = [self.pos_x, self.pos_x + 60, self.pos_x + 100]
+        self._height_btn_rect = pygame.Rect(columns[1], self.pos_y, 40, 20)
+        self._attach_type_btn_rect = pygame.Rect(columns[2], self.pos_y, 40, 20)
+        font = pygame.font.SysFont(None, 18)
+
+       #armament display
+        self.surface.blit(font.render(str(self.aircraft.armament), True, COLOR_FONT_ARMAMENT), (columns[0], self.pos_y))
+       
+        # Draw the height button
         pygame.draw.rect(self.surface, (0, 200, 0), self._height_btn_rect)
-        font = pygame.font.SysFont(None, 24)
+        
         btn_label = font.render(f"{self.aircraft.height}", True, (255, 255, 255))
-        self.surface.blit(btn_label, (self.pos_x + 8, self.pos_y + 2))
+        self.surface.blit(btn_label, (columns[1], self.pos_y + 2))
 
         #draw button for attack type
         attack_type = self.aircraft.attack_type
-        pygame.draw.rect(self.surface, (0, 200, 0), self._armament_btn_rect)
-        font = pygame.font.SysFont(None, 24)
+        pygame.draw.rect(self.surface, (0, 200, 0), self._attach_type_btn_rect)
+        font = pygame.font.SysFont(None, 18)
         btn_label = font.render(f"{attack_type}", True, (255, 255, 255))
-        self.surface.blit(btn_label, (self._armament_btn_rect.x + 8, 
-                                      self._armament_btn_rect.y + 2))
+        self.surface.blit(btn_label, (columns[2], self._attach_type_btn_rect.y + 2))
 
     def _handle_height_click(self):
         if self.aircraft.height == "High":
@@ -135,7 +139,7 @@ class AircraftHeightChangeWidget:
         #check which button was clicked
         if self._height_btn_rect.collidepoint(mx, my):
             self._handle_height_click()
-        elif self._armament_btn_rect.collidepoint(mx, my):
+        elif self._attach_type_btn_rect.collidepoint(mx, my):
             self._handle_attack_type_click()
 
         self.draw()
@@ -143,7 +147,7 @@ class AircraftHeightChangeWidget:
 
     def collidepoint(self, mx, my):
         # Returns True if either button is clicked
-        return self._height_btn_rect.collidepoint(mx, my) or self._armament_btn_rect.collidepoint(mx, my)
+        return self._height_btn_rect.collidepoint(mx, my) or self._attach_type_btn_rect.collidepoint(mx, my)
 
 class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartCommandWidget):
     """
@@ -188,7 +192,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
         if self.selected_armament:
             # Redraw the armament button with the new selection
             font = pygame.font.SysFont(None, 20)
-            arm_text = font.render(str(self.selected_armament), True, (255, 255, 0),(50, 50, 50))
+            arm_text = font.render(str(self.selected_armament)[:4], True, (255, 255, 0), (50, 50, 50))
             self.surface.blit(arm_text, (self.armament_btn_rect.x + 8, self.armament_btn_rect.y + 5))
             pygame.display.flip()
         
@@ -214,7 +218,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
 
 
 class AircraftDisplay:
-    columns = [260, 320, 380, 440, 500, 560, 620, 680, 740, 800, 860, 920, 980, 1040, 1100, 1160, 1300, 1360, 1420]
+    columns = [260, 320, 370, 420, 470, 520, 570, 620, 670, 720, 770, 820, 870, 920, 980, 1040, 1100, 1160, 1300, 1360, 1420]
 
     def __init__(self):
         pass
@@ -225,7 +229,7 @@ class AircraftDisplay:
         Draws a single AirCraft object on the surface at the specified position.
         """
         columns = AircraftDisplay.columns
-        font = pygame.font.SysFont(None, 24)
+        font = pygame.font.SysFont(None, 22)
              
         ac_type = aircraft.type.name if isinstance(aircraft.type, AircraftType) else str(aircraft.type)
         ac_move=aircraft.move_factor
@@ -264,7 +268,7 @@ class AircraftDisplay:
         surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, COLOR_FONT_RANGE), (x + columns[15], y))
 
         #armament display
-        surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
+        #surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
 
         #display height - this is done via a widget for AirFormations.
         #surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
@@ -292,7 +296,7 @@ class AircraftDisplay:
     @staticmethod
     def draw_aircraft_list_header(surface, aircraft: Aircraft, x, y):
         columns = AircraftDisplay.columns
-        font = pygame.font.SysFont(None, 24)
+        font = pygame.font.SysFont(None, 22)
 
         surface.blit(font.render("vs Base", True, COLOR_FONT_HEADER), (x + columns[1], y))
         surface.blit(font.render("vs Ship", True, COLOR_FONT_HEADER), (x + columns[7], y))
@@ -339,12 +343,12 @@ class AircraftDisplay:
         surface.blit(font.render("Move", True, COLOR_FONT_HEADER), (x + columns[14], y))
         surface.blit(font.render("Range", True, COLOR_FONT_HEADER), (x + columns[15], y))
 
-        #armament
-        surface.blit(font.render("Armed", True, COLOR_FONT_HEADER), (x + columns[16], y))
-        #height
-        surface.blit(font.render("Height", True, COLOR_FONT_HEADER), (x + columns[17], y))
+        #armament handled by widget
+        #surface.blit(font.render("Armed", True, COLOR_FONT_HEADER), (x + columns[16], y))
+        #height handled by widget
+        #surface.blit(font.render("Height", True, COLOR_FONT_HEADER), (x + columns[17], y))
         #attack type
-        surface.blit(font.render("Attack", True, COLOR_FONT_HEADER), (x + columns[18], y))
+        #surface.blit(font.render("Attack", True, COLOR_FONT_HEADER), (x + columns[18], y))
 
         y += 20
         return y
@@ -390,7 +394,7 @@ class AircraftDisplay:
     def draw_aircraft_list_with_height_btn (surface, aircraft_list, x, y):
         btn_list = []
         for ac in aircraft_list:
-            btn = AircraftHeightChangeWidget(surface, ac, x + AircraftDisplay.columns[17], y)
+            btn = AircraftAirFormationCommandWidget(surface, ac, x + AircraftDisplay.columns[17], y)
             btn.draw()
             btn_list.append(btn)
             y = AircraftDisplay.draw_aircraft(surface, ac, x, y)

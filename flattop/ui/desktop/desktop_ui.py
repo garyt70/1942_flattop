@@ -177,8 +177,6 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
     def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
         # this involves choosing which ship is attacked by which aircraft
-            #TODO implement logic with a UI to select ship to attack by which aircraft
-            # thinking is to be able to allocate aircraft to attack specific ships
         # and then resolve the combat for each ship
 
         if not bombers or not taskforce:
