@@ -241,25 +241,60 @@ class Base:
     """
     def create_air_formation(self, number):
         """
-        Creates an AirFormation for this base.
+        Creates an AirFormation for this base, adhering to ready/launch factor rules.
 
         Args:
             number (int): Air Formation counter number (1–35).
 
         Returns:
             AirFormation: The created AirFormation with aircraft from the READY status.
+
+        Rules:
+            - Only aircraft in READY status can be assigned to an AirFormation.
+            - The number of aircraft moved cannot exceed available ready/launch factors for this turn.
+            - used_ready_factor and used_launch_factor are incremented accordingly.
+            - If not enough ready/launch factors remain, only as many aircraft as allowed are moved.
         """
         if number < 1 or number > 35:
             raise ValueError("Air Formation number must be between 1 and 35.")
 
         air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
 
-        # Move aircraft from READY status to the new AirFormation
+        # Determine how many aircraft can be launched this turn
+        ready_limit = self.air_operations_config.ready_factors - self.used_ready_factor
+        launch_limit = self.air_operations_config.launch_factor_max - self.used_launch_factor
+        allowed = min(ready_limit, launch_limit)
+        if allowed <= 0 or not self.air_operations_tracker.ready:
+            return None  # Cannot launch any more aircraft this turn
+
+        # Move up to 'allowed' aircraft from READY to the new AirFormation
+        moved = 0
+        to_remove = []
         for ac in self.air_operations_tracker.ready:
-            air_formation.add_aircraft(ac)
-        # Clear the READY status in the AirOperationsTracker
-        self.air_operations_tracker.ready.clear()
-        
+            if moved >= allowed:
+                break
+            # Move the whole stack if possible, or partial if needed
+            ac_to_add = ac.copy()
+            if ac.count + moved > allowed:
+                ac_to_add.count = allowed - moved
+                ac.count -= ac_to_add.count
+            else:
+                ac_to_add.count = ac.count
+                ac.count = 0
+            air_formation.add_aircraft(ac_to_add)
+            moved += ac_to_add.count
+            if ac.count == 0:
+                to_remove.append(ac)
+        # Remove aircraft with count 0 from READY
+        for ac in to_remove:
+            self.air_operations_tracker.ready.remove(ac)
+
+        # Update base status
+        self.used_ready_factor += moved
+        self.used_launch_factor += moved
+
+        if moved == 0:
+            return None
         return air_formation
 
     def reset_for_new_turn(self):
