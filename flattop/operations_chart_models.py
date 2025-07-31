@@ -375,7 +375,7 @@ class AirFormation:
 
     def add_aircraft(self, aircraft):
         if not isinstance(aircraft, Aircraft):
-            raise TypeError("Expected an AirCraft instance")
+            raise TypeError("Expected an Aircraft instance")
         self.aircraft.append(aircraft)
 
     def remove_aircraft(self, aircraft):
@@ -514,7 +514,7 @@ class Aircraft:
 
 
     def __repr__(self):
-        return f"AirCraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
+        return f"Aircraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
     
     def copy(self):
         ac = Aircraft(self.type, self.count, self.move_factor, self.range_factor, self.combat_data)

@@ -26,7 +26,7 @@ ai = ComputerOpponent('Japanese')
 """
 
 import random
-from flattop.hex_board_game_model import Piece, get_distance
+from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
 from flattop.operations_chart_models import AirFormation, TaskForce, Base
 from flattop.aircombat_engine import (
     resolve_air_to_air_combat,
@@ -36,8 +36,68 @@ from flattop.aircombat_engine import (
     resolve_air_to_base_combat
 )
 from flattop.game_engine import get_actionable_pieces, perform_observation_for_side
+from flattop.weather_model import WeatherManager
 
 class ComputerOpponent:
+    def _move_toward(self, board, piece, target_hex, stop_distance=1, weather_manager=None):
+        """
+        Move the piece toward the target_hex, stopping at stop_distance if possible.
+        Only move over sea hexes for air formations and task forces. Planes do not move into storm hexes.
+        """
+        from flattop.hex_board_game_model import get_distance
+        current = piece.position
+        max_move = getattr(piece, 'movement_factor', 1)
+        # If already within stop_distance, do not move
+        if get_distance(current, target_hex) <= stop_distance:
+            return
+        # Only allow sea hexes, and for planes, avoid storm hexes
+        gm = getattr(piece, 'game_model', None)
+        is_plane = isinstance(gm, AirFormation)
+        candidates = []
+        for tile in board.tiles:
+            if get_distance(current, tile) > max_move:
+                continue
+            # Only restrict to sea for TaskForce, not for AirFormation (planes can move over land and sea)
+            if not is_plane and board.get_terrain(tile) != 'sea':
+                continue
+            if is_plane and weather_manager is not None:
+                if weather_manager.get_weather_at_hex(tile) == 'storm':
+                    continue
+            candidates.append(tile)
+        # Move to the closest hex to target_hex within range, but not closer than stop_distance
+        best_hex = None
+        best_dist = float('inf')
+        for tile in candidates:
+            dist = get_distance(tile, target_hex)
+            if stop_distance <= dist < best_dist:
+                best_hex = tile
+                best_dist = dist
+        if best_hex:
+            board.move_piece(piece, best_hex)
+
+    def _move_random_within_range(self, board, piece, max_range=2, weather_manager=None):
+        """
+        Move the piece to a random valid hex within max_range, avoiding land for air formations and task forces. Planes do not move into storm hexes.
+        """
+        from flattop.hex_board_game_model import get_distance
+        current = piece.position
+        gm = getattr(piece, 'game_model', None)
+        is_plane = isinstance(gm, AirFormation)
+        candidates = []
+        for tile in board.tiles:
+            if tile == current:
+                continue
+            if get_distance(current, tile) > max_range:
+                continue
+            if not is_plane and board.get_terrain(tile) != 'sea':
+                continue
+            if is_plane and weather_manager is not None:
+                if weather_manager.get_weather_at_hex(tile) == 'storm':
+                    continue
+            candidates.append(tile)
+        if candidates:
+            dest = random.choice(candidates)
+            board.move_piece(piece, dest)
     # Implementation notes:
     # - Only observed enemy pieces (observed_condition > 0) are considered for movement/attack
     # - Air formations are created and launched if no enemies are observed, to simulate search/recon
@@ -49,52 +109,274 @@ class ComputerOpponent:
     def __init__(self, side:str):
         self.side = side  # 'Allied' or 'Japanese'
 
-    def perform_turn(self, board, weather_manager, turn_manager):
+    def perform_turn(self, board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
         """
         Perform all actions for the computer opponent for the current phase.
         Only move/attack observed enemy pieces. If no enemies are observed, create/search with air formations.
+        Handles Air Operations phase: arms aircraft and creates air formations for CAP/interception or search.
         """
         phase = turn_manager.current_phase
         actionable = get_actionable_pieces(board, turn_manager)
         observed_enemy_pieces = [p for p in board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
-        if not observed_enemy_pieces and phase == "Plane Movement":
-            self._create_and_search_with_airformations(board, weather_manager, turn_manager)
-        elif phase in ("Plane Movement", "Task Force Movement"):
-            self._perform_movement_phase(actionable, board, observed_enemy_pieces)
+        if phase == "Air Operations":
+            self._perform_air_operations_phase(board, observed_enemy_pieces)
+        elif not observed_enemy_pieces and phase == "Plane Movement":
+            self._move_search_airformations(board)
+        elif phase == "Plane Movement":
+            self._perform_movement_phase(actionable, board, observed_enemy_pieces, move_type="plane")
+        elif phase == "Task Force Movement":
+            self._perform_movement_phase(actionable, board, observed_enemy_pieces, move_type="taskforce")
         elif phase == "Combat":
             self._perform_combat_phase(actionable, board, weather_manager, turn_manager, observed_enemy_pieces)
-        # Air Operations phase can be added as needed
 
-    def _perform_movement_phase(self, pieces, board, observed_enemy_pieces):
+
+    def _perform_air_operations_phase(self, board, observed_enemy_pieces):
         """
-        Move each piece towards the nearest observed enemy piece, avoiding land for TFs.
+        AI logic for Air Operations phase:
+        - If a TaskForce is observed, arm aircraft with AP (armor-piercing) if available in readying, and move to ready if ready factors allow.
+        - If an enemy AirFormation is observed within 10 hexes of a base, create an interceptor air formation if possible.
+        - If no observed enemies, create search air formations using best (longest range) ready aircraft, in small groups (1-3 aircraft), and only if ready/launch factors allow.
         """
-        for piece in pieces:
-            if piece.side != self.side or not piece.can_move or piece.has_moved:
+        own_pieces = [p for p in board.pieces if p.side == self.side]
+        bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
+        taskforces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
+
+        # 1. Arm aircraft with AP if TaskForce is observed
+        taskforce_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, TaskForce)]
+        if taskforce_targets:
+            for base_piece in bases:
+                base = base_piece.game_model
+                readying = base.air_operations_tracker.readying
+                ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+                to_ready = []
+                for ac in readying:
+                    # Only arm if not already armed with AP
+                    if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
+                        ac.armament = 'AP'
+                        to_ready.append(ac)
+                        ready_factors_left -= ac.count
+                # Move armed aircraft to READY if ready factors allow
+                for ac in to_ready:
+                    base.air_operations_tracker.set_operations_status(ac, 'ready')
+                    base.used_ready_factor += ac.count
+
+            for tf_piece in taskforces:
+                tf = tf_piece.game_model
+                for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
+                    base = getattr(carrier, 'base', None)
+                    if not base:
+                        continue
+                    readying = base.air_operations_tracker.readying
+                    ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+                    to_ready = []
+                    for ac in readying:
+                        if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
+                            ac.armament = 'AP'
+                            to_ready.append(ac)
+                            ready_factors_left -= ac.count
+                    for ac in to_ready:
+                        base.air_operations_tracker.set_operations_status(ac, 'ready')
+                        base.used_ready_factor += ac.count
+
+        # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
+        air_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, AirFormation)]
+        for base_piece in bases:
+            base = base_piece.game_model
+            # Find enemy air formations within 10 hexes
+            for air_target in air_targets:
+                dist = get_distance(base_piece.position, air_target.position)
+                if dist <= 10:
+                    # Find ready aircraft that can serve as interceptors (no armament or fighter types)
+                    interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
+                    if interceptors:
+                        # Move interceptors to new air formation (CAP)
+                        af = base.create_air_formation(random.randint(1, 35))
+                        if af:
+                            af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
+                            board.add_piece(af_piece)
+                        break
+        for tf_piece in taskforces:
+            tf = tf_piece.game_model
+            for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
+                base = getattr(carrier, 'base', None)
+                if not base:
+                    continue
+                for air_target in air_targets:
+                    dist = get_distance(tf_piece.position, air_target.position)
+                    if dist <= 10:
+                        interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
+                        if interceptors:
+                            af = base.create_air_formation(random.randint(1, 35))
+                            if af:
+                                af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
+                                board.add_piece(af_piece)
+                            break
+
+        # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
+        if not observed_enemy_pieces:
+            # Helper to select best ready aircraft (longest range)
+            def select_best_ready_aircraft(ready_list, max_count):
+                # Sort by range descending, then by count ascending (prefer small groups)
+                sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
+                selected = []
+                total = 0
+                
+                for ac in sorted_ready:
+                    if total + ac.count > max_count:
+                        # Split if too many
+                        ac_copy = ac.copy()  # Create a copy to avoid modifying the original
+                        ac_copy.count = max_count - total
+                        #reduce the original count
+                        ac.count -= ac_copy.count
+                        if ac.count <= 0:
+                            ready_list.remove(ac)
+                        if ac_copy.count <= 0:
+                            continue
+                        selected.append(ac_copy)
+                        break
+                    selected.append(ac)
+                    total += ac.count
+                    if total >= max_count:
+                        break
+                return selected
+
+            # For each base, try to create 1-2 search air formations (1-3 aircraft each, longest range)
+            for base_piece in bases:
+                base:Base = base_piece.game_model
+                ready_aircraft = list(base.air_operations_tracker.ready)
+                # Only create if launch factors allow
+                launch_factors_left = base.air_operations_config.launch_factor_max - base.used_launch_factor
+                if ready_aircraft and launch_factors_left > 0:
+                    # Try to create up to 2 search formations
+                    for _ in range(min(2, launch_factors_left)):
+                        # Pick 1-3 best ready aircraft (longest range)
+                        best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
+                        if not best:
+                            break
+                        for ac in best:
+                            af = AirFormation(random.randint(1, 35), name="Search Formation", side=base.side)
+                            af.add_aircraft(ac)  # Add this single aircraft to the formation
+                            if af:
+                                af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
+                                board.add_piece(af_piece)
+                                # Remove used aircraft from ready list if its count is now zero
+                                if ac in ready_aircraft and ac.count <= 0:
+                                    ready_aircraft.remove(ac)
+                            else:
+                                break
+
+            # For each carrier, same logic as above
+            for tf_piece in taskforces:
+                tf = tf_piece.game_model
+                for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
+                    base = getattr(carrier, 'base', None)
+                    if not base:
+                        continue
+                    ready_aircraft = list(base.air_operations_tracker.ready)
+                    launch_factors_left = base.air_operations_config.launch_factors - base.used_launch_factor
+                    if ready_aircraft and launch_factors_left > 0:
+                        for _ in range(min(2, launch_factors_left)):
+                            best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
+                            if not best:
+                                break
+                            af = base.create_air_formation(random.randint(1, 35), aircraft=best)
+                            if af:
+                                af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
+                                board.add_piece(af_piece)
+                                for used in best:
+                                    if used in ready_aircraft:
+                                        ready_aircraft.remove(used)
+                            else:
+                                break
+
+    def _perform_movement_phase(self, actionable, board, observed_enemy_pieces, move_type=None, weather_manager=None):
+        """
+        Move phase logic:
+        - If observed enemy pieces exist, move toward nearest observed enemy.
+        - If no observed enemies, move in a search pattern:
+            - Fighters/interceptors (non-bombers) move close to bases (CAP/intercept role).
+            - Bombers can search more widely (random within range).
+        """
+        # If actionable is None, recompute it
+        if actionable is None:
+            from flattop.game_engine import get_actionable_pieces
+            actionable = get_actionable_pieces(board, None)
+        if not actionable:
+            return
+        # Only move pieces belonging to the computer side
+        actionable = [p for p in actionable if p.side == self.side]
+        # Determine which type of pieces to move this phase
+        if move_type == "plane":
+            actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
+        elif move_type == "taskforce":
+            actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), TaskForce)]
+        if not actionable:
+            return
+        if not observed_enemy_pieces:
+            # No observed enemies: move in a search pattern
+            own_pieces = [p for p in board.pieces if p.side == self.side]
+            bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
+            base_hexes = [b.position for b in bases]
+            for piece in actionable:
+                if not hasattr(piece, 'can_move') or not piece.can_move:
+                    continue
+                gm = getattr(piece, 'game_model', None)
+                if isinstance(gm, AirFormation):
+                    # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
+                    aircraft_types = [ac.type for ac in gm.aircraft]
+                    is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if gm.aircraft else False
+                    if not is_bomber:
+                        # Fighters/interceptors: move close to nearest base (within 2-3 hexes)
+                        if base_hexes:
+                            # Find nearest base
+                            min_dist = float('inf')
+                            nearest_base = None
+                            for base_hex in base_hexes:
+                                dist = get_distance(piece.position, base_hex)
+                                if dist < min_dist:
+                                    min_dist = dist
+                                    nearest_base = base_hex
+                            # Move toward base, but not into the base hex (prefer 1-3 hexes away)
+                            if nearest_base and min_dist > 1:
+                                self._move_toward(board, piece, nearest_base, stop_distance=2, weather_manager=weather_manager)
+                            else:
+                                # Already close, loiter or move randomly within 2 hexes
+                                self._move_random_within_range(board, piece, max_range=2, weather_manager=weather_manager)
+                        else:
+                            # No base found, move randomly within 2 hexes
+                            self._move_random_within_range(board, piece, max_range=2, weather_manager=weather_manager)
+                    else:
+                        # Bombers: search more widely (random within movement range)
+                        move_range = getattr(gm, 'move_factor', 4)
+                        self._move_random_within_range(board, piece, max_range=move_range, weather_manager=weather_manager)
+                elif isinstance(gm, TaskForce):
+                    # Task forces: do not move if no observed enemies (could add patrol logic here)
+                    continue
+            return
+        # Move each actionable piece toward the nearest observed enemy
+        for piece in actionable:
+            if not hasattr(piece, 'can_move') or not piece.can_move:
                 continue
-            if not observed_enemy_pieces:
-                continue
-            # Find nearest observed enemy
-            nearest_enemy = min(observed_enemy_pieces, key=lambda p: get_distance(piece.position, p.position))
-            min_dist = get_distance(piece.position, nearest_enemy.position)
-            # Get all possible hexes within movement range
-            possible_hexes = [tile for tile in board.tiles
-                              if get_distance(piece.position, tile) <= piece.movement_factor]
-            # For TaskForces, avoid land
-            if isinstance(piece.game_model, TaskForce):
-                possible_hexes = [h for h in possible_hexes if board.get_terrain(h) != "land"]
-            # Exclude current position
-            possible_hexes = [h for h in possible_hexes if h != piece.position]
-            # Move to hex that minimizes distance to nearest enemy
-            if possible_hexes:
-                dest = min(possible_hexes, key=lambda h: get_distance(h, nearest_enemy.position))
-                board.move_piece(piece, dest)
+            gm = getattr(piece, 'game_model', None)
+            min_dist = float('inf')
+            target = None
+            for enemy in observed_enemy_pieces:
+                dist = get_distance(piece.position, enemy.position)
+                if dist < min_dist:
+                    min_dist = dist
+                    target = enemy
+            if target:
+                self._move_toward(board, piece, target.position, weather_manager=weather_manager)
 
     def _perform_combat_phase(self, pieces, board, weather_manager, turn_manager, observed_enemy_pieces):
         """
         For each piece that can attack, attempt to attack an observed enemy in the same hex.
         Only attack observed enemies.
         """
+        # If pieces is None, recompute actionable pieces
+        if pieces is None:
+            from flattop.game_engine import get_actionable_pieces
+            pieces = get_actionable_pieces(board, turn_manager)
         for piece in pieces:
             if piece.side != self.side or not piece.can_attack:
                 continue
@@ -129,29 +411,20 @@ class ComputerOpponent:
             # TaskForce attacks (surface combat not implemented)
             # Could add surface combat logic here
 
-    def _create_and_search_with_airformations(self, board, weather_manager, turn_manager):
+    def _create_search_airformations(self, board):
         """
-        If no enemies are observed, create air formations from available bases/carriers and send them to search random locations.
+        During Air Operations phase: create air formations for search from available bases/carriers, but do not move them yet.
         """
-        # Find all bases and carriers for this side
         own_pieces = [p for p in board.pieces if p.side == self.side]
         bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
         taskforces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
-        # Try to create/search with air formations from bases
         for base_piece in bases:
             base = base_piece.game_model
-            # Try to create an air formation if there are ready aircraft
             if hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
                 af = base.create_air_formation(random.randint(1, 35))
-                # Place the new air formation piece on the board at the base's location
-                af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
-                board.add_piece(af_piece)
-                # Move the air formation to a random tile to search
-                possible_hexes = [tile for tile in board.tiles if tile != base_piece.position]
-                if possible_hexes:
-                    dest = random.choice(possible_hexes)
-                    board.move_piece(af_piece, dest)
-        # Try to create/search with air formations from carriers in taskforces
+                if af:
+                    af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
+                    board.add_piece(af_piece)
         for tf_piece in taskforces:
             tf = tf_piece.game_model
             carriers = tf.get_carriers() if hasattr(tf, 'get_carriers') else []
@@ -159,12 +432,23 @@ class ComputerOpponent:
                 base = getattr(carrier, 'base', None)
                 if base and hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
                     af = base.create_air_formation(random.randint(1, 35))
-                    af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
-                    board.add_piece(af_piece)
-                    possible_hexes = [tile for tile in board.tiles if tile != tf_piece.position]
-                    if possible_hexes:
-                        dest = random.choice(possible_hexes)
-                        board.move_piece(af_piece, dest)
+                    if af:
+                        af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
+                        board.add_piece(af_piece)
+
+    def _move_search_airformations(self, board):
+        """
+        During Plane Movement phase: move air formations (with no observed enemy) in a search pattern (random within range).
+        """
+        own_pieces = [p for p in board.pieces if p.side == self.side]
+        for piece in own_pieces:
+            gm = getattr(piece, 'game_model', None)
+            if isinstance(gm, AirFormation):
+                max_move = gm.movement_factor
+                possible_hexes = [tile for tile in board.tiles if tile != piece.position and get_distance(piece.position, tile) <= max_move]
+                if possible_hexes:
+                    dest = random.choice(possible_hexes)
+                    board.move_piece(piece, dest)
 
     def perform_observation(self, board, weather_manager, turn_manager):
         """

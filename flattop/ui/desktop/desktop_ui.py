@@ -15,6 +15,8 @@ from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
 
+from flattop.computer_oponent_engine import ComputerOpponent
+
 import flattop.ui.desktop.desktop_config as config
 from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
@@ -299,6 +301,9 @@ class DesktopUI:
             self.weather_manager = weather_manager
 
         self.board.pieces.extend(self.weather_manager.get_weather_pieces())
+
+        self.computer_opponent = ComputerOpponent("Japanese")  # Example initialization, can be set to "Allied" or "Japanese"
+        # Perform initial turn start actions
         perform_observation_phase(self.board, self.weather_manager, self.turn_manager)
 
     def initialize(self):
@@ -494,6 +499,7 @@ class DesktopUI:
 
     def run_with_click_return(self):
         running = True
+        self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -725,205 +731,8 @@ class DesktopUI:
                     self._moving_piece_offset = None
 
             case "Combat":
-                """
-                # Find all AirFormations in the hex
-                hex_airformations = [
-                    p for p in self.board.pieces
-                    if isinstance(p.game_model, AirFormation)
-                    and p.position == piece.position
-                ]
-                # Group by side
-                sides = set(p.side for p in hex_airformations)
-                
-                allied_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Allied"]
-                japanese_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Japanese"]
-
-                # Gather aircraft by role (interceptor, escort, bomber)
-                allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied_aircraft_pieces)
-                japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese_aircraft_pieces)
-
-                pre_combat_count_allied_interceptors = sum(ic.count for ic in allied_interceptors)
-                pre_combat_count_allied_bombers = sum(b.count for b in allied_bombers)
-                pre_combat_count_allied_escorts = sum(ec.count for ec in allied_escorts)
-
-                pre_combat_count_japanese_interceptors = sum(ic.count for ic in japanese_interceptors)
-                pre_combat_count_japanese_bombers = sum(b.count for b in japanese_bombers)
-                pre_combat_count_japanese_escorts = sum(ec.count for ec in japanese_escorts)
-
-                ### Air 2 Air Combat ###
-                result_allied_a2a = None
-                result_japanese_a2a = None
-
-                in_clouds = self.weather_manager.is_cloud_hex(piece.position)
-                at_night = self.turn_manager.is_night()
-                if len(sides) == 2:
-                   
-                    # For simplicity, assume two sides: Allied and Japanese
-                    #and there are two airformations
-
-                    # if no bombers on either side then convert interceptors to escorts 
-                    if not allied_bombers and not japanese_bombers:
-                        # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
-                        japanese_escorts.extend(japanese_interceptors)
-                        japanese_interceptors = []
-                    
-                    result_allied_a2a = resolve_air_to_air_combat(
-                        interceptors=allied_interceptors,
-                        escorts=japanese_escorts,
-                        bombers=japanese_bombers,
-                        rf_expended=True,
-                        clouds=in_clouds,
-                        night=at_night
-                    )
-
-                    if not allied_bombers and not japanese_bombers:
-                        # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
-                        allied_escorts.extend(allied_interceptors)
-                        allied_interceptors = []
-                    
-                    result_japanese_a2a = resolve_air_to_air_combat(
-                        interceptors=japanese_interceptors,
-                        escorts=allied_escorts,
-                        bombers=allied_bombers,
-                        rf_expended=True,
-                        clouds=in_clouds,
-                        night=at_night
-                    )
-
-                    # need to update the air operations chart for each side
-                    # remove aircraft from air formations that have 0 or less count
-                    # removed airformations that have no aircraft left
-                    for af in allied_aircraft_pieces:
-                        af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
-                        if not af.aircraft:
-                            #self.board.pieces.remove(Piece(name=af.name, side="Allied", position=af.position, gameModel=af))
-                            self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
-                    for af in japanese_aircraft_pieces:
-                        af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
-                        if not af.aircraft:
-                            #self.board.pieces.remove(Piece(name=af.name, side="Japanese", position=af.position, gameModel=af))
-                            self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
-                    
-                
-                ### execute anti aircraft combat ###
-                # the taskforce being attacked by the air formations need to be selected.
-                # find the allied taskforces in the hex with the japanese airformation and enable user to select one
-                # find the japanese taskforces in the hex with the allied airformation and enable user to select one
-                # display a popup with the taskforces and allow user to select one
-
-                def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], task_force_pieces:list[Piece], pos:tuple[int, int]):
-                    combat_outcome = None
-                    if (task_force_pieces and bombers):
-                        if len(task_force_pieces) == 1:
-                            # If there is only one taskforce on each side, then just use those
-                            tf_p = task_force_pieces[0]
-                        else:
-                            # Show a popup to select the taskforces
-                            tf_p:Piece = self.render_piece_selection_popup(task_force_pieces, pos)
-                        
-                        if tf_p:
-                            # Now we have the taskforces, we can resolve anti aircraft combat
-                            tf_selected:TaskForce = tf_p.game_model
-                                    
-                        if tf_selected:
-                            combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, tf_selected, {"clouds": in_clouds, "night": at_night})
-                        
-                    return combat_outcome
-
-                def perform_base_anti_aircraft_combat(bombers:list[Aircraft], base:Base):
-                    combat_outcome = None
-                    if (base and bombers):
-                         combat_outcome = resolve_base_anti_aircraft_combat( bombers, base, {"clouds": in_clouds, "night": at_night})
-
-                    return combat_outcome
-
-
-                ### Anti-Aircraft combat ### 
-                    
-                allied_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
-                result_allied_anti_aircraft = perform_taskforce_anti_aircraft_combat(japanese_bombers, allied_taskforce_pieces, pos)
-                japanese_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
-                result_japanese_anti_aircraft = perform_taskforce_anti_aircraft_combat(allied_bombers, japanese_taskforce_pieces, pos)
-                
-                allied_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == "Allied" and p.position == piece.position]
-                japanese_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == "Japanese" and p.position == piece.position]
-                #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
-                if allied_base_pieces:
-                    result_allied_anti_aircraft = perform_base_anti_aircraft_combat(japanese_bombers,allied_base_pieces[0].game_model)
-                #assume there is only ever one base
-                if japanese_base_pieces:
-                    result_japanese_anti_aircraft = perform_base_anti_aircraft_combat(allied_bombers,japanese_base_pieces[0].game_model)
-
-                #### execute the air combat attack against selected ship ####
-
-                def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
-                    # this involves choosing which ship is attacked by which aircraft
-                     #TODO implement logic with a UI to select ship to attack by which aircraft
-                     # thinking is to be able to allocate aircraft to attack specific ships
-                    # and then resolve the combat for each ship
-
-                    if not bombers or not taskforce:
-                        return None
-
-                    if len(bombers) == 0:
-                        return None
-
-
-                    ui = BomberAllocationUI(self.screen, taskforce.ships, bombers)
-                    allocation = ui.handle_events()
-                    print(allocation)
-
-                    if not allocation:
-                        # If no allocation was made, return None
-                        return None
-                    
-                    # Resolve combat for each ship in the taskforce
-                    # and return the results
-                    results = []
-                    for ship, allocated_bombers in allocation.items():
-                        if allocated_bombers:
-                            result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
-                            results.append(result)
-                            if ship.status == "Sunk":
-                                taskforce.ships.remove(ship)
-                    return results
-
-                
-                
-                #allied attack ship
-                # airplanes attacking ships need to select a taskforce
-                result_allied_ship_air_attack = None
-                
-                if len(japanese_taskforce_pieces) == 1:
-                    japanese_taskforce = japanese_taskforce_pieces[0].game_model
-                    result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
-                elif len(japanese_taskforce_pieces)>1:
-                    # Show a popup to select the taskforces
-                    piece_selected = self.render_piece_selection_popup(japanese_taskforce_pieces, pos)
-                    japanese_taskforce:TaskForce = piece_selected.game_model if piece_selected else None
-                    if japanese_taskforce:
-                        result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce)
-                #japanese attack ship
-                result_japanese_ship_air_attack = None
-                if len(allied_taskforce_pieces) == 1:
-                    allied_taskforce = allied_taskforce_pieces[0].game_model
-                    result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
-                elif len(allied_taskforce_pieces) > 1:
-                    # Show a popup to select the taskforces
-                    piece_selected = self.render_piece_selection_popup(allied_taskforce_pieces, pos)
-                    allied_taskforce:TaskForce = piece_selected.game_model if piece_selected else None  
-                    if allied_taskforce:
-                        result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce)
-
-
-                result_allied_base_air_attack = None
-                if japanese_base_pieces:
-                    result_allied_base_air_attack = resolve_air_to_base_combat(allied_bombers, japanese_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
-
-                result_japanese_base_air_attack = None
-                if allied_base_pieces:
-                    result_japanese_base_air_attack = resolve_air_to_base_combat(japanese_bombers, allied_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
-                """
+                # Perform combat action for the AirFormation
+                # This will involve selecting taskforces and performing air combat
                 results = perform_air_combat_ui(self.screen, piece, self.board.pieces, self.board, self.weather_manager, self.turn_manager)
                 # Optionally, show a popup with results
 
@@ -1194,27 +1003,33 @@ class DesktopUI:
                         case 0:
                             print("Starting a new turn")
                             perform_turn_start_actions(board=self.board, turn_manager=self.turn_manager, weather_manager=self.weather_manager)
-                            
+                            self.computer_opponent.perform_observation(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
                             print("Air Operations Phase")
                         case 1:
                             print("Shadowing Phase")
                         case 2:
                             print("Task Force Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Task Force Movement
+                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
                         case 3:
                             print("Plane Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Plane Movement
+                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
                         case 4:
                             print("Combat Phase")
                             # no action this phase, just a placeholder. Menus change to Combat
+                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
                         case 5:
                             print("Repair Phase")
+                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+
                     return
                 # Check if click is on a piece line
                 for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
                     ts = text_surfaces[i]
                     text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
-                    if text_rect.collidepoint(mx, my):
+                    if text_rect.collidepoint(mx, my) and len(unmoved) > 1:
                         self.show_piece_menu(unmoved[i], event.pos)
                         return
                 # Scroll up/down if click on arrows
