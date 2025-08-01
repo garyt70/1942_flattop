@@ -239,12 +239,13 @@ class Base:
     - The number of AirCraft, by type, in the AirFormation is determined by the count of each type of aircraft in the READY status.
     - The number of AirCraft, allocated to the AirFormation, is subtracted from the READY status in the AirOperationsTracker for the plane type.
     """
-    def create_air_formation(self, number):
+    def create_air_formation(self, number, aircraft=None):
         """
         Creates an AirFormation for this base, adhering to ready/launch factor rules.
 
         Args:
             number (int): Air Formation counter number (1–35).
+            aircraft (list, optional): List of aircraft to include in the formation.
 
         Returns:
             AirFormation: The created AirFormation with aircraft from the READY status.
@@ -267,7 +268,30 @@ class Base:
         if allowed <= 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
 
-        # Move up to 'allowed' aircraft from READY to the new AirFormation
+        # if aircraft is provided, use it and remove the appropriate aircraft from READY
+        if aircraft:
+            for ac in aircraft:
+                # Find all ready aircraft of the same type as ac
+                ready_same_type = [r for r in self.air_operations_tracker.ready if r.type == ac.type]
+                for r in ready_same_type:
+                    to_move = min(ac.count, r.count, allowed)
+                    if to_move > 0:
+                        ac_to_add = r.copy()
+                        ac_to_add.count = to_move
+                        air_formation.add_aircraft(ac_to_add)
+                        r.count -= to_move
+                        allowed -= to_move
+                        if r.count <=0:
+                            self.air_operations_tracker.ready.remove(r)
+                        if allowed <= 0:
+                            break
+                if allowed <= 0:
+                    break
+            if allowed <= 0:
+                return air_formation
+
+
+        # Using all the available Ready. Move up to 'allowed' aircraft from READY to the new AirFormation
         moved = 0
         to_remove = []
         for ac in self.air_operations_tracker.ready:
@@ -290,7 +314,6 @@ class Base:
             self.air_operations_tracker.ready.remove(ac)
 
         # Update base status
-        self.used_ready_factor += moved
         self.used_launch_factor += moved
 
         if moved == 0:
@@ -827,15 +850,15 @@ class AirOperationsTracker:
             sum(ac.count for ac in self.readying) +
             sum(ac.count for ac in self.ready)
         )
-        
-    def set_operations_status(self, aircraft, status):
+
+    def set_operations_status(self, to_aircraft: Aircraft, status, from_aircraft: Aircraft = None):
         """
         Sets an aircraft to the appropriate flight status list based on its status.
         Args:
             aircraft (AirCraft): The aircraft to update.
             status (AircraftStatus or str): The new status for the aircraft.
         """
-        if not isinstance(aircraft, Aircraft):
+        if not isinstance(to_aircraft, Aircraft):
             raise TypeError("Expected an AirCraft instance")
 
         # Accept both enum and string for status
@@ -849,23 +872,32 @@ class AirOperationsTracker:
         else:
             raise TypeError("status must be an AircraftStatus or str")
 
-        # Remove aircraft from all status lists before adding to the new one
-        for status_list in [self.in_flight, self.just_landed, self.readying, self.ready]:
-            if aircraft in status_list:
-                status_list.remove(aircraft)
+        if from_aircraft:
+            from_aircraft.count -= to_aircraft.count
 
         # Add to the appropriate status list
         if status_value == AircraftOperationsStatus.IN_FLIGHT.value:
-            self.in_flight.append(aircraft)
+            self.in_flight.append(to_aircraft)
+            
         elif status_value == AircraftOperationsStatus.JUST_LANDED.value:
-            self.just_landed.append(aircraft)
+            self.just_landed.append(to_aircraft)
         elif status_value == AircraftOperationsStatus.READYING.value:
-            self.readying.append(aircraft)
+            self.readying.append(to_aircraft)
+            if from_aircraft:
+                # If moving from just landed, remove from just landed
+                if from_aircraft in self.just_landed and from_aircraft.count <= 0:
+                    self.just_landed.remove(from_aircraft)
         elif status_value == AircraftOperationsStatus.READY.value:
-            self.ready.append(aircraft)
+            to_aircraft.range_remaining = to_aircraft.range_factor  # Reset range remaining when aircraft is ready
+            self.ready.append(to_aircraft)
+            if from_aircraft:
+                # If moving from readying, remove from readying
+                if from_aircraft in self.readying and from_aircraft.count <= 0:
+                    self.readying.remove(from_aircraft)
         else:
             raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
-    
+
+
 class AircraftOperationsStatus(Enum):
         IN_FLIGHT = "in_flight"
         JUST_LANDED = "just_landed"

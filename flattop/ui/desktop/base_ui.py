@@ -545,23 +545,14 @@ class BaseUIDisplay:
             for btn in self.just_landed_btn_list:
                 if btn.to_aircraft:
                     #move the aircraft from just landed to readying
-                    self.base.air_operations_tracker.readying.append(btn.to_aircraft)
-                    #reduce the count of the from_aircraft by to_aircraft.count
-                    btn.from_aircraft.count -= btn.to_aircraft.count
-                    #if the from_aircraft count is zero then remove it from just landed
-                    if btn.from_aircraft.count <=0:
-                        self.base.air_operations_tracker.just_landed.remove(btn.from_aircraft)
+                    self.base.air_operations_tracker.set_operations_status(btn.to_aircraft, AircraftOperationsStatus.READYING)
                     btn.to_aircraft = None
 
             #loop through the readying btns and move aircraft to ready
             for btn in self.tracker_display.readying_btn_list:
                 if btn.to_aircraft:
                     #move the aircraft from readying to ready
-                    self.base.air_operations_tracker.ready.append(btn.to_aircraft)
-                    #reduce the count of the from_aircraft by to_aircraft.count
-                    btn.from_aircraft.count -= btn.to_aircraft.count
-                    if btn.from_aircraft.count <=0:
-                        self.base.air_operations_tracker.readying.remove(btn.from_aircraft)
+                    self.base.air_operations_tracker.set_operations_status(btn.to_aircraft, AircraftOperationsStatus.READY)
                     btn.to_aircraft = None
 
             self.base.used_ready_factor = self.base.used_ready_factor + self.temp_ready_factor

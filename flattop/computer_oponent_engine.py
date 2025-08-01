@@ -39,7 +39,7 @@ from flattop.game_engine import get_actionable_pieces, perform_observation_for_s
 from flattop.weather_model import WeatherManager
 
 class ComputerOpponent:
-    def _move_toward(self, board, piece, target_hex, stop_distance=1, weather_manager=None):
+    def _move_toward(self, board, piece, target_hex, stop_distance=0, weather_manager=None):
         """
         Move the piece toward the target_hex, stopping at stop_distance if possible.
         Only move over sea hexes for air formations and task forces. Planes do not move into storm hexes.
@@ -148,17 +148,15 @@ class ComputerOpponent:
                 base = base_piece.game_model
                 readying = base.air_operations_tracker.readying
                 ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
-                to_ready = []
+                
                 for ac in readying:
                     # Only arm if not already armed with AP
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                         ac.armament = 'AP'
-                        to_ready.append(ac)
+                        base.air_operations_tracker.set_operations_status(ac, 'ready')
+                        base.used_ready_factor += ac.count
                         ready_factors_left -= ac.count
-                # Move armed aircraft to READY if ready factors allow
-                for ac in to_ready:
-                    base.air_operations_tracker.set_operations_status(ac, 'ready')
-                    base.used_ready_factor += ac.count
+                    
 
             for tf_piece in taskforces:
                 tf = tf_piece.game_model
@@ -168,16 +166,13 @@ class ComputerOpponent:
                         continue
                     readying = base.air_operations_tracker.readying
                     ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
-                    to_ready = []
                     for ac in readying:
                         if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                             ac.armament = 'AP'
-                            to_ready.append(ac)
+                            base.air_operations_tracker.set_operations_status(ac, 'ready')
+                            base.used_ready_factor += ac.count
                             ready_factors_left -= ac.count
-                    for ac in to_ready:
-                        base.air_operations_tracker.set_operations_status(ac, 'ready')
-                        base.used_ready_factor += ac.count
-
+                    
         # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
         air_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, AirFormation)]
         for base_piece in bases:
@@ -190,7 +185,7 @@ class ComputerOpponent:
                     interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
                     if interceptors:
                         # Move interceptors to new air formation (CAP)
-                        af = base.create_air_formation(random.randint(1, 35))
+                        af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
                             af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                             board.add_piece(af_piece)
@@ -206,7 +201,7 @@ class ComputerOpponent:
                     if dist <= 10:
                         interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
                         if interceptors:
-                            af = base.create_air_formation(random.randint(1, 35))
+                            af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                             if af:
                                 af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
@@ -254,14 +249,10 @@ class ComputerOpponent:
                         if not best:
                             break
                         for ac in best:
-                            af = AirFormation(random.randint(1, 35), name="Search Formation", side=base.side)
-                            af.add_aircraft(ac)  # Add this single aircraft to the formation
+                            af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
                             if af:
                                 af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
-                                # Remove used aircraft from ready list if its count is now zero
-                                if ac in ready_aircraft and ac.count <= 0:
-                                    ready_aircraft.remove(ac)
                             else:
                                 break
 
@@ -338,10 +329,10 @@ class ComputerOpponent:
                                     nearest_base = base_hex
                             # Move toward base, but not into the base hex (prefer 1-3 hexes away)
                             if nearest_base and min_dist > 1:
-                                self._move_toward(board, piece, nearest_base, stop_distance=2, weather_manager=weather_manager)
+                                self._move_toward(board, piece, nearest_base, stop_distance=1, weather_manager=weather_manager)
                             else:
                                 # Already close, loiter or move randomly within 2 hexes
-                                self._move_random_within_range(board, piece, max_range=2, weather_manager=weather_manager)
+                                self._move_random_within_range(board, piece, max_range=1, weather_manager=weather_manager)
                         else:
                             # No base found, move randomly within 2 hexes
                             self._move_random_within_range(board, piece, max_range=2, weather_manager=weather_manager)
