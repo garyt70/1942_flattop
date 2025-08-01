@@ -302,7 +302,7 @@ class DesktopUI:
 
         self.board.pieces.extend(self.weather_manager.get_weather_pieces())
 
-        self.computer_opponent = ComputerOpponent("Japanese")  # Example initialization, can be set to "Allied" or "Japanese"
+        self.computer_opponent = ComputerOpponent("Japanese", self.board, self.weather_manager, self.turn_manager)  # Example initialization, can be set to "Allied" or "Japanese"
         # Perform initial turn start actions
         perform_observation_phase(self.board, self.weather_manager, self.turn_manager)
 
@@ -499,7 +499,7 @@ class DesktopUI:
 
     def run_with_click_return(self):
         running = True
-        self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+        self.computer_opponent.perform_turn()
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -1003,26 +1003,26 @@ class DesktopUI:
                         case 0:
                             print("Starting a new turn")
                             perform_turn_start_actions(board=self.board, turn_manager=self.turn_manager, weather_manager=self.weather_manager)
-                            self.computer_opponent.perform_observation(self.board, self.weather_manager, self.turn_manager)
-                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_observation()
+                            self.computer_opponent.perform_turn()
                             print("Air Operations Phase")
                         case 1:
                             print("Shadowing Phase")
                         case 2:
                             print("Task Force Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Task Force Movement
-                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_turn()
                         case 3:
                             print("Plane Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Plane Movement
-                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_turn()
                         case 4:
                             print("Combat Phase")
                             # no action this phase, just a placeholder. Menus change to Combat
-                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_turn()
                         case 5:
                             print("Repair Phase")
-                            self.computer_opponent.perform_turn(self.board, self.weather_manager, self.turn_manager)
+                            self.computer_opponent.perform_turn()
 
                     return
                 # Check if click is on a piece line

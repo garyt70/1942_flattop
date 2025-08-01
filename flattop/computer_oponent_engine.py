@@ -39,7 +39,7 @@ from flattop.game_engine import get_actionable_pieces, perform_observation_for_s
 from flattop.weather_model import WeatherManager
 
 class ComputerOpponent:
-    def _move_toward(self, board, piece, target_hex, stop_distance=0, weather_manager=None):
+    def _move_toward(self, piece, target_hex, stop_distance=0):
         """
         Move the piece toward the target_hex, stopping at stop_distance if possible.
         Only move over sea hexes for air formations and task forces. Planes do not move into storm hexes.
@@ -54,14 +54,14 @@ class ComputerOpponent:
         gm = getattr(piece, 'game_model', None)
         is_plane = isinstance(gm, AirFormation)
         candidates = []
-        for tile in board.tiles:
+        for tile in self.board.tiles:
             if get_distance(current, tile) > max_move:
                 continue
             # Only restrict to sea for TaskForce, not for AirFormation (planes can move over land and sea)
-            if not is_plane and board.get_terrain(tile) != 'sea':
+            if not is_plane and self.board.get_terrain(tile) != 'sea':
                 continue
-            if is_plane and weather_manager is not None:
-                if weather_manager.get_weather_at_hex(tile) == 'storm':
+            if is_plane and self.weather_manager is not None:
+                if self.weather_manager.get_weather_at_hex(tile) == 'storm':
                     continue
             candidates.append(tile)
         # Move to the closest hex to target_hex within range, but not closer than stop_distance
@@ -73,9 +73,9 @@ class ComputerOpponent:
                 best_hex = tile
                 best_dist = dist
         if best_hex:
-            board.move_piece(piece, best_hex)
+            self.board.move_piece(piece, best_hex)
 
-    def _move_random_within_range(self, board, piece, max_range=2, weather_manager=None):
+    def _move_random_within_range(self, piece, max_range=2):
         """
         Move the piece to a random valid hex within max_range, avoiding land for air formations and task forces. Planes do not move into storm hexes.
         """
@@ -84,20 +84,20 @@ class ComputerOpponent:
         gm = getattr(piece, 'game_model', None)
         is_plane = isinstance(gm, AirFormation)
         candidates = []
-        for tile in board.tiles:
+        for tile in self.board.tiles:
             if tile == current:
                 continue
             if get_distance(current, tile) > max_range:
                 continue
-            if not is_plane and board.get_terrain(tile) != 'sea':
+            if not is_plane and self.board.get_terrain(tile) != 'sea':
                 continue
-            if is_plane and weather_manager is not None:
-                if weather_manager.get_weather_at_hex(tile) == 'storm':
+            if is_plane and self.weather_manager is not None:
+                if self.weather_manager.get_weather_at_hex(tile) == 'storm':
                     continue
             candidates.append(tile)
         if candidates:
             dest = random.choice(candidates)
-            board.move_piece(piece, dest)
+            self.board.move_piece(piece, dest)
     # Implementation notes:
     # - Only observed enemy pieces (observed_condition > 0) are considered for movement/attack
     # - Air formations are created and launched if no enemies are observed, to simulate search/recon
@@ -106,28 +106,31 @@ class ComputerOpponent:
     # - Surface combat for task forces is not implemented, but can be added
     # - The AI does not currently coordinate multiple air formations or optimize search patterns
     # - This class is designed for turn-based invocation from the main game loop
-    def __init__(self, side:str):
+    def __init__(self, side:str, board:HexBoardModel=None, weather_manager:WeatherManager=None, turn_manager:TurnManager=None):
         self.side = side  # 'Allied' or 'Japanese'
-
-    def perform_turn(self, board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
+        self.board = board
+        self.weather_manager = weather_manager
+        self.turn_manager = turn_manager
+    
+    def perform_turn(self):
         """
         Perform all actions for the computer opponent for the current phase.
         Only move/attack observed enemy pieces. If no enemies are observed, create/search with air formations.
         Handles Air Operations phase: arms aircraft and creates air formations for CAP/interception or search.
         """
-        phase = turn_manager.current_phase
-        actionable = get_actionable_pieces(board, turn_manager)
-        observed_enemy_pieces = [p for p in board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
+        phase = self.turn_manager.current_phase
+        actionable = get_actionable_pieces(self.board, self.turn_manager)
+        observed_enemy_pieces = [p for p in self.board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
         if phase == "Air Operations":
-            self._perform_air_operations_phase(board, observed_enemy_pieces)
+            self._perform_air_operations_phase(self.board, observed_enemy_pieces)
         elif not observed_enemy_pieces and phase == "Plane Movement":
-            self._move_search_airformations(board)
+            self._move_search_airformations(self.board)
         elif phase == "Plane Movement":
-            self._perform_movement_phase(actionable, board, observed_enemy_pieces, move_type="plane")
+            self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="plane")
         elif phase == "Task Force Movement":
-            self._perform_movement_phase(actionable, board, observed_enemy_pieces, move_type="taskforce")
+            self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="taskforce")
         elif phase == "Combat":
-            self._perform_combat_phase(actionable, board, weather_manager, turn_manager, observed_enemy_pieces)
+            self._perform_combat_phase(actionable, observed_enemy_pieces)
 
 
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
@@ -278,18 +281,20 @@ class ComputerOpponent:
                             else:
                                 break
 
-    def _perform_movement_phase(self, actionable, board, observed_enemy_pieces, move_type=None, weather_manager=None):
+    def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
         """
         Move phase logic:
         - If observed enemy pieces exist, move toward nearest observed enemy.
         - If no observed enemies, move in a search pattern:
             - Fighters/interceptors (non-bombers) move close to bases (CAP/intercept role).
             - Bombers can search more widely (random within range).
+        - Air formations consider aircraft range; if low, move toward nearest base.
+        - Air formations make multiple short moves (2-3 hexes) toward their destination, observing after each move.
         """
         # If actionable is None, recompute it
         if actionable is None:
             from flattop.game_engine import get_actionable_pieces
-            actionable = get_actionable_pieces(board, None)
+            actionable = get_actionable_pieces(self.board, None)
         if not actionable:
             return
         # Only move pieces belonging to the computer side
@@ -303,7 +308,7 @@ class ComputerOpponent:
             return
         if not observed_enemy_pieces:
             # No observed enemies: move in a search pattern
-            own_pieces = [p for p in board.pieces if p.side == self.side]
+            own_pieces = [p for p in self.board.pieces if p.side == self.side]
             bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
             base_hexes = [b.position for b in bases]
             for piece in actionable:
@@ -314,6 +319,39 @@ class ComputerOpponent:
                     # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
                     aircraft_types = [ac.type for ac in gm.aircraft]
                     is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if gm.aircraft else False
+                    # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
+                    min_range_left = min([getattr(ac, 'range_left', getattr(ac, 'range', 0)) for ac in gm.aircraft]) if gm.aircraft else 0
+                    # Find nearest base
+                    nearest_base = None
+                    min_base_dist = float('inf')
+                    for base_hex in base_hexes:
+                        dist = get_distance(piece.position, base_hex)
+                        if dist < min_base_dist:
+                            min_base_dist = dist
+                            nearest_base = base_hex
+                    # If range is low (<= distance to base + 1), start moving back
+                    if nearest_base and min_range_left <= min_base_dist + 1:
+                        # Move toward base in short hops (2-3 hexes)
+                        hops = min(3, min_range_left, min_base_dist)
+                        for _ in range(hops):
+                            if get_distance(piece.position, nearest_base) > 0:
+                                self._move_toward(piece, nearest_base, stop_distance=0)
+                                # Optionally, call observation after each move
+                                if hasattr(self, 'perform_observation'):
+                                    self.perform_observation()
+                        # If air formation is at base, land it and remove from board
+                        if piece.position == nearest_base:
+                            # Land each aircraft in the air formation
+                            for ac in gm.aircraft:
+                                # Add aircraft back to base's tracker (simulate landing)
+                                base_piece = next((b for b in bases if b.position == nearest_base), None)
+                                if base_piece:
+                                    base:Base = base_piece.game_model
+                                    base.air_operations_tracker.set_operations_status(ac, 'just_landed')
+                            # Remove air formation piece from board
+                            if piece in self.board.pieces:
+                                self.board.pieces.remove(piece)
+                        continue
                     if not is_bomber:
                         # Fighters/interceptors: move close to nearest base (within 2-3 hexes)
                         if base_hexes:
@@ -327,17 +365,23 @@ class ComputerOpponent:
                                     nearest_base = base_hex
                             # Move toward base, but not into the base hex (prefer 1-3 hexes away)
                             if nearest_base and min_dist > 1:
-                                self._move_toward(board, piece, nearest_base, stop_distance=1, weather_manager=weather_manager)
+                                # Make multiple short moves (2-3 hexes) toward base
+                                hops = min(3, min_dist)
+                                for _ in range(hops):
+                                    if get_distance(piece.position, nearest_base) > 1:
+                                        self._move_toward(piece, nearest_base, stop_distance=1)
+                                        if hasattr(self, 'perform_observation'):
+                                            self.perform_observation()
                             else:
                                 # Already close, loiter or move randomly within 2 hexes
-                                self._move_random_within_range(board, piece, max_range=1, weather_manager=weather_manager)
+                                self._move_random_within_range(piece, max_range=1)
                         else:
                             # No base found, move randomly within 2 hexes
-                            self._move_random_within_range(board, piece, max_range=2, weather_manager=weather_manager)
+                            self._move_random_within_range(piece, max_range=2)
                     else:
                         # Bombers: search more widely (random within movement range)
                         move_range = getattr(gm, 'move_factor', 4)
-                        self._move_random_within_range(board, piece, max_range=move_range, weather_manager=weather_manager)
+                        self._move_random_within_range( piece, max_range=move_range)
                 elif isinstance(gm, TaskForce):
                     # Task forces: do not move if no observed enemies (could add patrol logic here)
                     continue
@@ -355,9 +399,15 @@ class ComputerOpponent:
                     min_dist = dist
                     target = enemy
             if target:
-                self._move_toward(board, piece, target.position, weather_manager=weather_manager)
+                # Make multiple short moves (2-3 hexes) toward target
+                hops = min(3, min_dist)
+                for _ in range(hops):
+                    if get_distance(piece.position, target.position) > 0:
+                        self._move_toward( piece, target.position)
+                        if hasattr(self, 'perform_observation'):
+                            self.perform_observation()
 
-    def _perform_combat_phase(self, pieces, board, weather_manager, turn_manager, observed_enemy_pieces):
+    def _perform_combat_phase(self, pieces, observed_enemy_pieces):
         """
         For each piece that can attack, attempt to attack an observed enemy in the same hex.
         Only attack observed enemies.
@@ -365,7 +415,7 @@ class ComputerOpponent:
         # If pieces is None, recompute actionable pieces
         if pieces is None:
             from flattop.game_engine import get_actionable_pieces
-            pieces = get_actionable_pieces(board, turn_manager)
+            pieces = get_actionable_pieces(self.board, self.turn_manager)
         for piece in pieces:
             if piece.side != self.side or not piece.can_attack:
                 continue
@@ -384,8 +434,8 @@ class ComputerOpponent:
                         escorts=[],
                         bombers=[ac for af in enemy_air for ac in af.aircraft if ac.armament is not None],
                         rf_expended=True,
-                        clouds=(weather_manager.get_weather_at_hex(piece.position) == "cloud"),
-                        night=turn_manager.is_night()
+                        clouds=(self.weather_manager.get_weather_at_hex(piece.position) == "cloud"),
+                        night=self.turn_manager.is_night()
                     )
                 # Attack TaskForce or Base if present
                 enemy_tf = [p.game_model for p in enemies if isinstance(p.game_model, TaskForce)]
@@ -439,8 +489,8 @@ class ComputerOpponent:
                     dest = random.choice(possible_hexes)
                     board.move_piece(piece, dest)
 
-    def perform_observation(self, board, weather_manager, turn_manager):
+    def perform_observation(self):
         """
         Perform observation for all pieces of this side.
         """
-        return perform_observation_for_side(self.side, board, weather_manager, turn_manager)
+        return perform_observation_for_side(self.side, self.board, self.weather_manager, self.turn_manager)

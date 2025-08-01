@@ -275,7 +275,7 @@ class Base:
                 for r in ready_same_type:
                     to_move = min(ac.count, r.count, allowed)
                     if to_move > 0:
-                        ac_to_add = ac
+                        ac_to_add = ac.copy()
                         ac_to_add.count = to_move
                         air_formation.add_aircraft(ac_to_add)
                         r.count -= to_move
