@@ -680,6 +680,13 @@ class DesktopUI:
         if piece.can_move and not piece.has_moved:
             if isinstance(piece.game_model, AirFormation) and self.turn_manager.current_phase in ["Plane Movement"]:
                 menu_options.append("Move")
+                #also allow landing if in the same hex as a Base
+                base_in_hex = any(
+                    isinstance(p.game_model, (Base, TaskForce)) and p.position == piece.position and p.side == piece.side
+                    for p in self.board.pieces
+                )
+                if base_in_hex and not piece.has_moved:
+                    menu_options.append("Land")
             elif isinstance(piece.game_model, TaskForce) and self.turn_manager.current_phase in ["Task Force Movement"]:
                 menu_options.append("Move")
 

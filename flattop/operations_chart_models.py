@@ -813,6 +813,8 @@ class AirOperationsTracker:
         self.readying = []
         self.ready = [] 
         self.air_op_config=op_config
+        self.used_ready_factor = 0  # Used to track how many ready factors have been used this turn
+        self.used_launch_factor = 0  # Used to track how many launch factors have been used this turn
 
     def __repr__(self):
          return f"Piece(owner={self.name}, position={self.description})"
