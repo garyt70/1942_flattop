@@ -262,9 +262,8 @@ class Base:
         air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
 
         # Determine how many aircraft can be launched this turn
-        ready_limit = self.air_operations_config.ready_factors - self.used_ready_factor
-        launch_limit = self.air_operations_config.launch_factor_max - self.used_launch_factor
-        allowed = min(ready_limit, launch_limit)
+        allowed = self.air_operations_config.launch_factor_max - self.used_launch_factor
+        moved = 0
         if allowed <= 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
 
@@ -276,7 +275,7 @@ class Base:
                 for r in ready_same_type:
                     to_move = min(ac.count, r.count, allowed)
                     if to_move > 0:
-                        ac_to_add = r.copy()
+                        ac_to_add = ac
                         ac_to_add.count = to_move
                         air_formation.add_aircraft(ac_to_add)
                         r.count -= to_move
@@ -285,33 +284,34 @@ class Base:
                             self.air_operations_tracker.ready.remove(r)
                         if allowed <= 0:
                             break
+                        moved += to_move
                 if allowed <= 0:
                     break
-            if allowed <= 0:
-                return air_formation
+            
+        else:
 
 
-        # Using all the available Ready. Move up to 'allowed' aircraft from READY to the new AirFormation
-        moved = 0
-        to_remove = []
-        for ac in self.air_operations_tracker.ready:
-            if moved >= allowed:
-                break
-            # Move the whole stack if possible, or partial if needed
-            ac_to_add = ac.copy()
-            if ac.count + moved > allowed:
-                ac_to_add.count = allowed - moved
-                ac.count -= ac_to_add.count
-            else:
-                ac_to_add.count = ac.count
-                ac.count = 0
-            air_formation.add_aircraft(ac_to_add)
-            moved += ac_to_add.count
-            if ac.count == 0:
-                to_remove.append(ac)
-        # Remove aircraft with count 0 from READY
-        for ac in to_remove:
-            self.air_operations_tracker.ready.remove(ac)
+            # Using all the available Ready. Move up to 'allowed' aircraft from READY to the new AirFormation
+            moved = 0
+            to_remove = []
+            for ac in self.air_operations_tracker.ready:
+                if moved >= allowed:
+                    break
+                # Move the whole stack if possible, or partial if needed
+                ac_to_add = ac.copy()
+                if ac.count + moved > allowed:
+                    ac_to_add.count = allowed - moved
+                    ac.count -= ac_to_add.count
+                else:
+                    ac_to_add.count = ac.count
+                    ac.count = 0
+                air_formation.add_aircraft(ac_to_add)
+                moved += ac_to_add.count
+                if ac.count == 0:
+                    to_remove.append(ac)
+            # Remove aircraft with count 0 from READY
+            for ac in to_remove:
+                self.air_operations_tracker.ready.remove(ac)
 
         # Update base status
         self.used_launch_factor += moved
@@ -884,6 +884,7 @@ class AirOperationsTracker:
         elif status_value == AircraftOperationsStatus.READYING.value:
             self.readying.append(to_aircraft)
             if from_aircraft:
+                self.used_ready_factor += to_aircraft.count
                 # If moving from just landed, remove from just landed
                 if from_aircraft in self.just_landed and from_aircraft.count <= 0:
                     self.just_landed.remove(from_aircraft)
@@ -891,6 +892,7 @@ class AirOperationsTracker:
             to_aircraft.range_remaining = to_aircraft.range_factor  # Reset range remaining when aircraft is ready
             self.ready.append(to_aircraft)
             if from_aircraft:
+                self.used_ready_factor += to_aircraft.count
                 # If moving from readying, remove from readying
                 if from_aircraft in self.readying and from_aircraft.count <= 0:
                     self.readying.remove(from_aircraft)

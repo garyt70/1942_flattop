@@ -516,25 +516,27 @@ class BaseUIDisplay:
         # Create an air formation using the next available number
         af_number = self._get_next_airformation_number()
         if af_number is not None:
-            #airformation = self.base.create_air_formation(af_number)
-            airformation = AirFormation(af_number, f"{self.base.name} airformation {af_number}", side=self.base.side)
-
-            btn:AircraftOperationChartCommandWidget
+            # Use base.create_air_formation to create the air formation
+            aircraft_list = []
             for btn in self.ready_btn_list:
                 if btn.to_aircraft:
-                    airformation.add_aircraft(btn.to_aircraft)
-                     #reduce the count of the from_aircraft by to_aircraft.count
-                    btn.from_aircraft.count -= btn.to_aircraft.count
-                if btn.from_aircraft.count <= 0:
-                    self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
+                    aircraft_list.append(btn.to_aircraft)
+                    # reduce the count of the from_aircraft by to_aircraft.count
+                    #btn.from_aircraft.count -= btn.to_aircraft.count
+                    self.temp_launch_factor += btn.to_aircraft.count
+                    btn.to_aircraft = None  # Clear the to_aircraft after adding to the formation
+                    #btn.from_aircraft.count -= 1
+                #if btn.from_aircraft.count <= 0:
+                #    self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
 
-            if len(airformation.aircraft) > 0:
+            if len(aircraft_list) > 0:
+                airformation = self.base.create_air_formation(af_number,  aircraft_list)
+                airformation.name = f"{self.base.name} airformation {af_number}",
                 self.created_air_formations.append(airformation)
                 self.air_op_chart.air_formations[af_number] = airformation
                 self.last_airformation = airformation
-                # Reset the temporary launch factor
-                self.base.used_launch_factor += self.temp_launch_factor
-            self.temp_launch_factor = 0
+                
+            
         else:
             self.last_airformation = None
 

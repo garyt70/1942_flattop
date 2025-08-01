@@ -154,7 +154,6 @@ class ComputerOpponent:
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                         ac.armament = 'AP'
                         base.air_operations_tracker.set_operations_status(ac, 'ready')
-                        base.used_ready_factor += ac.count
                         ready_factors_left -= ac.count
                     
 
@@ -170,7 +169,6 @@ class ComputerOpponent:
                         if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                             ac.armament = 'AP'
                             base.air_operations_tracker.set_operations_status(ac, 'ready')
-                            base.used_ready_factor += ac.count
                             ready_factors_left -= ac.count
                     
         # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
@@ -243,7 +241,7 @@ class ComputerOpponent:
                 launch_factors_left = base.air_operations_config.launch_factor_max - base.used_launch_factor
                 if ready_aircraft and launch_factors_left > 0:
                     # Try to create up to 2 search formations
-                    for _ in range(min(2, launch_factors_left)):
+                    for _ in range(random.randint(1, 2)):
                         # Pick 1-3 best ready aircraft (longest range)
                         best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
                         if not best:
@@ -266,7 +264,7 @@ class ComputerOpponent:
                     ready_aircraft = list(base.air_operations_tracker.ready)
                     launch_factors_left = base.air_operations_config.launch_factors - base.used_launch_factor
                     if ready_aircraft and launch_factors_left > 0:
-                        for _ in range(min(2, launch_factors_left)):
+                        for _ in range(random.randint(1, 2)):
                             best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
                             if not best:
                                 break
