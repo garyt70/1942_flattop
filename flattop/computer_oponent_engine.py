@@ -27,7 +27,7 @@ ai = ComputerOpponent('Japanese')
 
 import random
 from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
-from flattop.operations_chart_models import AirFormation, TaskForce, Base
+from flattop.operations_chart_models import AirFormation, AircraftOperationsStatus, TaskForce, Base
 from flattop.aircombat_engine import (
     resolve_air_to_air_combat,
     resolve_taskforce_anti_aircraft_combat,
@@ -347,7 +347,7 @@ class ComputerOpponent:
                                 base_piece = next((b for b in bases if b.position == nearest_base), None)
                                 if base_piece:
                                     base:Base = base_piece.game_model
-                                    base.air_operations_tracker.set_operations_status(ac, 'just_landed')
+                                    base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
                             # Remove air formation piece from board
                             if piece in self.board.pieces:
                                 self.board.pieces.remove(piece)
