@@ -156,7 +156,7 @@ class AircraftOperationChartCommandWidgetWithArmament(AircraftOperationChartComm
     Now supports cycling through GP, AP, and Torpedo.
     """
 
-    ARMAMENT_OPTIONS = ["GP", "AP", "Torpedo"]
+    ARMAMENT_OPTIONS = ["GP", "AP", "Torpedo", None]  # None represents no armament
 
     def __init__(self, surface, x, y, aircraft: Aircraft):
         super().__init__(surface, x, y, aircraft)
@@ -224,7 +224,7 @@ class AircraftDisplay:
         pass
 
     @staticmethod
-    def draw_aircraft(surface, aircraft: Aircraft, x, y):
+    def draw_aircraft(surface, aircraft: Aircraft, x, y, show_armament=False):
         """
         Draws a single AirCraft object on the surface at the specified position.
         """
@@ -267,8 +267,8 @@ class AircraftDisplay:
         surface.blit(font.render(str(aircraft.move_factor), True, COLOR_FONT_MOVE), (x + columns[14], y))
         surface.blit(font.render(f"{aircraft.range_factor} ({aircraft.range_remaining})", True, COLOR_FONT_RANGE), (x + columns[15], y))
 
-        #armament display
-        #surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[16], y))
+        if show_armament:
+            surface.blit(font.render(str(aircraft.armament), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
 
         #display height - this is done via a widget for AirFormations.
         #surface.blit(font.render(str(aircraft.height), True, COLOR_FONT_ARMAMENT), (x + columns[17], y))
@@ -290,7 +290,7 @@ class AircraftDisplay:
         #this is drawn button first because drawing the aircraft increment y by number of 
         # aircraft which will result in button being in wrong place
         btn = AircraftDisplay.draw_command_btn(surface, aircraft, x + AircraftDisplay.columns[15] + 60 , y)
-        y = AircraftDisplay.draw_aircraft(surface, aircraft, x, y)
+        y = AircraftDisplay.draw_aircraft(surface, aircraft, x, y, show_armament= True)
         return y, btn
 
     @staticmethod
