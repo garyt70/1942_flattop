@@ -544,6 +544,25 @@ class Aircraft:
         ac.armament = self.armament  # Copy armament if it exists
         ac.range_remaining = self.range_remaining  # Copy remaining range
         return ac
+    
+    @property
+    def is_bomber(self):
+        """
+        Returns True if the aircraft is a bomber, False otherwise.
+        """
+        if self.armament:
+            return True
+
+        if self.type not in {AircraftType.ZERO, 
+                             AircraftType.P40, 
+                             AircraftType.BEAUFIGHTER, 
+                             AircraftType.WILDCAT,
+                             AircraftType.P39,
+                             AircraftType.P40,
+                             AircraftType.P38,}:
+            return True
+        
+        return False
 
 class AircraftFactory:
     def __init__(self):
