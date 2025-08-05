@@ -43,8 +43,9 @@ TODO: Fixes for known issues:
 
 import random
 from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
-from flattop.operations_chart_models import AirFormation, AircraftOperationsStatus, TaskForce, Base
+from flattop.operations_chart_models import AirFormation, Aircraft, AircraftOperationsStatus, TaskForce, Base
 from flattop.aircombat_engine import (
+    classify_aircraft,
     resolve_air_to_air_combat,
     resolve_taskforce_anti_aircraft_combat,
     resolve_base_anti_aircraft_combat,
@@ -135,18 +136,18 @@ class ComputerOpponent:
         Handles Air Operations phase: arms aircraft and creates air formations for CAP/interception or search.
         """
         phase = self.turn_manager.current_phase
-        actionable = get_actionable_pieces(self.board, self.turn_manager)
+        all_actionable = get_actionable_pieces(self.board, self.turn_manager)
+        actionable = [p for p in all_actionable if p.side == self.side] # Filter actionable pieces for this side
         observed_enemy_pieces = [p for p in self.board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
         if phase == "Air Operations":
             self._perform_air_operations_phase(self.board, observed_enemy_pieces)
-        elif not observed_enemy_pieces and phase == "Plane Movement":
-            self._move_search_airformations(self.board)
         elif phase == "Plane Movement":
             self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="plane")
         elif phase == "Task Force Movement":
             self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="taskforce")
         elif phase == "Combat":
-            self._perform_combat_phase(actionable, observed_enemy_pieces)
+            result = self._perform_combat_phase(actionable, observed_enemy_pieces)
+            print(f"Combat results: {result}")
 
 
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
@@ -333,7 +334,7 @@ class ComputerOpponent:
         if not actionable:
             return
         # Only move pieces belonging to the computer side
-        actionable = [p for p in actionable if p.side == self.side]
+        actionable = [p for p in actionable if p.side == self.side and p.can_move and not p.has_moved]
         # Determine which type of pieces to move this phase
         if move_type == "plane":
             actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
@@ -341,52 +342,57 @@ class ComputerOpponent:
             actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), TaskForce)]
         if not actionable:
             return
-        if not observed_enemy_pieces or len(observed_enemy_pieces) == 0:
-            # No observed enemies: move in a search pattern
-            own_pieces = [p for p in self.board.pieces if p.side == self.side]
-            bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
-            base_hexes = [b.position for b in bases]
-            for piece in actionable:
-                if not hasattr(piece, 'can_move') or not piece.can_move:
+        
+        own_pieces = [p for p in self.board.pieces if p.side == self.side]
+        bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
+        base_hexes = [b.position for b in bases]
+        for piece in actionable:
+            gm = getattr(piece, 'game_model', None)
+            #handle running out of range
+            # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
+            if isinstance(gm, AirFormation):
+                min_range_left = min((ac.range_remaining if hasattr(ac, 'range_remaining') else 0) for ac in gm.aircraft) if gm.aircraft else 0
+                # Find nearest base
+                nearest_base = None
+                min_base_dist = float('inf')
+                for base_hex in base_hexes:
+                    dist = get_distance(piece.position, base_hex)
+                    if dist < min_base_dist:
+                        min_base_dist = dist
+                        nearest_base = base_hex
+                # If range is low (<= distance to base + 1), start moving back
+                if nearest_base and min_range_left <= min_base_dist + 1:
+                    # Move toward base in short hops (2-3 hexes)
+                    hops = min(3, min_range_left, min_base_dist)
+                    for _ in range(hops):
+                        if get_distance(piece.position, nearest_base) > 0:
+                            self._move_toward(piece, nearest_base, stop_distance=0)
+                            # Optionally, call observation after each move
+                            if hasattr(self, 'perform_observation'):
+                                self.perform_observation()
+                    # If air formation is at base, land it and remove from board
+                    if piece.position == nearest_base:
+                        # Land each aircraft in the air formation
+                        for ac in gm.aircraft:
+                            # Add aircraft back to base's tracker (simulate landing)
+                            base_piece = next((b for b in bases if b.position == nearest_base), None)
+                            if base_piece:
+                                base:Base = base_piece.game_model
+                                base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
+                        # Remove air formation piece from board
+                        if piece in self.board.pieces:
+                            self.board.pieces.remove(piece)
                     continue
-                gm = getattr(piece, 'game_model', None)
+
+
+            if not observed_enemy_pieces or len(observed_enemy_pieces) == 0:
+                # No observed enemies: move in a search pattern
+
+                
                 if isinstance(gm, AirFormation):
                     # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
-                    aircraft_types = [ac.type for ac in gm.aircraft]
-                    is_bomber = all(ac.armament is not None for ac in gm.aircraft) if gm.aircraft else False
-                    # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
-                    min_range_left = min((ac.range_remaining if hasattr(ac, 'range_remaining') else 0) for ac in gm.aircraft) if gm.aircraft else 0
-                    # Find nearest base
-                    nearest_base = None
-                    min_base_dist = float('inf')
-                    for base_hex in base_hexes:
-                        dist = get_distance(piece.position, base_hex)
-                        if dist < min_base_dist:
-                            min_base_dist = dist
-                            nearest_base = base_hex
-                    # If range is low (<= distance to base + 1), start moving back
-                    if nearest_base and min_range_left <= min_base_dist + 1:
-                        # Move toward base in short hops (2-3 hexes)
-                        hops = min(3, min_range_left, min_base_dist)
-                        for _ in range(hops):
-                            if get_distance(piece.position, nearest_base) > 0:
-                                self._move_toward(piece, nearest_base, stop_distance=0)
-                                # Optionally, call observation after each move
-                                if hasattr(self, 'perform_observation'):
-                                    self.perform_observation()
-                        # If air formation is at base, land it and remove from board
-                        if piece.position == nearest_base:
-                            # Land each aircraft in the air formation
-                            for ac in gm.aircraft:
-                                # Add aircraft back to base's tracker (simulate landing)
-                                base_piece = next((b for b in bases if b.position == nearest_base), None)
-                                if base_piece:
-                                    base:Base = base_piece.game_model
-                                    base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
-                            # Remove air formation piece from board
-                            if piece in self.board.pieces:
-                                self.board.pieces.remove(piece)
-                        continue
+                    is_bomber = any(ac.is_bomber for ac in gm.aircraft)
+
                     if not is_bomber:
                         # Fighters/interceptors: move close to nearest base (within 2-3 hexes)
                         if base_hexes:
@@ -415,118 +421,112 @@ class ComputerOpponent:
                             self._move_random_within_range(piece, max_range=2)
                     else:
                         # Bombers: search more widely (random within movement range)
-                        move_range = getattr(gm, 'move_factor', 4)
-                        self._move_random_within_range( piece, max_range=move_range)
+                        move_range = getattr(gm, 'movement_factor', 4)
+                        self._move_random_within_range(piece, max_range=move_range)
                 elif isinstance(gm, TaskForce):
                     # Task forces: do not move if no observed enemies (could add patrol logic here)
                     continue
-            return
-        # Move each actionable piece toward the nearest observed enemy
-        #Rules for moving toward enemy:
-        # - If the enemy is an airformation then keep own interceptor formations a the nearest friendly base , This is the CAP for the base.
-        # - If the enemy is a TaskForce, move toward it so that the computer opponent can attack it with its air formations.
-        # - If the enemy is a Base, move toward it to attack with air formations.
-        # - Computer opponent airformations with bombers should continue to follow the enemy TaskForce or Base, but not move into storm hexes.
-        # - Air formations make multiple short moves (2-3 hexes) toward their destination
-        # Gather friendly task force positions for stacking avoidance
-        friendly_taskforce_hexes = [p.position for p in self.board.pieces if p.side == self.side and isinstance(getattr(p, 'game_model', None), TaskForce)]
-        # Gather friendly bases for CAP prioritization
-        own_pieces = [p for p in self.board.pieces if p.side == self.side]
-        bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
-        base_hexes = [b.position for b in bases]
-        # Gather all actionable bombers for coordination
-        actionable_bombers = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation) and all(ac.armament is not None for ac in p.game_model.aircraft)]
-        # Track which bombers have already moved for coordination
-        bombers_moved = set()
-        for piece in actionable:
-            if not hasattr(piece, 'can_move') or not piece.can_move:
-                continue
-            gm = getattr(piece, 'game_model', None)
-            # Find nearest enemy and its type
-            min_dist = float('inf')
-            target = None
-            target_type = None
-            for enemy in observed_enemy_pieces:
-                dist = get_distance(piece.position, enemy.position)
-                if dist < min_dist:
-                    min_dist = dist
-                    target = enemy
-                    target_type = type(enemy.game_model)
-            if target:
-                # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
-                is_interceptor = False
-                if isinstance(gm, AirFormation):
-                    is_interceptor = any(ac.type.value in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') and  ac.armament is not None for ac in gm.aircraft)
-                if target_type == AirFormation and is_interceptor:
-                    # Prioritize high-value base/carrier for CAP
-                    high_value_bases = [b for b in bases if getattr(b.game_model, 'is_high_value', False)]
-                    cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
-                    min_base_dist = float('inf')
-                    nearest_base = None
-                    for base_hex in cap_base_hexes:
-                        dist = get_distance(piece.position, base_hex)
-                        if dist < min_base_dist:
-                            min_base_dist = dist
-                            nearest_base = base_hex
-                    # Move to base if not already there
-                    if nearest_base and piece.position != nearest_base:
-                        self._move_toward(piece, nearest_base, stop_distance=0)
-                        if hasattr(self, 'perform_observation'):
-                            self.perform_observation()
-                    continue
-                # Bombers: coordinate attacks if multiple formations are available
-                is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if isinstance(gm, AirFormation) and gm.aircraft else False
-                if target_type in (TaskForce, Base) and is_bomber:
-                    # Only move bombers together if not already moved
-                    if piece not in bombers_moved:
-                        # Find all bombers targeting the same enemy
-                        group = [b for b in actionable_bombers if get_distance(b.position, target.position) == min_dist]
-                        for bomber in group:
+            else:
+                # Move each actionable piece toward the nearest observed enemy
+                #Rules for moving toward enemy:
+                # - If the enemy is an airformation then keep own interceptor formations a the nearest friendly base , This is the CAP for the base.
+                # - If the enemy is a TaskForce, move toward it so that the computer opponent can attack it with its air formations.
+                # - If the enemy is a Base, move toward it to attack with air formations.
+                # - Computer opponent airformations with bombers should continue to follow the enemy TaskForce or Base, but not move into storm hexes.
+                # - Air formations make multiple short moves (2-3 hexes) toward their destination
+                # Gather friendly task force positions for stacking avoidance
+                friendly_taskforce_hexes = [p.position for p in self.board.pieces if p.side == self.side and isinstance(getattr(p, 'game_model', None), TaskForce)]
+                # Gather friendly bases for CAP prioritization
+                own_pieces = [p for p in self.board.pieces if p.side == self.side]
+                bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
+                base_hexes = [b.position for b in bases]
+                # Gather all actionable bombers for coordination
+                actionable_bombers = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation) and all(ac.armament is not None for ac in p.game_model.aircraft)]
+                # Track which bombers have already moved for coordination
+                bombers_moved = set()
+                for piece in actionable:
+                    if not hasattr(piece, 'can_move') or not piece.can_move:
+                        continue
+                    gm = getattr(piece, 'game_model', None)
+                    # Find nearest enemy and its type
+                    min_dist = float('inf')
+                    target = None
+                    target_type = None
+                    for enemy in observed_enemy_pieces:
+                        dist = get_distance(piece.position, enemy.position)
+                        if dist < min_dist:
+                            min_dist = dist
+                            target = enemy
+                            target_type = type(enemy.game_model)
+                    if target:
+                        # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
+                        is_interceptor = False
+                        if isinstance(gm, AirFormation):
+                            is_interceptor = any(ac.type.value in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') and  ac.armament is not None for ac in gm.aircraft)
+                        if target_type == AirFormation and is_interceptor:
+                            # Prioritize high-value base/carrier for CAP
+                            high_value_bases = [b for b in bases if getattr(b.game_model, 'is_high_value', False)]
+                            cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
+                            min_base_dist = float('inf')
+                            nearest_base = None
+                            for base_hex in cap_base_hexes:
+                                dist = get_distance(piece.position, base_hex)
+                                if dist < min_base_dist:
+                                    min_base_dist = dist
+                                    nearest_base = base_hex
+                            # Move to base if not already there
+                            if nearest_base and piece.position != nearest_base:
+                                self._move_toward(piece, nearest_base, stop_distance=0)
+                                if hasattr(self, 'perform_observation'):
+                                    self.perform_observation()
+                            continue
+                        # Bombers: coordinate attacks if multiple formations are available
+                        is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if isinstance(gm, AirFormation) and gm.aircraft else False
+                        if target_type in (TaskForce, Base) and is_bomber:
+                            # Only move bombers together if not already moved
+                            if piece not in bombers_moved:
+                                # Find all bombers targeting the same enemy
+                                group = [b for b in actionable_bombers if get_distance(b.position, target.position) == min_dist]
+                                for bomber in group:
+                                    hops = min(3, min_dist)
+                                    for _ in range(hops):
+                                        if get_distance(bomber.position, target.position) > 0:
+                                            self._move_toward(bomber, target.position)
+                                            if hasattr(self, 'perform_observation'):
+                                                self.perform_observation()
+                                    bombers_moved.add(bomber)
+                            continue
+                        # Other air formations: avoid stacking with friendly task forces and avoid poor weather
+                        if target_type in (TaskForce, Base) and not is_bomber:
                             hops = min(3, min_dist)
                             for _ in range(hops):
-                                if get_distance(bomber.position, target.position) > 0:
-                                    self._move_toward(bomber, target.position)
-                                    if hasattr(self, 'perform_observation'):
-                                        self.perform_observation()
-                            bombers_moved.add(bomber)
-                    continue
-                # Other air formations: avoid stacking with friendly task forces and avoid poor weather
-                if target_type in (TaskForce, Base) and not is_bomber:
-                    hops = min(3, min_dist)
-                    for _ in range(hops):
-                        if get_distance(piece.position, target.position) > 0:
-                            # Avoid stacking with friendly task forces
-                            next_hex = target.position
-                            if next_hex in friendly_taskforce_hexes:
-                                # Move randomly instead
-                                self._move_random_within_range(piece, max_range=2)
-                            else:
-                                # Avoid poor weather (clouds) unless attacking
-                                if self.weather_manager and self.weather_manager.get_weather_at_hex(next_hex) == 'cloud':
-                                    self._move_random_within_range(piece, max_range=2)
-                                else:
-                                    self._move_toward(piece, next_hex)
-                            if hasattr(self, 'perform_observation'):
-                                self.perform_observation()
-                    continue
-                # If enemy is AirFormation and own piece is not interceptor, loiter or move randomly
-                if target_type == AirFormation and not is_interceptor:
-                    self._move_random_within_range(piece, max_range=2)
-                    if hasattr(self, 'perform_observation'):
-                        self.perform_observation()
-                    continue
-                # Task forces: avoid moving into hexes with enemy air formations unless protected by CAP
-                if isinstance(gm, TaskForce):
-                    enemy_air_hexes = [e.position for e in observed_enemy_pieces if isinstance(e.game_model, AirFormation)]
-                    cap_present = any(
-                        isinstance(p.game_model, AirFormation) and any(ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') for ac in p.game_model.aircraft)
-                        and get_distance(p.position, piece.position) <= 2
-                        for p in self.board.pieces if p.side == self.side
-                    )
-                    for hex in enemy_air_hexes:
-                        if get_distance(piece.position, hex) <= 1 and not cap_present:
-                            # Retreat or hold position
+                                if get_distance(piece.position, target.position) > 0:
+                                    next_hex = target.position
+
+                                    # Avoid storms
+                                    if self.weather_manager.is_storm_hex(next_hex):
+                                        self._move_random_within_range(piece, max_range=2)
+                                    else:
+                                        self._move_toward(piece, next_hex)
+                                    self.perform_observation()
                             continue
+                        # If enemy is AirFormation and own piece is not interceptor, loiter or move randomly
+                        if target_type == AirFormation and not is_interceptor:
+                            self._move_random_within_range(piece, max_range=2)
+                            self.perform_observation()
+                            continue
+                        # Task forces: avoid moving into hexes with enemy air formations unless protected by CAP
+                        if isinstance(gm, TaskForce):
+                            enemy_air_hexes = [e.position for e in observed_enemy_pieces if isinstance(e.game_model, AirFormation)]
+                            cap_present = any(
+                                isinstance(p.game_model, AirFormation) and any(ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') for ac in p.game_model.aircraft)
+                                and get_distance(p.position, piece.position) <= 2
+                                for p in self.board.pieces if p.side == self.side
+                            )
+                            for hex in enemy_air_hexes:
+                                if get_distance(piece.position, hex) <= 1 and not cap_present:
+                                    # Retreat or hold position
+                                    continue
         # Additional rules to consider:
         # - Air formations should avoid moving into hexes with friendly task forces to prevent stacking.
         # - Bombers should coordinate attacks if multiple formations are available (strike together).
@@ -536,64 +536,323 @@ class ComputerOpponent:
         # - Implement fuel/range tracking for each aircraft and force landing if range is too low.
         # - Add logic for retreating if odds are unfavorable (e.g., outnumbered/intercepted).
 
+    def _perform_combat_phase_for_piece_in_hex(self, piece, observed_enemy_pieces):
+        """
+        Perform combat for a single piece in a hex with observed enemy pieces.
+        This is a helper function to handle combat resolution for a specific piece.
+        """
+        if not observed_enemy_pieces:
+            return None
+        # Check if the piece is in a hex with observed enemy pieces
+        hex_enemies = [e for e in observed_enemy_pieces if e.position == piece.position]
+        if not hex_enemies:
+            return None
+        
+        # Check if the piece is in a hex with other air formations on the same side
+        hex_airformations = [
+            p for p in self.board.pieces
+            if isinstance(p.game_model, AirFormation)
+            and p.position == piece.position
+            and p.side == piece.side
+        ]
+        # Group by side
+        sides = set(p.side for p in hex_airformations)
+
+        player_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == piece.side]
+        enemy_aircraft_pieces = [p.game_model for p in hex_enemies if isinstance(p.game_model, AirFormation) and p.position == piece.position]
+
+        # Gather aircraft by role (interceptor, escort, bomber)
+        player_interceptors, player_escorts, player_bombers = classify_aircraft(player_aircraft_pieces)
+        enemy_interceptors, enemy_escorts, enemy_bombers = classify_aircraft(enemy_aircraft_pieces)
+
+        pre_combat_count_player_interceptors = sum(ic.count for ic in player_interceptors)
+        pre_combat_count_player_bombers = sum(b.count for b in player_bombers)
+        pre_combat_count_player_escorts = sum(ec.count for ec in player_escorts)
+
+        pre_combat_count_enemy_interceptors = sum(ic.count for ic in enemy_interceptors)
+        pre_combat_count_enemy_bombers = sum(b.count for b in enemy_bombers)
+        pre_combat_count_enemy_escorts = sum(ec.count for ec in enemy_escorts)
+
+        player_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == piece.side and p.position == piece.position]
+        enemy_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side != piece.side and p.position == piece.position]
+
+        player_taskforce_p:TaskForce = None
+        # if there is more than one taskforce, then we need to choose the one with the most carriers and high value ships
+        def get_high_value_ship_count(taskforce):
+            """
+            Returns a tuple representing the number of high value ships in the taskforce,
+            ordered by priority: (CV_count, BBS_count, CA_count, other_count)
+            """
+            if not hasattr(taskforce, 'ships'):
+                return (0, 0, 0, 0)
+            cv_types = ('CV', 'CVA')
+            bbs_types = ('BBS',)
+            ca_types = ('CA',)
+            cv_count = sum(1 for ship in taskforce.ships if getattr(ship, 'type', None) in cv_types)
+            bbs_count = sum(1 for ship in taskforce.ships if getattr(ship, 'type', None) in bbs_types)
+            ca_count = sum(1 for ship in taskforce.ships if getattr(ship, 'type', None) in ca_types)
+            other_count = sum(1 for ship in taskforce.ships if getattr(ship, 'type', None) not in cv_types + bbs_types + ca_types)
+            return (cv_count, bbs_count, ca_count, other_count)
+
+        if len(player_taskforce_pieces) > 0:
+            player_taskforce_pieces = sorted(
+            player_taskforce_pieces,
+            key=lambda p: (
+                len(p.game_model.get_carriers() if hasattr(p.game_model, 'get_carriers') else []),
+                get_high_value_ship_count(p.game_model)
+            ),
+            reverse=True
+            )
+            player_taskforce_p = player_taskforce_pieces[:1][0]
+
+        enemy_taskforce_p:TaskForce = None
+        if len(enemy_taskforce_pieces) > 0:
+            enemy_taskforce_pieces = sorted(
+            enemy_taskforce_pieces,
+            key=lambda p: (
+                len(p.game_model.get_carriers() if hasattr(p.game_model, 'get_carriers') else []),
+                get_high_value_ship_count(p.game_model)
+            ),
+            reverse=True
+            )
+            enemy_taskforce_p = enemy_taskforce_pieces[:1][0]
+
+        result_player_a2a = None
+        result_enemy_a2a = None
+
+        in_clouds = self.weather_manager.is_cloud_hex(piece.position)
+        at_night = self.turn_manager.is_night()
+
+        # For simplicity, assume two sides: Allied and Japanese
+        #and there are two airformations
+
+        # if no bombers on either side then convert interceptors to escorts 
+        if not player_bombers and not enemy_bombers:
+            # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
+            enemy_escorts.extend(enemy_interceptors)
+            enemy_interceptors = []
+
+        result_player_a2a = resolve_air_to_air_combat(
+            interceptors=player_interceptors,
+            escorts=enemy_escorts,
+            bombers=enemy_bombers,
+            rf_expended=True,
+            clouds=in_clouds,
+            night=at_night
+        )
+
+        if not player_bombers and not enemy_bombers:
+            # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
+            player_escorts.extend(player_interceptors)
+            player_interceptors = []
+
+        result_enemy_a2a = resolve_air_to_air_combat(
+            interceptors=enemy_interceptors,
+            escorts=player_escorts,
+            bombers=player_bombers,
+            rf_expended=True,
+            clouds=in_clouds,
+            night=at_night
+        )
+
+        # need to update the air operations chart for each side
+        # remove aircraft from air formations that have 0 or less count
+        # removed airformations that have no aircraft left
+        for af in player_aircraft_pieces:
+            af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
+            if not af.aircraft:
+                self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
+        for af in enemy_aircraft_pieces:
+            af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
+            if not af.aircraft:
+                self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
+
+        ### execute anti aircraft combat ###
+        # the taskforce being attacked by the air formations need to be selected.
+        # find the allied taskforces in the hex with the japanese airformation and enable user to select one
+        # find the japanese taskforces in the hex with the allied airformation and enable user to select one
+        # display a popup with the taskforces and allow user to select one
+
+        def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], taskforce:TaskForce, pos:tuple[int, int]):
+            combat_outcome = None
+            if (taskforce and bombers):
+                combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, taskforce, {"clouds": in_clouds, "night": at_night})
+
+            return combat_outcome
+
+        def perform_base_anti_aircraft_combat(bombers:list[Aircraft], base:Base):
+            combat_outcome = None
+            if (base and bombers):
+                    combat_outcome = resolve_base_anti_aircraft_combat( bombers, base, {"clouds": in_clouds, "night": at_night})
+
+            return combat_outcome
+
+
+        ### Anti-Aircraft combat ###
+        result_player_anti_aircraft = None
+        result_enemy_anti_aircraft = None
+        if player_taskforce_p:
+            result_player_anti_aircraft = perform_taskforce_anti_aircraft_combat(enemy_bombers, player_taskforce_p.game_model, piece.position)
+        if enemy_taskforce_p:
+            result_enemy_anti_aircraft = perform_taskforce_anti_aircraft_combat(player_bombers, enemy_taskforce_p.game_model, piece.position)
+
+        player_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == piece.side and p.position == piece.position]
+        enemy_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side != piece.side and p.position == piece.position]
+        #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
+        if player_base_pieces:
+            result_player_anti_aircraft = perform_base_anti_aircraft_combat(enemy_bombers,player_base_pieces[0].game_model)
+        #assume there is only ever one base
+        if enemy_base_pieces:
+            result_enemy_anti_aircraft = perform_base_anti_aircraft_combat(player_bombers,enemy_base_pieces[0].game_model)
+
+        #### execute the air combat attack against selected ship ####
+
+        def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
+            # this involves choosing which ship is attacked by which aircraft
+            # and then resolve the combat for each ship
+
+            if not bombers or not taskforce:
+                return None
+
+            if len(bombers) == 0:
+                return None
+
+
+            # Allocate bombers to ships in the taskforce, prioritizing high-value ships, carriers, and battleships
+            def allocate_bombers_to_ships(bombers, ships):
+                """
+                Allocate bombers to ships in the taskforce, prioritizing high-value ships, carriers (CV), battleships (BBS), then others (CA, etc).
+                Returns a dict: {ship: [list of bombers]}
+                """
+                if not bombers or not ships:
+                    return {}
+
+                # Prioritize ships: high-value first, then CV, then BBS, then CA, then others
+                def ship_priority(ship):
+                    if getattr(ship, "is_high_value", False):
+                        return 0
+                    ship_type = getattr(ship, "type", "")
+                    if ship_type == "CV":
+                        return 1
+                    if ship_type == "BBS":
+                        return 2
+                    if ship_type == "CA":
+                        return 3
+                    return 4
+
+                ships_sorted = sorted(ships, key=ship_priority)
+                allocation = {ship: [] for ship in ships_sorted}
+
+                # Flatten bombers into a list of individual aircraft (if count > 1)
+                bomber_list = []
+                for bomber in bombers:
+                    for _ in range(getattr(bomber, "count", 1)):
+                        bomber_copy = bomber.copy() if hasattr(bomber, "copy") else bomber
+                        bomber_copy.count = 1
+                        bomber_list.append(bomber_copy)
+
+                # Allocate bombers round-robin to prioritized ships
+                ship_count = len(ships_sorted)
+                for idx, bomber in enumerate(bomber_list):
+                    ship = ships_sorted[idx % ship_count]
+                    allocation[ship].append(bomber)
+
+                # Optionally, merge bombers of the same type back into single objects with count
+                for ship, bombers in allocation.items():
+                    type_map = {}
+                    for b in bombers:
+                        key = (getattr(b, "type", None), getattr(b, "armament", None))
+                        if key not in type_map:
+                            b_copy = b.copy() if hasattr(b, "copy") else b
+                            b_copy.count = 1
+                            type_map[key] = b_copy
+                        else:
+                            type_map[key].count += 1
+                    allocation[ship] = list(type_map.values())
+
+                return allocation
+            
+            allocation = allocate_bombers_to_ships(bombers, taskforce.ships)
+            print(allocation)
+
+            if not allocation:
+                # If no allocation was made, return None
+                return None
+            
+            # Resolve combat for each ship in the taskforce
+            # and return the results
+            results = []
+            for ship, allocated_bombers in allocation.items():
+                if allocated_bombers:
+                    result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
+                    results.append(result)
+                    if ship.status == "Sunk":
+                        taskforce.ships.remove(ship)
+            return results
+
+    
+    
+        #player attack ship
+        # airplanes attacking ships need to select a taskforce
+        result_player_ship_air_attack = None
+
+        if enemy_taskforce_p:
+            result_player_ship_air_attack = perform_air_to_ship_combat(player_bombers,enemy_taskforce_p.game_model)
+        #enemy attack ship
+        result_enemy_ship_air_attack = None
+        if player_taskforce_p:
+            result_enemy_ship_air_attack = perform_air_to_ship_combat(enemy_bombers,player_taskforce_p.game_model)
+
+
+        result_player_base_air_attack = None
+        if enemy_base_pieces:
+            result_player_base_air_attack = resolve_air_to_base_combat(player_bombers, enemy_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+
+        result_enemy_base_air_attack = None
+        if player_base_pieces:
+            result_enemy_base_air_attack = resolve_air_to_base_combat(enemy_bombers, player_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+
+
+        combat_results = {
+            "result_player_a2a": result_player_a2a,
+            "result_enemy_a2a": result_enemy_a2a,
+            "result_player_anti_aircraft": result_player_anti_aircraft,
+            "result_enemy_anti_aircraft": result_enemy_anti_aircraft,
+            "result_player_ship_air_attack": result_player_ship_air_attack,
+            "result_enemy_ship_air_attack": result_enemy_ship_air_attack,
+            "result_player_base_air_attack": result_player_base_air_attack,
+            "result_enemy_base_air_attack": result_enemy_base_air_attack,
+            "pre_combat_count_player_interceptors": pre_combat_count_player_interceptors,
+            "pre_combat_count_player_bombers": pre_combat_count_player_bombers,
+            "pre_combat_count_player_escorts": pre_combat_count_player_escorts,
+            "pre_combat_count_enemy_interceptors": pre_combat_count_enemy_interceptors,
+            "pre_combat_count_enemy_bombers": pre_combat_count_enemy_bombers,
+            "pre_combat_count_enemy_escorts": pre_combat_count_enemy_escorts
+        }
+
+        return combat_results
+    
     def _perform_combat_phase(self, pieces, observed_enemy_pieces):
         """
         For each piece that can attack, attempt to attack an observed enemy in the same hex.
         Only attack observed enemies.
         """
-        # If pieces is None, recompute actionable pieces
-        if pieces is None:
-            from flattop.game_engine import get_actionable_pieces
-            pieces = get_actionable_pieces(self.board, self.turn_manager)
+        #loop through all pieces that can attack
+        combat_results = {}
         for piece in pieces:
-            if piece.side != self.side or not piece.can_attack:
-                continue
-            # Find observed enemy pieces in the same hex
-            enemies = [p for p in observed_enemy_pieces if p.position == piece.position]
-            if not enemies:
-                continue
-            # AirFormation attacks
-            if isinstance(piece.game_model, AirFormation):
-                # Air-to-air combat: find enemy air formations
-                enemy_air = [p.game_model for p in enemies if isinstance(p.game_model, AirFormation)]
-                if enemy_air:
-                    # Simple: all vs all
-                    resolve_air_to_air_combat(
-                        interceptors=[ac for af in [piece.game_model] for ac in af.aircraft if ac.armament is None],
-                        escorts=[],
-                        bombers=[ac for af in enemy_air for ac in af.aircraft if ac.armament is not None],
-                        rf_expended=True,
-                        clouds=(self.weather_manager.get_weather_at_hex(piece.position) == "cloud"),
-                        night=self.turn_manager.is_night()
-                    )
-                # Attack TaskForce or Base if present
-                enemy_tf = [p.game_model for p in enemies if isinstance(p.game_model, TaskForce)]
-                enemy_base = [p.game_model for p in enemies if isinstance(p.game_model, Base)]
-                if enemy_tf:
-                    # Attack first enemy TF
-                    resolve_taskforce_anti_aircraft_combat(piece.game_model.aircraft, enemy_tf[0])
-                    # Prioritize attacking TaskForce with carriers
-                    carrier_tfs = [tf for tf in enemy_tf if any(getattr(ship, 'type', '') == 'CV' for ship in getattr(tf, 'ships', []))]
-                    target_tf = carrier_tfs[0] if carrier_tfs else enemy_tf[0]
-                    # Prioritize attacking ships: CV > BB > CA
-                    priority_types = ['CV', 'BB', 'CA']
-                    ships = getattr(target_tf, 'ships', [])
-                    priority_ships = [ship for ship in ships if getattr(ship, 'type', '') in priority_types]
-                    if priority_ships:
-                        # Attack highest priority ship type available
-                        for ship_type in priority_types:
-                            candidates = [ship for ship in priority_ships if getattr(ship, 'type', '') == ship_type]
-                            if candidates:
-                                resolve_air_to_ship_combat(piece.game_model.aircraft, random.choice(candidates))
-                                break
-                    elif ships:
-                        # Fallback: attack any ship
-                        resolve_air_to_ship_combat(piece.game_model.aircraft, random.choice(ships))
-                elif enemy_base:
-                    resolve_base_anti_aircraft_combat(piece.game_model.aircraft, enemy_base[0])
-                    resolve_air_to_base_combat(piece.game_model.aircraft, enemy_base[0])
-            # TaskForce attacks (surface combat not implemented)
-            # Could add surface combat logic here
+            if not piece.can_attack:
+               continue
+            # Check if the piece is in a hex with observed enemy pieces
+            combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
+            
+
+        # TaskForce attacks (surface combat not implemented)
+        # Could add surface combat logic here
+
+        return combat_results
+
+
+            
 
     def _create_search_airformations(self, board):
         """
