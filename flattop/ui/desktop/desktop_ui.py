@@ -231,20 +231,20 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
 
     combat_results = {
-        "result_allied_a2a": result_allied_a2a,
-        "result_japanese_a2a": result_japanese_a2a,
-        "result_allied_anti_aircraft": result_allied_anti_aircraft,
-        "result_japanese_anti_aircraft": result_japanese_anti_aircraft,
-        "result_allied_ship_air_attack": result_allied_ship_air_attack,
-        "result_japanese_ship_air_attack": result_japanese_ship_air_attack,
-        "result_allied_base_air_attack": result_allied_base_air_attack,
-        "result_japanese_base_air_attack": result_japanese_base_air_attack,
-        "pre_combat_count_allied_interceptors": pre_combat_count_allied_interceptors,
-        "pre_combat_count_allied_bombers": pre_combat_count_allied_bombers,
-        "pre_combat_count_allied_escorts": pre_combat_count_allied_escorts,
-        "pre_combat_count_japanese_interceptors": pre_combat_count_japanese_interceptors,
-        "pre_combat_count_japanese_bombers": pre_combat_count_japanese_bombers,
-        "pre_combat_count_japanese_escorts": pre_combat_count_japanese_escorts
+        "result_player_a2a": result_allied_a2a,
+        "result_enemy_a2a": result_japanese_a2a,
+        "result_player_anti_aircraft": result_allied_anti_aircraft,
+        "result_enemy_anti_aircraft": result_japanese_anti_aircraft,
+        "result_player_ship_air_attack": result_allied_ship_air_attack,
+        "result_enemy_ship_air_attack": result_japanese_ship_air_attack,
+        "result_player_base_air_attack": result_allied_base_air_attack,
+        "result_enemy_base_air_attack": result_japanese_base_air_attack,
+        "pre_combat_count_player_interceptors": pre_combat_count_allied_interceptors,
+        "pre_combat_count_player_bombers": pre_combat_count_allied_bombers,
+        "pre_combat_count_player_escorts": pre_combat_count_allied_escorts,
+        "pre_combat_count_enemy_interceptors": pre_combat_count_japanese_interceptors,
+        "pre_combat_count_enemy_bombers": pre_combat_count_japanese_bombers,
+        "pre_combat_count_enemy_escorts": pre_combat_count_japanese_escorts
     }
 
     return combat_results
@@ -768,27 +768,29 @@ class DesktopUI:
 
     def show_combat_results(self, results, pos):
 
-
+        if results==None:
+            return
+        
         font = pygame.font.SysFont(None, 24)
                 
         lines = ["Combat Results:"]
         
-        lines.append(f"Allied Interceptors: {results['pre_combat_count_allied_interceptors']}")
-        lines.append(f"Allied Escorts: {results['pre_combat_count_allied_escorts']}")
-        lines.append(f"Allied Bombers: {results['pre_combat_count_allied_bombers']}")
+        lines.append(f"Allied Interceptors: {results['pre_combat_count_player_interceptors']}")
+        lines.append(f"Allied Escorts: {results['pre_combat_count_player_escorts']}")
+        lines.append(f"Allied Bombers: {results['pre_combat_count_player_bombers']}")
     
-        lines.append(f"Japanese Interceptors: {results['pre_combat_count_japanese_interceptors']}")
-        lines.append(f"Japanese Escorts: {results['pre_combat_count_japanese_escorts']}")
-        lines.append(f"Japanese Bombers: {results['pre_combat_count_japanese_bombers']}")
+        lines.append(f"Japanese Interceptors: {results['pre_combat_count_enemy_interceptors']}")
+        lines.append(f"Japanese Escorts: {results['pre_combat_count_enemy_escorts']}")
+        lines.append(f"Japanese Bombers: {results['pre_combat_count_enemy_bombers']}")
         lines.append("-----------------------")
-        result_allied_a2a = results.get("result_allied_a2a")
-        result_japanese_a2a = results.get("result_japanese_a2a")
-        result_allied_anti_aircraft = results.get("result_allied_anti_aircraft")
-        result_japanese_anti_aircraft = results.get("result_japanese_anti_aircraft")
-        result_allied_ship_air_attack = results.get("result_allied_ship_air_attack")
-        result_japanese_ship_air_attack = results.get("result_japanese_ship_air_attack")
-        result_allied_base_air_attack = results.get("result_allied_base_air_attack")
-        result_japanese_base_air_attack = results.get("result_japanese_base_air_attack")
+        result_allied_a2a = results.get("result_player_a2a")
+        result_japanese_a2a = results.get("result_enemy_a2a")
+        result_allied_anti_aircraft = results.get("result_player_anti_aircraft")
+        result_japanese_anti_aircraft = results.get("result_enemy_anti_aircraft")
+        result_allied_ship_air_attack = results.get("result_player_ship_air_attack")
+        result_japanese_ship_air_attack = results.get("result_enemy_ship_air_attack")
+        result_allied_base_air_attack = results.get("result_player_base_air_attack")
+        result_japanese_base_air_attack = results.get("result_enemy_base_air_attack")
         if result_allied_a2a:
             
             lines.append("Allied Air 2 Air Combat Results:")
@@ -1027,6 +1029,7 @@ class DesktopUI:
                             print("Combat Phase")
                             # no action this phase, just a placeholder. Menus change to Combat
                             self.computer_opponent.perform_turn()
+                            self.show_combat_results(self.turn_manager.last_combat_result, event.pos)
                         case 5:
                             print("Repair Phase")
                             self.computer_opponent.perform_turn()

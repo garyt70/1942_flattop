@@ -260,7 +260,7 @@ class AirCombatResult:
     def __str__(self):
         r = ""
         if len(self.hits) > 0:
-           r =  f"Hits: {self.hits}\n{self.summary}"
+           r =  f"Hits: {self.hits}\n{self.summary}\n"
         return r
 
 

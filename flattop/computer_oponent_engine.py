@@ -147,7 +147,9 @@ class ComputerOpponent:
             self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="taskforce")
         elif phase == "Combat":
             result = self._perform_combat_phase(actionable, observed_enemy_pieces)
-            print(f"Combat results: {result}")
+            if result and len(result) > 0:
+                self.turn_manager.add_combat_result(result)
+                print(f"Combat results: {result}")
 
 
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
@@ -721,27 +723,15 @@ class ComputerOpponent:
             # Allocate bombers to ships in the taskforce, prioritizing high-value ships, carriers, and battleships
             def allocate_bombers_to_ships(bombers, ships):
                 """
-                Allocate bombers to ships in the taskforce, prioritizing high-value ships, carriers (CV), battleships (BBS), then others (CA, etc).
+                Allocate bombers to ships in the taskforce, prioritizing high-value ships:
+                - Carrier (CV): 3 x ship.damage_factor aircraft
+                - Battleship (BBS): 4 x ship.damage_factor aircraft
+                - Capital ships (CA): 3 x ship.damage_factor aircraft
+                - Others: 5 aircraft per ship
                 Returns a dict: {ship: [list of bombers]}
                 """
                 if not bombers or not ships:
                     return {}
-
-                # Prioritize ships: high-value first, then CV, then BBS, then CA, then others
-                def ship_priority(ship):
-                    if getattr(ship, "is_high_value", False):
-                        return 0
-                    ship_type = getattr(ship, "type", "")
-                    if ship_type == "CV":
-                        return 1
-                    if ship_type == "BBS":
-                        return 2
-                    if ship_type == "CA":
-                        return 3
-                    return 4
-
-                ships_sorted = sorted(ships, key=ship_priority)
-                allocation = {ship: [] for ship in ships_sorted}
 
                 # Flatten bombers into a list of individual aircraft (if count > 1)
                 bomber_list = []
@@ -751,11 +741,35 @@ class ComputerOpponent:
                         bomber_copy.count = 1
                         bomber_list.append(bomber_copy)
 
-                # Allocate bombers round-robin to prioritized ships
-                ship_count = len(ships_sorted)
-                for idx, bomber in enumerate(bomber_list):
-                    ship = ships_sorted[idx % ship_count]
-                    allocation[ship].append(bomber)
+                allocation = {ship: [] for ship in ships}
+
+                # Determine allocation requirements per ship
+                ship_requirements = []
+                for ship in ships:
+                    ship_type = getattr(ship, "type", "")
+                    damage_factor = getattr(ship, "damage_factor", 1)
+                    if ship_type == "CV":
+                        required = 3 * damage_factor
+                    elif ship_type == "BBS":
+                        required = 4 * damage_factor
+                    elif ship_type == "CA":
+                        required = 3 * damage_factor
+                    else:
+                        required = 5
+                    ship_requirements.append((ship, required))
+
+                # Allocate bombers to ships by priority until bombers run out
+                bomber_idx = 0
+                total_bombers = len(bomber_list)
+                for ship, required in ship_requirements:
+                    allocated = 0
+                    while allocated < required and bomber_idx < total_bombers:
+                        allocation[ship].append(bomber_list[bomber_idx])
+                        allocated += 1
+                        bomber_idx += 1
+                    # If bombers run out, stop allocating
+                    if bomber_idx >= total_bombers:
+                        break
 
                 # Optionally, merge bombers of the same type back into single objects with count
                 for ship, bombers in allocation.items():
@@ -788,6 +802,19 @@ class ComputerOpponent:
                     results.append(result)
                     if ship.status == "Sunk":
                         taskforce.ships.remove(ship)
+
+            for bomber in bombers:
+                # because the computer logic does a allocation of bombers to ships as a copy of the original bomber,
+                # we need to set the armament to None after combat so that the bomber is not used again in the next combat phase.
+                # This is to simulate the bomber being used up in the combat.
+                # 
+                # Set armament to None after combat
+                bomber.armament = None
+                # reduce the range by 1 for each bomber that has attacked
+                #if height is high and attack is level then do not reduce range
+                if bomber.height != "High" or bomber.attack_type != "Level":
+                    bomber.range_remaining = max(0, bomber.range_remaining - 1)
+
             return results
 
     
@@ -838,14 +865,17 @@ class ComputerOpponent:
         Only attack observed enemies.
         """
         #loop through all pieces that can attack
-        combat_results = {}
-        for piece in pieces:
-            if not piece.can_attack:
-               continue
-            # Check if the piece is in a hex with observed enemy pieces
-            combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
+        #combat_results = {}
+        #for piece in pieces:
+        #    if not piece.can_attack:
+        #       continue
+        #    # Check if the piece is in a hex with observed enemy pieces
+        #    combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
+        combat_results = None
+        if len(pieces)>0:
+            #only need the first piece as the combat finds all combat pieces that can be actioned    
+            combat_results = self._perform_combat_phase_for_piece_in_hex(pieces[0], observed_enemy_pieces)
             
-
         # TaskForce attacks (surface combat not implemented)
         # Could add surface combat logic here
 
