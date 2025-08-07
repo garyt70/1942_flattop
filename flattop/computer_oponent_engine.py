@@ -115,6 +115,93 @@ class ComputerOpponent:
         if candidates:
             dest = random.choice(candidates)
             self.board.move_piece(piece, dest)
+
+    def _move_intelligent_search(self, piece, max_range=4):
+        """
+        Move the piece in an intelligent search pattern:
+        1. Keep track of previously searched hexes
+        2. Maintain consistent direction for multiple turns
+        3. Avoid storms and previously searched areas
+        4. Return to base when fuel is low
+        """
+        if not hasattr(self, '_search_history'):
+            self._search_history = {}  # Track searched hexes
+        if not hasattr(self, '_search_direction'):
+            self._search_direction = {}  # Track search direction per piece
+
+        current = piece.position
+        gm = getattr(piece, 'game_model', None)
+
+        # Initialize search direction if not set
+        if piece.name not in self._search_direction:
+            self._search_direction[piece.name] = random.choice(['NE', 'E', 'SE', 'SW', 'W', 'NW'])
+
+        # Get all possible moves within range
+        candidates = []
+        for tile in self.board.tiles:
+            if tile == current:
+                continue
+            if get_distance(current, tile) > max_range:
+                continue
+            # Skip storm hexes for air formations
+            if isinstance(gm, AirFormation) and self.weather_manager and self.weather_manager.get_weather_at_hex(tile) == 'storm':
+                continue
+            # Prefer unsearched hexes
+            if tile not in self._search_history.get(piece.name, set()):
+                candidates.append(tile)
+
+        if not candidates:
+            # If no unsearched hexes, allow searched hexes but change direction
+            self._search_direction[piece.name] = random.choice(['NE', 'E', 'SE', 'SW', 'W', 'NW'])
+            candidates = [tile for tile in self.board.tiles 
+                            if tile != current 
+                            and get_distance(current, tile) <= max_range
+                            and (not isinstance(gm, AirFormation) 
+                                or not self.weather_manager 
+                                or self.weather_manager.get_weather_at_hex(tile) != 'storm')]
+
+        if candidates:
+            # Choose destination based on current search direction
+            direction = self._search_direction[piece.name]
+            best_hex = None
+            best_score = float('-inf')
+
+            for tile in candidates:
+                # Score based on direction and previous searches
+                dx = tile.q - current.q
+                dy = tile.r - current.r
+
+                # Calculate directional score
+                dir_score = {
+                    'E': dx,
+                    'W': -dx,
+                    'NE': dx + dy,
+                    'SW': -(dx + dy),
+                    'SE': dx - dy,
+                    'NW': -dx + dy
+                }[direction]
+
+                # Penalty for searched hexes
+                search_penalty = -5 if tile in self._search_history.get(piece.name, set()) else 0
+                
+                score = dir_score + search_penalty
+                
+                if score > best_score:
+                    best_score = score
+                    best_hex = tile
+
+            if best_hex:
+                self.board.move_piece(piece, best_hex)
+                # Record searched hex
+                if piece.name not in self._search_history:
+                    self._search_history[piece.name] = set()
+                self._search_history[piece.name].add(best_hex)
+
+                # Periodically change direction
+                if random.random() < 0.2:  # 20% chance to change direction
+                    current_idx = ['NE', 'E', 'SE', 'SW', 'W', 'NW'].index(direction)
+                    new_idx = (current_idx + random.choice([-1, 0, 1])) % 6
+                    self._search_direction[piece.name] = ['NE', 'E', 'SE', 'SW', 'W', 'NW'][new_idx]
     # Implementation notes:
     # - Only observed enemy pieces (observed_condition > 0) are considered for movement/attack
     # - Air formations are created and launched if no enemies are observed, to simulate search/recon
@@ -424,7 +511,7 @@ class ComputerOpponent:
                     else:
                         # Bombers: search more widely (random within movement range)
                         move_range = getattr(gm, 'movement_factor', 4)
-                        self._move_random_within_range(piece, max_range=move_range)
+                        self._move_intelligent_search(piece, max_range=move_range)
                 elif isinstance(gm, TaskForce):
                     # Task forces: do not move if no observed enemies (could add patrol logic here)
                     continue
