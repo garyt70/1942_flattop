@@ -10,7 +10,7 @@ class Hex:
         self.terrain = terrain  # "sea" or "land"
 
     def __eq__(self, other):
-        return self.q == other.q and self.r == other.r and self.terrain == other.terrain
+        return self.q == other.q and self.r == other.r #and self.terrain == other.terrain
 
     def __hash__(self):
         return hash((self.q, self.r, self.terrain))
