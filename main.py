@@ -94,7 +94,7 @@ def scenario_one_setup():
 
     chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
     
-    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4, "land"), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
 
     #add a test AirFormation to the Japanese chart
     airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
