@@ -1028,6 +1028,7 @@ class DesktopUI:
                         case 4:
                             print("Combat Phase")
                             # no action this phase, just a placeholder. Menus change to Combat
+                            self.turn_manager.last_combat_result = None
                             self.computer_opponent.perform_turn()
                             self.show_combat_results(self.turn_manager.last_combat_result, event.pos)
                         case 5:
