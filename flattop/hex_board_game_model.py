@@ -103,7 +103,7 @@ class Piece:
         """
         can_attack = False
         if isinstance(self._game_model, (operations_chart_models.AirFormation, operations_chart_models.TaskForce)):
-            can_attack = self._game_model.can_attack
+            can_attack = self._game_model.can_attack 
 
         return can_attack
     

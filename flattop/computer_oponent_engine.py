@@ -43,7 +43,7 @@ TODO: Fixes for known issues:
 
 import random
 from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
-from flattop.operations_chart_models import AirFormation, Aircraft, AircraftOperationsStatus, TaskForce, Base
+from flattop.operations_chart_models import AirFormation, Aircraft, AircraftOperationsStatus, AircraftType, TaskForce, Base
 from flattop.aircombat_engine import (
     classify_aircraft,
     resolve_air_to_air_combat,
@@ -262,6 +262,7 @@ class ComputerOpponent:
         - If a TaskForce is observed, arm aircraft with AP (armor-piercing) if available in readying, and move to ready if ready factors allow.
         - If an enemy AirFormation is observed within 10 hexes of a base, create an interceptor air formation if possible.
         - If no observed enemies, create search air formations using best (longest range) ready aircraft, in small groups (1-3 aircraft), and only if ready/launch factors allow.
+        - Move aircraft in just landed to readying, using ready_factor limits.
         """
         own_pieces = [p for p in board.pieces if p.side == self.side]
         bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
@@ -272,25 +273,28 @@ class ComputerOpponent:
         if taskforce_targets:
             for base_piece in bases:
                 base: Base = base_piece.game_model
-                readying = base.air_operations_tracker.readying
-                ready = base.air_operations_tracker.ready
+                readying = list(base.air_operations_tracker.readying)
+                ready = list(base.air_operations_tracker.ready)
                 ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
 
-            # Arm aircraft in readying with AP and move to ready if possible
-            for ac in readying:
-                if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
-                    ac.armament = 'AP'
-                    base.air_operations_tracker.set_operations_status(ac, 'ready')
-                    ready_factors_left -= ac.count
+                # Arm aircraft in readying with AP and move to ready if possible
+                for ac in readying:
+                    if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
+                        ac.armament = 'AP'
+                        base.air_operations_tracker.set_operations_status(ac, 'ready')
+                        ready_factors_left -= ac.count
 
-            # If there are ready aircraft, create an air formation to attack the taskforce
-            if ready:
-                # Select up to 3 ready aircraft for the attack formation
-                attack_aircraft = ready[:3]
-                af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
-                if af:
-                    af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
-                    board.add_piece(af_piece)
+                # If there are ready aircraft, create an air formation to attack the taskforce
+                if ready:
+                    # Select up to the available number of launch factors for the attack formation
+                    max_launch = min(len(ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
+                    attack_aircraft = ready[:max_launch] if max_launch > 0 else []
+                    # Reduce the available launch factor by the count of planes launched
+                    base.used_launch_factor += sum(ac.count for ac in attack_aircraft)
+                    af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
+                    if af:
+                        af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
+                        board.add_piece(af_piece)
 
             for tf_piece in taskforces:
                 tf = tf_piece.game_model
@@ -298,8 +302,8 @@ class ComputerOpponent:
                     base = getattr(carrier, 'base', None)
                     if not base:
                         continue
-                    readying = base.air_operations_tracker.readying
-                    ready = base.air_operations_tracker.ready
+                    readying = list(base.air_operations_tracker.readying)
+                    ready = list(base.air_operations_tracker.ready)
                     ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
 
                     for ac in readying:
@@ -313,21 +317,17 @@ class ComputerOpponent:
                         af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                         if af:
                             af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
-                        board.add_piece(af_piece)
-            
-                    
+                            board.add_piece(af_piece)
+        
         # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
         air_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, AirFormation)]
         for base_piece in bases:
             base = base_piece.game_model
-            # Find enemy air formations within 10 hexes
             for air_target in air_targets:
                 dist = get_distance(base_piece.position, air_target.position)
                 if dist <= 10:
-                    # Find ready aircraft that can serve as interceptors (no armament or fighter types)
                     interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
                     if interceptors:
-                        # Move interceptors to new air formation (CAP)
                         af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
                             af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
@@ -343,28 +343,48 @@ class ComputerOpponent:
                     dist = get_distance(tf_piece.position, air_target.position)
                     if dist <= 10:
                         interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
-                        if interceptors:
-                            af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
-                            if af:
-                                af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
-                                board.add_piece(af_piece)
-                            break
+                    if interceptors:
+                        af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
+                        if af:
+                            af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
+                            board.add_piece(af_piece)
+                        break
+        
+        # Move aircraft in just landed to readying, using ready_factor limits
+        for base_piece in bases:
+            base: Base = base_piece.game_model
+            ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+            just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
+            for ac in just_landed:
+                if ready_factors_left <= 0:
+                    break
+                base.air_operations_tracker.set_operations_status(ac, "readying")
+                ready_factors_left -= ac.count
+        for tf_piece in taskforces:
+            tf = tf_piece.game_model
+            for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
+                base = getattr(carrier, 'base', None)
+                if not base:
+                    continue
+                ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+                just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
+                for ac in just_landed:
+                    if ready_factors_left <= 0:
+                        break
+                    base.air_operations_tracker.set_operations_status(ac, "readying")
+                    ready_factors_left -= ac.count
+
 
         # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
         if not observed_enemy_pieces:
-            # Helper to select best ready aircraft (longest range)
             def select_best_ready_aircraft(ready_list, max_count):
-                # Sort by range descending, then by count ascending (prefer small groups)
                 sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
                 selected = []
                 total = 0
-                
                 for ac in sorted_ready:
                     if total + ac.count > max_count:
-                        # Split if too many
-                        ac_copy = ac.copy()  # Create a copy to avoid modifying the original
+                        ac_copy = ac.copy()
                         ac_copy.count = max_count - total
-                        #reduce the original count
                         ac.count -= ac_copy.count
                         if ac.count <= 0:
                             ready_list.remove(ac)
@@ -378,16 +398,12 @@ class ComputerOpponent:
                         break
                 return selected
 
-            # For each base, try to create 1-2 search air formations (1-3 aircraft each, longest range)
             for base_piece in bases:
-                base:Base = base_piece.game_model
+                base: Base = base_piece.game_model
                 ready_aircraft = list(base.air_operations_tracker.ready)
-                # Only create if launch factors allow
                 launch_factors_left = base.air_operations_config.launch_factor_max - base.used_launch_factor
                 if ready_aircraft and launch_factors_left > 0:
-                    # Try to create up to 2 search formations
                     for _ in range(random.randint(1, 2)):
-                        # Pick 1-3 best ready aircraft (longest range)
                         best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
                         if not best:
                             break
@@ -398,8 +414,15 @@ class ComputerOpponent:
                                 board.add_piece(af_piece)
                             else:
                                 break
+                elif launch_factors_left > 0:
+                    # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
+                    readying_aircraft = list(base.air_operations_tracker.readying)
+                    if readying_aircraft:
+                        best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
+                        if best:
+                            for ac in best:
+                                base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
-            # For each carrier, same logic as above
             for tf_piece in taskforces:
                 tf = tf_piece.game_model
                 for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
@@ -417,11 +440,19 @@ class ComputerOpponent:
                             if af:
                                 af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
-                                for used in best:
-                                    if used in ready_aircraft:
-                                        ready_aircraft.remove(used)
+                            for used in best:
+                                if used in ready_aircraft:
+                                    ready_aircraft.remove(used)
                             else:
                                 break
+                    elif launch_factors_left > 0:
+                        # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
+                        readying_aircraft = list(base.air_operations_tracker.readying)
+                        if readying_aircraft:
+                            best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
+                            if best:
+                                for ac in best:
+                                    base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
     def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
         """
@@ -568,7 +599,7 @@ class ComputerOpponent:
                         # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
                         is_interceptor = False
                         if isinstance(gm, AirFormation):
-                            is_interceptor = any(ac.type.value in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') and  ac.armament is not None for ac in gm.aircraft)
+                            is_interceptor = any(ac.is_interceptor for ac in gm.aircraft)
                         if target_type == AirFormation and is_interceptor:
                             # Prioritize high-value base/carrier for CAP
                             high_value_bases = [b for b in bases if getattr(b.game_model, 'is_high_value', False)]

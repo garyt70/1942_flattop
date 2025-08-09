@@ -431,10 +431,11 @@ class AirFormation:
     def can_attack(self):
         """
         loop through the aircraft in the formation and check if any of them can attack.
-        They can attack if they have armament
+        If they are bomber formation, they can attack if they have armament
+        if they are an interceptor they can always attack other aircraft
         """
         for ac in self.aircraft:
-            if ac.armament:
+            if ac.armament or ac.is_interceptor:
                 return True
         return False
     
@@ -553,16 +554,23 @@ class Aircraft:
         if self.armament:
             return True
 
-        if self.type not in {AircraftType.ZERO, 
+        if not self.is_interceptor:
+            return True
+        
+        return False
+    
+    @property
+    def is_interceptor(self):
+        """
+        Returns True if the aircraft is an interceptor, False otherwise.
+        """
+        return self.type in {AircraftType.ZERO, 
                              AircraftType.P40, 
                              AircraftType.BEAUFIGHTER, 
                              AircraftType.WILDCAT,
                              AircraftType.P39,
                              AircraftType.P40,
-                             AircraftType.P38,}:
-            return True
-        
-        return False
+                             AircraftType.P38,}
 
 class AircraftFactory:
     def __init__(self):
@@ -871,6 +879,16 @@ class AirOperationsTracker:
             sum(ac.count for ac in self.readying) +
             sum(ac.count for ac in self.ready)
         )
+    
+    def _operation_status_add_aircraft(self, to_aircraft:Aircraft, status_list:list[Aircraft]):
+        append_rather_than_add = True
+        for ac in status_list:
+            if ac.type == to_aircraft.type:
+                ac.count += to_aircraft.count
+                append_rather_than_add = False
+                break
+        if append_rather_than_add:
+            status_list.append(to_aircraft)
 
     def set_operations_status(self, to_aircraft: Aircraft, status, from_aircraft: Aircraft = None):
         """
@@ -901,9 +919,12 @@ class AirOperationsTracker:
             self.in_flight.append(to_aircraft)
             
         elif status_value == AircraftOperationsStatus.JUST_LANDED.value:
-            self.just_landed.append(to_aircraft)
+            # Check if an aircraft of the same type already exists in just_landed
+            self._operation_status_add_aircraft(to_aircraft, self.just_landed)
+
         elif status_value == AircraftOperationsStatus.READYING.value:
-            self.readying.append(to_aircraft)
+            self._operation_status_add_aircraft(to_aircraft, self.readying)
+
             if from_aircraft:
                 self.used_ready_factor += to_aircraft.count
                 # If moving from just landed, remove from just landed
@@ -911,7 +932,7 @@ class AirOperationsTracker:
                     self.just_landed.remove(from_aircraft)
         elif status_value == AircraftOperationsStatus.READY.value:
             to_aircraft.range_remaining = to_aircraft.range_factor  # Reset range remaining when aircraft is ready
-            self.ready.append(to_aircraft)
+            self._operation_status_add_aircraft(to_aircraft, self.ready)
             if from_aircraft:
                 self.used_ready_factor += to_aircraft.count
                 # If moving from readying, remove from readying
