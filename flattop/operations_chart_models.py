@@ -913,6 +913,7 @@ class AirOperationsTracker:
 
         if from_aircraft:
             from_aircraft.count -= to_aircraft.count
+            self.used_ready_factor += to_aircraft.count
 
         # Add to the appropriate status list
         if status_value == AircraftOperationsStatus.IN_FLIGHT.value:
@@ -925,19 +926,14 @@ class AirOperationsTracker:
         elif status_value == AircraftOperationsStatus.READYING.value:
             self._operation_status_add_aircraft(to_aircraft, self.readying)
 
-            if from_aircraft:
-                self.used_ready_factor += to_aircraft.count
+            if from_aircraft and from_aircraft in self.just_landed and from_aircraft.count <= 0:
                 # If moving from just landed, remove from just landed
-                if from_aircraft in self.just_landed and from_aircraft.count <= 0:
-                    self.just_landed.remove(from_aircraft)
+                self.just_landed.remove(from_aircraft)
         elif status_value == AircraftOperationsStatus.READY.value:
             to_aircraft.range_remaining = to_aircraft.range_factor  # Reset range remaining when aircraft is ready
             self._operation_status_add_aircraft(to_aircraft, self.ready)
-            if from_aircraft:
-                self.used_ready_factor += to_aircraft.count
-                # If moving from readying, remove from readying
-                if from_aircraft in self.readying and from_aircraft.count <= 0:
-                    self.readying.remove(from_aircraft)
+            if from_aircraft and from_aircraft in self.readying and from_aircraft.count <= 0:
+                self.readying.remove(from_aircraft)
         else:
             raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
 

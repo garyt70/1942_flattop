@@ -281,7 +281,7 @@ class ComputerOpponent:
                 for ac in readying:
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                         ac.armament = 'AP'
-                        base.air_operations_tracker.set_operations_status(ac, 'ready')
+                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
                         ready_factors_left -= ac.count
 
                 # If there are ready aircraft, create an air formation to attack the taskforce
@@ -309,7 +309,7 @@ class ComputerOpponent:
                     for ac in readying:
                         if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
                             ac.armament = 'AP'
-                            base.air_operations_tracker.set_operations_status(ac, 'ready')
+                            base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
                             ready_factors_left -= ac.count
 
                     if ready:
@@ -358,7 +358,7 @@ class ComputerOpponent:
             for ac in just_landed:
                 if ready_factors_left <= 0:
                     break
-                base.air_operations_tracker.set_operations_status(ac, "readying")
+                base.air_operations_tracker.set_operations_status(ac.copy(), "readying", ac)
                 ready_factors_left -= ac.count
         for tf_piece in taskforces:
             tf = tf_piece.game_model
@@ -371,7 +371,7 @@ class ComputerOpponent:
                 for ac in just_landed:
                     if ready_factors_left <= 0:
                         break
-                    base.air_operations_tracker.set_operations_status(ac, "readying")
+                    base.air_operations_tracker.set_operations_status(ac.copy(), "readying", ac)
                     ready_factors_left -= ac.count
 
 

@@ -278,6 +278,7 @@ class HexBoardModel:
             elif isinstance(piece.game_model, TaskForce):
                 tf:TaskForce
                 tf = piece.game_model
+                tf.reset_for_new_turn()
                 carrier_list = tf.get_carriers()
                 if len(carrier_list) > 0:
                     cv:Carrier
