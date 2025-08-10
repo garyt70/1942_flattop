@@ -974,6 +974,17 @@ class ComputerOpponent:
         if player_base_pieces:
             result_enemy_base_air_attack = resolve_air_to_base_combat(enemy_bombers, player_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
+        # First, remove aircraft with count 0 from all air formations in the hex
+        for af_piece in hex_airformations + [p for p in hex_enemies if isinstance(p.game_model, AirFormation)]:
+            af = af_piece.game_model
+            af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
+
+        # Then, remove air formation pieces from the board if they have no aircraft left
+        for af_piece in hex_airformations + [p for p in hex_enemies if isinstance(p.game_model, AirFormation)]:
+            af = af_piece.game_model
+            if not af.aircraft and af_piece in self.board.pieces:
+                self.board.pieces.remove(af_piece)
+
 
         combat_results = {
             "result_player_a2a": result_player_a2a,
