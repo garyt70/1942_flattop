@@ -488,7 +488,7 @@ class ComputerOpponent:
             #handle running out of range
             # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
             if isinstance(gm, AirFormation):
-                min_range_left = min((ac.range_remaining if hasattr(ac, 'range_remaining') else 0) for ac in gm.aircraft) if gm.aircraft else 0
+                min_range_left = gm.range_remaining * gm.movement_factor
                 # Find nearest base
                 nearest_base = None
                 min_base_dist = float('inf')

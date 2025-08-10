@@ -428,6 +428,18 @@ class AirFormation:
         return max_move
     
     @property
+    def range_remaining(self):
+        """
+        Returns the remaining range for the AirFormation,
+        which is the lowest remaining range among all aircraft in the formation.
+        Returns 0 if there are no aircraft.
+        """
+        min_range = float('inf')
+        if self.aircraft:
+            min_range = min(ac.range_remaining for ac in self.aircraft)
+        return min_range
+
+    @property
     def can_attack(self):
         """
         loop through the aircraft in the formation and check if any of them can attack.
