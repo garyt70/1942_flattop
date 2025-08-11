@@ -31,17 +31,16 @@ TODO: Fixes for known issues:
 - Optimize movement algorithms for better pathfinding
 - Enhance combat resolution to account for more variables
 
-- Logic for low range aircraft to return to base. This is not working correctly as it is in the condition when there are no observed enemy pieces.
 - Air formations should not move into storm hexes
 - Task forces should prioritize attacking enemy ships over land targets
-- Combat should remove aircraft from air formation when they are destroyed (count==0)
-- Combat must remove air formations from the board when they are destroyed (no aircraft left)
 - Combat needs to remove sunk ships from the task force
 - Combat must remove task forces from the board when they are destroyed (no ships left)
+- BUG: Aircraft for computer are being lost in the base when landing. Either they are not landing or something else is going on.
 
 """
 
 import random
+import logging
 from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
 from flattop.operations_chart_models import AirFormation, Aircraft, AircraftOperationsStatus, AircraftType, TaskForce, Base
 from flattop.aircombat_engine import (
@@ -55,8 +54,16 @@ from flattop.aircombat_engine import (
 from flattop.game_engine import get_actionable_pieces, perform_observation_for_side
 from flattop.weather_model import WeatherManager
 
+# Configure logging for this module
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 class ComputerOpponent:
     def _move_toward(self, piece, target_hex, stop_distance=0):
+        logger.debug(f"_move_toward: Moving {piece.name} toward {target_hex} with stop_distance={stop_distance}")
         """
         Move the piece toward the target_hex, stopping at stop_distance if possible.
         Only move over sea hexes for air formations and task forces. Planes do not move into storm hexes.
@@ -93,6 +100,7 @@ class ComputerOpponent:
             self.board.move_piece(piece, best_hex)
 
     def _move_random_within_range(self, piece, max_range=2):
+        logger.debug(f"_move_random_within_range: Moving {piece.name} randomly within range {max_range}")
         """
         Move the piece to a random valid hex within max_range, avoiding land for air formations and task forces. Planes do not move into storm hexes.
         """
@@ -117,6 +125,7 @@ class ComputerOpponent:
             self.board.move_piece(piece, dest)
 
     def _move_intelligent_search(self, piece, max_range=4):
+        logger.debug(f"_move_intelligent_search: {piece.name} searching with max_range={max_range}")
         """
         Move the piece in an intelligent search pattern in short increments:
         1. Keep track of previously searched hexes
@@ -232,7 +241,8 @@ class ComputerOpponent:
         self.board = board
         self.weather_manager = weather_manager
         self.turn_manager = turn_manager
-    
+        logger.info(f"ComputerOpponent initialized for side: {side}")
+
     def perform_turn(self):
         """
         Perform all actions for the computer opponent for the current phase.
@@ -240,21 +250,28 @@ class ComputerOpponent:
         Handles Air Operations phase: arms aircraft and creates air formations for CAP/interception or search.
         """
         phase = self.turn_manager.current_phase
+        logger.info(f"Performing turn for phase: {phase}")
         all_actionable = get_actionable_pieces(self.board, self.turn_manager)
-        actionable = [p for p in all_actionable if p.side == self.side] # Filter actionable pieces for this side
+        actionable = [p for p in all_actionable if p.side == self.side]
         observed_enemy_pieces = [p for p in self.board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
-        if phase == "Air Operations":
-            self._perform_air_operations_phase(self.board, observed_enemy_pieces)
-        elif phase == "Plane Movement":
-            self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="plane")
-        elif phase == "Task Force Movement":
-            self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="taskforce")
-        elif phase == "Combat":
-            result = self._perform_combat_phase(actionable, observed_enemy_pieces)
-            if result and len(result) > 0:
-                self.turn_manager.add_combat_result(result)
-                print(f"Combat results: {result}")
-
+        try:
+            if phase == "Air Operations":
+                logger.debug("Starting Air Operations phase.")
+                self._perform_air_operations_phase(self.board, observed_enemy_pieces)
+            elif phase == "Plane Movement":
+                logger.debug("Starting Plane Movement phase.")
+                self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="plane")
+            elif phase == "Task Force Movement":
+                logger.debug("Starting Task Force Movement phase.")
+                self._perform_movement_phase(actionable, observed_enemy_pieces, move_type="taskforce")
+            elif phase == "Combat":
+                logger.debug("Starting Combat phase.")
+                result = self._perform_combat_phase(actionable, observed_enemy_pieces)
+                if result and len(result) > 0:
+                    self.turn_manager.add_combat_result(result)
+                    logger.info(f"Combat results: {result}")
+        except Exception as e:
+            logger.error(f"Error during perform_turn: {e}", exc_info=True)
 
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
         """
@@ -276,10 +293,11 @@ class ComputerOpponent:
                 readying = list(base.air_operations_tracker.readying)
                 ready = list(base.air_operations_tracker.ready)
                 ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
-
+                logger.debug(f"Base {base.name} has {ready_factors_left} ready factors left.")
                 # Arm aircraft in readying with AP and move to ready if possible
                 for ac in readying:
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
+                        logger.debug(f"Arming aircraft {ac.name} armed with AP at base {base.name}.")
                         ac.armament = 'AP'
                         base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
                         ready_factors_left -= ac.count
@@ -293,6 +311,7 @@ class ComputerOpponent:
                     base.used_launch_factor += sum(ac.count for ac in attack_aircraft)
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                     if af:
+                        logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
                         af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                         board.add_piece(af_piece)
 
@@ -316,6 +335,7 @@ class ComputerOpponent:
                         attack_aircraft = ready[:3]
                         af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                         if af:
+                            logger.debug(f"Creating air formation {af.name} at carrier base {base.name} to attack taskforce.")  
                             af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                             board.add_piece(af_piece)
         
@@ -330,6 +350,7 @@ class ComputerOpponent:
                     if interceptors:
                         af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
+                            logger.debug(f"Creating interceptor air formation {af.name} at base {base.name} for air target {air_target.name}.")
                             af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                             board.add_piece(af_piece)
                         break
@@ -346,6 +367,7 @@ class ComputerOpponent:
                     if interceptors:
                         af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
+                            logger.debug(f"Creating interceptor air formation {af.name} at carrier base {base.name} for air target {air_target.name}.") 
                             af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                             board.add_piece(af_piece)
                         break
@@ -373,6 +395,7 @@ class ComputerOpponent:
                         break
                     base.air_operations_tracker.set_operations_status(ac.copy(), "readying", ac)
                     ready_factors_left -= ac.count
+                    logger.debug(f"Moving aircraft {ac.type} to readying at base {base.name}. Ready factors left: {ready_factors_left}")    
 
 
         # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
@@ -409,6 +432,7 @@ class ComputerOpponent:
                             break
                         for ac in best:
                             af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
+                            logger.debug(f"Creating search air formation {af.name} at base {base.name}.")   
                             if af:
                                 af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
@@ -421,6 +445,8 @@ class ComputerOpponent:
                         best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
                         if best:
                             for ac in best:
+                                logger.debug(f"Moving aircraft {ac.type} to ready at base {base.name}.")
+                                ac.armament = 'AP' #default to AP as assuming searching for enemy ships
                                 base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
             for tf_piece in taskforces:
@@ -438,10 +464,11 @@ class ComputerOpponent:
                                 break
                             af = base.create_air_formation(random.randint(1, 35), aircraft=best)
                             if af:
+                                logger.debug(f"Creating search air formation {af.name} at carrier base {base.name}.")
                                 af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
                             for used in best:
-                                if used in ready_aircraft:
+                                if used in ready_aircraft and used.count <= 0:
                                     ready_aircraft.remove(used)
                             else:
                                 break
@@ -452,9 +479,35 @@ class ComputerOpponent:
                             best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
                             if best:
                                 for ac in best:
+                                    logger.debug(f"Moving aircraft {ac.name} to ready at carrier base {base.name}.")
+                                    ac.armament = 'AP'  # default to AP as assuming searching for enemy ships
                                     base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
+    def _handle_airformation_move_to_base(self, piece, gm, nearest_base, min_range_left, min_base_dist, bases):
+        # Move toward base in short hops (2-3 hexes)
+        hops = min(3, min_range_left, min_base_dist)
+        for _ in range(hops):
+            if get_distance(piece.position, nearest_base) > 0:
+                self._move_toward(piece, nearest_base, stop_distance=0)
+                # Optionally, call observation after each move
+                if hasattr(self, 'perform_observation'):
+                    self.perform_observation()
+        # If air formation is at base, land it and remove from board
+        if piece.position == nearest_base:
+            # Land each aircraft in the air formation
+            for ac in gm.aircraft:
+                # Add aircraft back to base's tracker (simulate landing)
+                base_piece = next((b for b in bases if b.position == nearest_base), None)
+                if base_piece:
+                    base: Base = base_piece.game_model
+                    base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
+                    logger.info(f"AirFormation {gm.name} landed at base {base.name}.")
+            # Remove air formation piece from board
+            if piece in self.board.pieces:
+                self.board.pieces.remove(piece)
+
     def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
+        logger.info(f"Executing movement phase for move_type={move_type}")
         """
         Move phase logic:
         - If observed enemy pieces exist, move toward nearest observed enemy.
@@ -499,33 +552,18 @@ class ComputerOpponent:
                         nearest_base = base_hex
                 # If range is low (<= distance to base + 1), start moving back
                 if nearest_base and min_range_left <= min_base_dist + 1:
-                    # Move toward base in short hops (2-3 hexes)
-                    hops = min(3, min_range_left, min_base_dist)
-                    for _ in range(hops):
-                        if get_distance(piece.position, nearest_base) > 0:
-                            self._move_toward(piece, nearest_base, stop_distance=0)
-                            # Optionally, call observation after each move
-                            if hasattr(self, 'perform_observation'):
-                                self.perform_observation()
-                    # If air formation is at base, land it and remove from board
-                    if piece.position == nearest_base:
-                        # Land each aircraft in the air formation
-                        for ac in gm.aircraft:
-                            # Add aircraft back to base's tracker (simulate landing)
-                            base_piece = next((b for b in bases if b.position == nearest_base), None)
-                            if base_piece:
-                                base:Base = base_piece.game_model
-                                base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
-                        # Remove air formation piece from board
-                        if piece in self.board.pieces:
-                            self.board.pieces.remove(piece)
+                    logger.info(f"AirFormation {gm.name} low on range, moving toward nearest base {nearest_base}.")
+                    self._handle_airformation_move_to_base(piece, gm, nearest_base, min_range_left, min_base_dist, bases)
                     continue
-
+                
+                # if a bomber and there are no armed aircraft then move toward base to re-arm
+                if isinstance(gm, AirFormation) and any(ac.is_bomber and ac.armament is None for ac in gm.aircraft):
+                    logger.info(f"AirFormation {gm.name} no longer armed, moving toward nearest base {nearest_base}.")
+                    self._handle_airformation_move_to_base(piece, gm, nearest_base, min_range_left, min_base_dist, bases)
+                    continue    
 
             if not observed_enemy_pieces or len(observed_enemy_pieces) == 0:
-                # No observed enemies: move in a search pattern
-
-                
+                # No observed enemies: move in a search pattern                
                 if isinstance(gm, AirFormation):
                     # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
                     is_bomber = any(ac.is_bomber for ac in gm.aircraft)
@@ -601,6 +639,7 @@ class ComputerOpponent:
                         if isinstance(gm, AirFormation):
                             is_interceptor = any(ac.is_interceptor for ac in gm.aircraft)
                         if target_type == AirFormation and is_interceptor:
+                            logger.debug(f"Interceptor {gm.name} prioritizing CAP for base/carrier.")
                             # Prioritize high-value base/carrier for CAP
                             high_value_bases = [b for b in bases if getattr(b.game_model, 'is_high_value', False)]
                             cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
@@ -620,6 +659,7 @@ class ComputerOpponent:
                         # Bombers: coordinate attacks if multiple formations are available
                         is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if isinstance(gm, AirFormation) and gm.aircraft else False
                         if target_type in (TaskForce, Base) and is_bomber:
+                            logger.debug(f"Bomber {gm.name} coordinating attack on {target.name}.")
                             # Only move bombers together if not already moved
                             if piece not in bombers_moved:
                                 # Find all bombers targeting the same enemy
@@ -674,6 +714,7 @@ class ComputerOpponent:
         # - Add logic for retreating if odds are unfavorable (e.g., outnumbered/intercepted).
 
     def _perform_combat_phase_for_piece_in_hex(self, piece, observed_enemy_pieces):
+        logger.debug(f"Resolving combat for {piece.name} in hex {piece.position}")
         """
         Perform combat for a single piece in a hex with observed enemy pieces.
         This is a helper function to handle combat resolution for a specific piece.
@@ -1006,6 +1047,7 @@ class ComputerOpponent:
         return combat_results
     
     def _perform_combat_phase(self, pieces, observed_enemy_pieces):
+        logger.info("Executing combat phase.")
         """
         For each piece that can attack, attempt to attack an observed enemy in the same hex.
         Only attack observed enemies.
@@ -1031,6 +1073,7 @@ class ComputerOpponent:
             
 
     def _create_search_airformations(self, board):
+        logger.debug("Creating search air formations.")
         """
         During Air Operations phase: create air formations for search from available bases/carriers, but do not move them yet.
         """
@@ -1056,6 +1099,7 @@ class ComputerOpponent:
                         board.add_piece(af_piece)
 
     def _move_search_airformations(self, board):
+        logger.debug("Moving search air formations.")
         """
         During Plane Movement phase: move air formations (with no observed enemy) in a search pattern (random within range).
         """
