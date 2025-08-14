@@ -203,8 +203,13 @@ The Shokaku has taken four hits. In addition, the Japanese player must eliminate
 """
 
 
+
+import logging
 import random
 from flattop.operations_chart_models import  Aircraft, AircraftType, TaskForce, Base, Ship, Carrier
+
+# Configure logging for this module
+logger = logging.getLogger(__name__)
 
 # --- Combat Results Table Implementation ---
 # Each row is a Hit Table value (1-15), each column is an attack factor range.
@@ -450,14 +455,14 @@ def resolve_air_to_air_combat(
             hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
             die = roll_die()
             hits += resolve_die_roll(hit_table_result, die)
-            print(f"{ac.type} attacking {target_type} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+            logger.info(f"{ac.type} attacking {target_type} with BHT {bht}, die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
         return hits
 
     # --- Interceptor to Escort Combat ---
     if interceptors and escorts:
         for ic in interceptors:
             hits = determine_hits([ic], "escorts")
-            print(f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}")
+            logger.info(f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}")
             if hits > 0:
                 result["interceptor_hits_on_escorts"].add_hit(str(ic.type), hits)
             hits_on_escorts += hits
@@ -466,7 +471,7 @@ def resolve_air_to_air_combat(
 
         for ec in escorts:
             hits = determine_hits([ec], "interceptors")
-            print(f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}")
+            logger.info(f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}")
             if hits > 0:
                 result["escort_hits_on_interceptors"].add_hit(str(ec.type), hits)
             hits_on_interceptors += hits
@@ -482,7 +487,7 @@ def resolve_air_to_air_combat(
     if bombers and (interceptor_advantage or not escorts):
         for ic in interceptors:
             hits = determine_hits([ic], "bombers")
-            print(f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}")
+            logger.info(f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}")
             if hits > 0:
                 result["interceptor_hits_on_bombers"].add_hit(str(ic.type), hits)
             hits_on_bombers += hits
@@ -491,7 +496,7 @@ def resolve_air_to_air_combat(
         # Bombers can return fire if allowed by scenario/rules (not typical, but for completeness)
         for bc in bombers:
             hits = determine_hits([bc], "interceptors")
-            print(f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}")
+            logger.info(f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}")
             if hits > 0:
                 result["bomber_hits_on_interceptors"].add_hit(str(bc.type), hits)
             hits_on_interceptors += hits
@@ -569,7 +574,7 @@ def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modi
     die = roll_die()
     hits += resolve_die_roll(hit_table_result, die)
     result["anti_aircraft"].add_hit(taskforce.name, hits)
-    print(f"{taskforce.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+    logger.info(f"{taskforce.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
 
     # Remove bombers hit (evenly distributed among attacking bombers)
     total_hits = hits
@@ -579,12 +584,12 @@ def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modi
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            print(f"Bomber {ac.type} lost {lost} Air Factors.")
+            logger.info(f"Bomber {ac.type} lost {lost} Air Factors.")
             result["eliminated"]["bombers"].append((ac.type, lost)) 
                 
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{taskforce.name} anti-aircraft fire destoryed {bombers_lost} bombers"
-        print(f"Total bombers lost: {bombers_lost}")
+    logger.info(f"Total bombers lost: {bombers_lost}")
     return result
 
 def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
@@ -622,7 +627,7 @@ def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
     die = roll_die()
     hits += resolve_die_roll(hit_table_result, die)
     result["anti_aircraft"].add_hit(base.name, hits)
-    print(f"{base.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+    logger.info(f"{base.name} AA fire against bombers. BHT {bht}, die {die}, attack factor {aa_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
 
     # Remove bombers hit (evenly distributed among attacking bombers)
     total_hits = hits
@@ -632,12 +637,12 @@ def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            print(f"Bomber {ac.type} lost {lost} Air Factors.")
+            logger.info(f"Bomber {ac.type} lost {lost} Air Factors.")
             result["eliminated"]["bombers"].append((ac.type, lost)) 
                 
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{base.name} anti-aircraft fire destoryed {bombers_lost} bombers"
-        print(f"Total bombers lost: {bombers_lost}")
+    logger.info(f"Total bombers lost: {bombers_lost}")
     return result
 
 """
@@ -686,7 +691,7 @@ def _resolve_base_aircraft_hits(base:Base, total_hits:int, results:dict):
             hits_to_apply = min(hit_tracker, ac.count)
             ac.count -= hits_to_apply
             hit_tracker -= hits_to_apply
-            print(f"Eliminated {hits_to_apply} from {ac.type}")
+            logger.info(f"Eliminated {hits_to_apply} from {ac.type}")
             results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
             if ac.count <= 0:
                 for lst in [base.air_operations_tracker.ready, base.air_operations_tracker.just_landed, base.air_operations_tracker.readying]:
@@ -745,7 +750,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
             hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
             die = roll_die()
             hits = resolve_die_roll(hit_table_result, die)
-            print(f"{ac.type} attacking {ship.name} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+            logger.info(f"{ac.type} attacking {ship.name} with BHT {bht}, die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
             
         return hits
 
@@ -765,7 +770,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         hits = determine_hits(ac, ship, attack_type, clouds, night )
         ship.damage += hits
         total_hits += hits
-        print(f"Bomber {ac.type} hits {hits} against ship {ship.name}.")
+        logger.info(f"Bomber {ac.type} hits {hits} against ship {ship.name}.")
         results["bomber_hits"].add_hit(ac.type, hits)
         
         #resolve impact on range of aircraft
@@ -778,7 +783,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
 
         if ship.damage >= ship.damage_factor:
             ship.status = "Sunk"
-            print(f"Ship {ship.name}, sunk.")
+            logger.info(f"Ship {ship.name}, sunk.")
             break
     
     if isinstance(ship, Carrier):
@@ -787,7 +792,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         if carrier.status == "Sunk":
             for ac in carrier.air_operations.ready + carrier.air_operations.just_landed + carrier.air_operations.readying:
                 results["eliminated"]["aircraft"].append((ac.type, ac.count))
-                print(f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}.")
+                logger.info(f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}.")
                 ac.count = 0
             carrier.air_operations.ready.clear()
             carrier.air_operations.just_landed.clear()
@@ -841,7 +846,7 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
             hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
             die = roll_die()
             hits = resolve_die_roll(hit_table_result, die)
-            print(f"{ac.type} attacking {base.name} with BHT {bht},die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+            logger.info(f"{ac.type} attacking {base.name} with BHT {bht}, die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
             
         return hits
 
@@ -861,7 +866,7 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
         hits = determine_hits(ac, base, attack_type, clouds, night )
         base.damage += hits
         total_hits += hits
-        print(f"Bomber {ac.type} hits {hits} against base {base.name}.")
+        logger.info(f"Bomber {ac.type} hits {hits} against base {base.name}.")
         results["bomber_hits"].add_hit(ac.type, hits)
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
@@ -887,4 +892,4 @@ if __name__ == "__main__":
 
     results = resolve_air_to_air_combat(interceptors, escorts, bombers, rf_expended=True, clouds=False, night=False)
     for k, v in results.items():
-        print(f"{k}: {v}")
+        logger.info(f"{k}: {v}")

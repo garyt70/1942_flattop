@@ -268,10 +268,15 @@ class ComputerOpponent:
                 logger.debug("Starting Combat phase.")
                 result = self._perform_combat_phase(actionable, observed_enemy_pieces)
                 if result and len(result) > 0:
-                    self.turn_manager.add_combat_result(result)
-                    logger.info(f"Combat results: {result}")
+                    # Add combat results to the turn manager for logging or further processing
+                    for k, v in result.items():
+                        if v is not None:
+                            logger.info(f"Adding combat result for {k}: {v}")
+                            self.turn_manager.add_combat_result(v)
+
         except Exception as e:
             logger.error(f"Error during perform_turn: {e}", exc_info=True)
+            raise e #quit the game otherwise the exception is being sunk
 
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
         """
@@ -297,7 +302,7 @@ class ComputerOpponent:
                 # Arm aircraft in readying with AP and move to ready if possible
                 for ac in readying:
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
-                        logger.debug(f"Arming aircraft {ac.name} armed with AP at base {base.name}.")
+                        logger.info(f"Taskforce observed. Arming aircraft {ac.type} with AP at base {base.name}.")
                         ac.armament = 'AP'
                         base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
                         ready_factors_left -= ac.count
@@ -305,10 +310,8 @@ class ComputerOpponent:
                 # If there are ready aircraft, create an air formation to attack the taskforce
                 if ready:
                     # Select up to the available number of launch factors for the attack formation
-                    max_launch = min(len(ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
+                    max_launch = min(sum(ac.count for ac in ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
                     attack_aircraft = ready[:max_launch] if max_launch > 0 else []
-                    # Reduce the available launch factor by the count of planes launched
-                    base.used_launch_factor += sum(ac.count for ac in attack_aircraft)
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                     if af:
                         logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
@@ -332,11 +335,13 @@ class ComputerOpponent:
                             ready_factors_left -= ac.count
 
                     if ready:
-                        attack_aircraft = ready[:3]
+                        # Select up to the available number of launch factors for the attack formation
+                        max_launch = min(sum(ac.count for ac in ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
+                        attack_aircraft = ready[:max_launch] if max_launch > 0 else []
                         af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                         if af:
-                            logger.debug(f"Creating air formation {af.name} at carrier base {base.name} to attack taskforce.")  
-                            af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
+                            logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
+                            af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                             board.add_piece(af_piece)
         
         # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
@@ -346,7 +351,7 @@ class ComputerOpponent:
             for air_target in air_targets:
                 dist = get_distance(base_piece.position, air_target.position)
                 if dist <= 10:
-                    interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
+                    interceptors = [ac for ac in base.air_operations_tracker.ready if ac.armament is None and ac.is_interceptor]
                     if interceptors:
                         af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
@@ -363,7 +368,7 @@ class ComputerOpponent:
                 for air_target in air_targets:
                     dist = get_distance(tf_piece.position, air_target.position)
                     if dist <= 10:
-                        interceptors = [ac for ac in base.air_operations_tracker.ready if getattr(ac, 'armament', None) is None or ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter')]
+                        interceptors = [ac for ac in base.air_operations_tracker.ready if ac.armament is None and ac.is_interceptor]
                     if interceptors:
                         af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
                         if af:
@@ -382,6 +387,7 @@ class ComputerOpponent:
                     break
                 base.air_operations_tracker.set_operations_status(ac.copy(), "readying", ac)
                 ready_factors_left -= ac.count
+                logger.debug(f"Moving aircraft {ac.type} to readying at base {base.name}. Ready factors left: {ready_factors_left}")
         for tf_piece in taskforces:
             tf = tf_piece.game_model
             for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
@@ -400,6 +406,7 @@ class ComputerOpponent:
 
         # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
         if not observed_enemy_pieces:
+            logger.debug("No observed enemies. Creating search air formations.")
             def select_best_ready_aircraft(ready_list, max_count):
                 sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
                 selected = []
@@ -432,8 +439,8 @@ class ComputerOpponent:
                             break
                         for ac in best:
                             af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
-                            logger.debug(f"Creating search air formation {af.name} at base {base.name}.")   
                             if af:
+                                logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  
                                 af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
                             else:
@@ -479,7 +486,7 @@ class ComputerOpponent:
                             best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
                             if best:
                                 for ac in best:
-                                    logger.debug(f"Moving aircraft {ac.name} to ready at carrier base {base.name}.")
+                                    logger.debug(f"Moving aircraft {ac.type} to ready at carrier base {base.name}.")
                                     ac.armament = 'AP'  # default to AP as assuming searching for enemy ships
                                     base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
@@ -587,7 +594,10 @@ class ComputerOpponent:
                                     if get_distance(piece.position, nearest_base) > 1:
                                         self._move_toward(piece, nearest_base, stop_distance=1)
                                         if hasattr(self, 'perform_observation'):
-                                            self.perform_observation()
+                                            result = self.perform_observation()
+                                            if len(result) > 0:
+                                                logger.info(f"Observation result: {result}")
+                                                break #stop moving
                             else:
                                 # Already close, loiter or move randomly within 2 hexes
                                 self._move_random_within_range(piece, max_range=1)
@@ -1053,16 +1063,13 @@ class ComputerOpponent:
         Only attack observed enemies.
         """
         #loop through all pieces that can attack
-        #combat_results = {}
-        #for piece in pieces:
-        #    if not piece.can_attack:
-        #       continue
+        combat_results = {}
+        for piece in pieces:
+            if not piece.can_attack:
+               continue
         #    # Check if the piece is in a hex with observed enemy pieces
-        #    combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
-        combat_results = None
-        if len(pieces)>0:
-            #only need the first piece as the combat finds all combat pieces that can be actioned    
-            combat_results = self._perform_combat_phase_for_piece_in_hex(pieces[0], observed_enemy_pieces)
+            combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
+        
             
         # TaskForce attacks (surface combat not implemented)
         # Could add surface combat logic here

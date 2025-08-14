@@ -1,10 +1,19 @@
 """
 Game engine logic for Flattop. This module contains all non-UI game logic and actions, so it can be used by both human and computer players.
 """
+
+import logging
 from flattop.hex_board_game_model import Hex, HexBoardModel, Piece, TurnManager, get_distance
 from flattop.operations_chart_models import AirFormation, TaskForce, Base, Carrier, AircraftOperationsStatus
 from flattop.weather_model import WeatherManager, CloudMarker
 from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT, set_game_model_observed
+
+# Configure logging for this module
+#logging.basicConfig(
+#    level=logging.INFO,
+#    format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+#)
+logger = logging.getLogger(__name__)
 
 
 def perform_observation_for_piece(piece: Piece, board, weather_manager, turn_manager):
@@ -96,12 +105,11 @@ def get_actionable_pieces(board, turn_manager):
 
 
 def perform_turn_start_actions(board:HexBoardModel, weather_manager:WeatherManager, turn_manager:TurnManager):
-    print("Starting a new turn")
+    logger.info("Starting a new turn")
     weather_manager.wind_phase(turn_manager)
     weather_manager.cloud_phase(turn_manager)
     board.reset_pieces_for_new_turn()
     perform_observation_phase(board, weather_manager, turn_manager)
-
     # Additional game logic (AI, combat, movement validation, etc.) can be added here.
 
 
