@@ -10,6 +10,7 @@ from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormatio
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
+from flattop.ui.desktop.combat_results_ui import CombatResultsScreen
 from flattop.ui.desktop.desktop_popup import draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
@@ -41,6 +42,19 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     This function will display the air combat UI and handle user interactions.
     """
 
+    attacking_side = piece.side
+
+    defending_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side != attacking_side and p.position == piece.position]
+
+    #perform UI selection of taskforces and plane allocation
+    defending_taskforce_p:Piece = None
+    if len(defending_taskforce_pieces) > 1:
+        # Show a popup to select the taskforces
+        defending_taskforce_p:Piece = draw_piece_selection_popup(screen, defending_taskforce_pieces, pos)
+    elif len(defending_taskforce_pieces) == 1:
+        # If there is only one taskforce on each side, then just use those
+        defending_taskforce_p = defending_taskforce_pieces[0]
+
     # Check if the piece is in a hex with other air formations
     hex_airformations = [
         p for p in pieces
@@ -49,77 +63,42 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     ]
     # Group by side
     sides = set(p.side for p in hex_airformations)
-    
-    allied_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Allied"]
-    japanese_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == "Japanese"]
+
+    attacking_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == attacking_side]
+    defending_aircraft_pieces = [p.game_model for p in hex_airformations if p.side != attacking_side]
 
     # Gather aircraft by role (interceptor, escort, bomber)
-    allied_interceptors, allied_escorts, allied_bombers = classify_aircraft(allied_aircraft_pieces)
-    japanese_interceptors, japanese_escorts, japanese_bombers = classify_aircraft(japanese_aircraft_pieces)
+    attacking_interceptors, attacking_escorts, attacking_bombers = classify_aircraft(attacking_aircraft_pieces)
+    defending_interceptors, defending_escorts, defending_bombers = classify_aircraft(defending_aircraft_pieces)
 
-    pre_combat_count_allied_interceptors = sum(ic.count for ic in allied_interceptors)
-    pre_combat_count_allied_bombers = sum(b.count for b in allied_bombers)
-    pre_combat_count_allied_escorts = sum(ec.count for ec in allied_escorts)
+    pre_combat_count_attacking_interceptors = sum(ic.count for ic in attacking_interceptors)
+    pre_combat_count_attacking_bombers = sum(b.count for b in attacking_bombers)
+    pre_combat_count_attacking_escorts = sum(ec.count for ec in attacking_escorts)
 
-    pre_combat_count_japanese_interceptors = sum(ic.count for ic in japanese_interceptors)
-    pre_combat_count_japanese_bombers = sum(b.count for b in japanese_bombers)
-    pre_combat_count_japanese_escorts = sum(ec.count for ec in japanese_escorts)
-
-    allied_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Allied" and p.position == piece.position]
-    japanese_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side == "Japanese" and p.position == piece.position]
-
-    #perform UI selection of taskforces and plane allocation
-    allied_taskforce_p:Piece = None
-    if len(allied_taskforce_pieces) > 1:
-        # Show a popup to select the taskforces
-        allied_taskforce_p:Piece = draw_piece_selection_popup(screen, allied_taskforce_pieces, pos)
-    elif len(allied_taskforce_pieces) == 1:
-        # If there is only one taskforce on each side, then just use those
-        allied_taskforce_p = allied_taskforce_pieces[0]
-        
-    japanese_taskforce_p:Piece = None
-    if len(japanese_taskforce_pieces) > 1:
-        # Show a popup to select the taskforces
-        japanese_taskforce_p:Piece = draw_piece_selection_popup(screen, japanese_taskforce_pieces, pos)
-    elif len(japanese_taskforce_pieces) == 1:
-        # If there is only one taskforce on each side, then just use those
-        japanese_taskforce_p = japanese_taskforce_pieces[0]
+    pre_combat_count_defending_interceptors = sum(ic.count for ic in defending_interceptors)
+    pre_combat_count_defending_bombers = sum(b.count for b in defending_bombers)
+    pre_combat_count_defending_escorts = sum(ec.count for ec in defending_escorts)
 
     ### Air 2 Air Combat ###
-    result_allied_a2a = None
-    result_japanese_a2a = None
+    result_attacking_a2a = None
 
     in_clouds = weather_manager.is_cloud_hex(piece.position)
     at_night = turn_manager.is_night()
     if len(sides) == 2:
         
-        # For simplicity, assume two sides: Allied and Japanese
+        # For simplicity, assume two sides: attacking and defending
         #and there are two airformations
 
         # if no bombers on either side then convert interceptors to escorts 
-        if not allied_bombers and not japanese_bombers:
+        if not attacking_bombers and not defending_bombers:
             # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
-            japanese_escorts.extend(japanese_interceptors)
-            japanese_interceptors = []
+            defending_escorts.extend(defending_interceptors)
+            defending_interceptors = []
         
-        result_allied_a2a = resolve_air_to_air_combat(
-            interceptors=allied_interceptors,
-            escorts=japanese_escorts,
-            bombers=japanese_bombers,
-            rf_expended=True,
-            clouds=in_clouds,
-            night=at_night
-        )
-
-        if not allied_bombers and not japanese_bombers:
-            # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
-            allied_escorts.extend(allied_interceptors)
-            allied_interceptors = []
-        
-        result_japanese_a2a = resolve_air_to_air_combat(
-            interceptors=japanese_interceptors,
-            escorts=allied_escorts,
-            bombers=allied_bombers,
+        result_attacking_a2a = resolve_air_to_air_combat(
+            interceptors=attacking_interceptors,
+            escorts=defending_escorts,
+            bombers=defending_bombers,
             rf_expended=True,
             clouds=in_clouds,
             night=at_night
@@ -128,19 +107,19 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         # need to update the air operations chart for each side
         # remove aircraft from air formations that have 0 or less count
         # removed airformations that have no aircraft left
-        for af in allied_aircraft_pieces:
+        for af in attacking_aircraft_pieces:
             af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
             if not af.aircraft:
                 board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
-        for af in japanese_aircraft_pieces:
+        for af in defending_aircraft_pieces:
             af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
             if not af.aircraft:
                 board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
 
     ### execute anti aircraft combat ###
     # the taskforce being attacked by the air formations need to be selected.
-    # find the allied taskforces in the hex with the japanese airformation and enable user to select one
-    # find the japanese taskforces in the hex with the allied airformation and enable user to select one
+    # find the attacking taskforces in the hex with the defending airformation and enable user to select one
+    # find the defending taskforces in the hex with the attacking airformation and enable user to select one
     # display a popup with the taskforces and allow user to select one
 
     def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], taskforce:TaskForce, pos:tuple[int, int]):
@@ -159,21 +138,14 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
 
     ### Anti-Aircraft combat ###
-    result_allied_anti_aircraft = None
-    result_japanese_anti_aircraft = None
-    if allied_taskforce_p:
-        result_allied_anti_aircraft = perform_taskforce_anti_aircraft_combat(japanese_bombers, allied_taskforce_p.game_model, piece.position)
-    if japanese_taskforce_p:
-        result_japanese_anti_aircraft = perform_taskforce_anti_aircraft_combat(allied_bombers, japanese_taskforce_p.game_model, piece.position)
+    result_tf_anti_aircraft = None
+    if defending_taskforce_p:
+        result_tf_anti_aircraft = perform_taskforce_anti_aircraft_combat(attacking_bombers, defending_taskforce_p.game_model, piece.position)
 
-    allied_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side == "Allied" and p.position == piece.position]
-    japanese_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side == "Japanese" and p.position == piece.position]
-    #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
-    if allied_base_pieces:
-        result_allied_anti_aircraft = perform_base_anti_aircraft_combat(japanese_bombers,allied_base_pieces[0].game_model)
-    #assume there is only ever one base
-    if japanese_base_pieces:
-        result_japanese_anti_aircraft = perform_base_anti_aircraft_combat(allied_bombers,japanese_base_pieces[0].game_model)
+    defending_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side != attacking_side and p.position == piece.position]
+     #assume there is only ever one base
+    if defending_base_pieces:
+        result_base_anti_aircraft = perform_base_anti_aircraft_combat(attacking_bombers,defending_base_pieces[0].game_model)
 
     #### execute the air combat attack against selected ship ####
 
@@ -209,25 +181,15 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
     
     
-    #allied attack ship
+    #attacking attack ship
     # airplanes attacking ships need to select a taskforce
-    result_allied_ship_air_attack = None
+    result_attacking_ship_air_attack = None
+    if defending_taskforce_p:
+        result_attacking_ship_air_attack = perform_air_to_ship_combat(attacking_bombers,defending_taskforce_p.game_model)
 
-    if japanese_taskforce_p:
-        result_allied_ship_air_attack = perform_air_to_ship_combat(allied_bombers,japanese_taskforce_p.game_model)
-    #japanese attack ship
-    result_japanese_ship_air_attack = None
-    if allied_taskforce_p:
-        result_japanese_ship_air_attack = perform_air_to_ship_combat(japanese_bombers,allied_taskforce_p.game_model)
-
-
-    result_allied_base_air_attack = None
-    if japanese_base_pieces:
-        result_allied_base_air_attack = resolve_air_to_base_combat(allied_bombers, japanese_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
-
-    result_japanese_base_air_attack = None
-    if allied_base_pieces:
-        result_japanese_base_air_attack = resolve_air_to_base_combat(japanese_bombers, allied_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+    result_attacking_base_air_attack = None
+    if defending_base_pieces:
+        result_attacking_base_air_attack = resolve_air_to_base_combat(attacking_bombers, defending_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
     # First, remove aircraft with count 0 from all air formations in the hex
     for af_piece in hex_airformations:
@@ -241,20 +203,17 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
             board.pieces.remove(af_piece)
 
     combat_results = {
-        "result_player_a2a": result_allied_a2a,
-        "result_enemy_a2a": result_japanese_a2a,
-        "result_player_anti_aircraft": result_allied_anti_aircraft,
-        "result_enemy_anti_aircraft": result_japanese_anti_aircraft,
-        "result_player_ship_air_attack": result_allied_ship_air_attack,
-        "result_enemy_ship_air_attack": result_japanese_ship_air_attack,
-        "result_player_base_air_attack": result_allied_base_air_attack,
-        "result_enemy_base_air_attack": result_japanese_base_air_attack,
-        "pre_combat_count_player_interceptors": pre_combat_count_allied_interceptors,
-        "pre_combat_count_player_bombers": pre_combat_count_allied_bombers,
-        "pre_combat_count_player_escorts": pre_combat_count_allied_escorts,
-        "pre_combat_count_enemy_interceptors": pre_combat_count_japanese_interceptors,
-        "pre_combat_count_enemy_bombers": pre_combat_count_japanese_bombers,
-        "pre_combat_count_enemy_escorts": pre_combat_count_japanese_escorts
+        "result_attacker_a2a": result_attacking_a2a,
+        "result_tf_anti_aircraft": result_tf_anti_aircraft,
+        "result_base_anti_aircraft": result_base_anti_aircraft,
+        "result_attacker_ship_air_attack": result_attacking_ship_air_attack,
+        "result_attacker_base_air_attack": result_attacking_base_air_attack,
+        "pre_combat_count_attacker_interceptors": pre_combat_count_attacking_interceptors,
+        "pre_combat_count_attacker_bombers": pre_combat_count_attacking_bombers,
+        "pre_combat_count_attacker_escorts": pre_combat_count_attacking_escorts,
+        "pre_combat_count_defender_interceptors": pre_combat_count_defending_interceptors,
+        "pre_combat_count_defender_bombers": pre_combat_count_defending_bombers,
+        "pre_combat_count_defender_escorts": pre_combat_count_defending_escorts
     }
 
     return combat_results
@@ -778,80 +737,148 @@ class DesktopUI:
 
     def show_combat_results(self, results, pos):
 
+        """
+        Combat results array
+
+        Air to Air combat result return
+        result = {
+        "interceptor_hits_on_escorts": AirCombatResult(),
+        "escort_hits_on_interceptors": AirCombatResult(),
+        "interceptor_hits_on_bombers": AirCombatResult(),
+        "bomber_hits_on_interceptors": AirCombatResult(),
+        "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+    }
+
+    Anti aircradt results
+    result = {"anti_aircraft": AirCombatResult(),
+            "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
+            }
+
+    Base combat results
+    results = {"bomber_hits": AirCombatResult(),
+           "eliminated": {"aircraft": []}
+            }
+    
+    Ship combat results
+    result = {"bomber_hits": AirCombatResult(),
+            "eliminated": {"ships": []}
+            }
+
+        """
+
         if results==None:
             return
         
-        font = pygame.font.SysFont(None, 24)
-                
-        lines = ["Combat Results:"]
-        
-        lines.append(f"Allied Interceptors: {results['pre_combat_count_player_interceptors']}")
-        lines.append(f"Allied Escorts: {results['pre_combat_count_player_escorts']}")
-        lines.append(f"Allied Bombers: {results['pre_combat_count_player_bombers']}")
+        """
+            "result_attacker_a2a": result_computer_a2a,
+            "result_tf_anti_aircraft": result_tf_anti_aircraft,
+            "result_base_anti_aircraft": result_base_anti_aircraft,
+            "result_attacker_ship_air_attack": result_computer_ship_air_attack,
+            "result_attacker_base_air_attack": result_computer_base_air_attack,
+            "pre_combat_count_attacker_interceptors": pre_combat_count_computer_interceptors,
+            "pre_combat_count_attacker_bombers": pre_combat_count_computer_bombers,
+            "pre_combat_count_attacker_escorts": pre_combat_count_computer_escorts,
+            "pre_combat_count_defender_interceptors": pre_combat_count_enemy_interceptors,
+            "pre_combat_count_defender_bombers": pre_combat_count_enemy_bombers,
+            "pre_combat_count_defender_escorts": pre_combat_count_enemy_escorts
+        """
+
+        a2a = results.get("result_attacker_a2a")
+        aa = []
+        aa.append(results.get("result_tf_anti_aircraft"))
+        aa.append(results.get("result_base_anti_aircraft"))
+        ship = results.get("result_attacker_ship_air_attack")
+        base = results.get("result_attacker_base_air_attack")
+
+
+        results = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
+        ui = CombatResultsScreen(results, self.screen)
+
+        ui.draw_results()
+        pygame.display.flip()
+        # Wait for user to click or press a key to close
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    waiting = False
+    """
+    def _make_a2a_summary(self, a2a):
+        hits = []
+        for k in ["interceptor_hits_on_escorts", "escort_hits_on_interceptors", "interceptor_hits_on_bombers", "bomber_hits_on_interceptors"]:
+            v = a2a.get(k)
+            if v and hasattr(v, "hits") and v.hits:
+                hits.append(f"{k.replace('_', ' ').title()}: {sum(v.hits.values())}")
+        elim = a2a.get("eliminated", {})
+        lines.append(f"Player Escorts: {results['pre_combat_count_player_escorts']}")
+        lines.append(f"Player Bombers: {results['pre_combat_count_player_bombers']}")
     
-        lines.append(f"Japanese Interceptors: {results['pre_combat_count_enemy_interceptors']}")
-        lines.append(f"Japanese Escorts: {results['pre_combat_count_enemy_escorts']}")
-        lines.append(f"Japanese Bombers: {results['pre_combat_count_enemy_bombers']}")
+        lines.append(f"Computer Interceptors: {results['pre_combat_count_enemy_interceptors']}")
+        lines.append(f"Computer Escorts: {results['pre_combat_count_enemy_escorts']}")
+        lines.append(f"Computer Bombers: {results['pre_combat_count_enemy_bombers']}")
         lines.append("-----------------------")
-        result_allied_a2a = results.get("result_player_a2a")
-        result_japanese_a2a = results.get("result_enemy_a2a")
-        result_allied_anti_aircraft = results.get("result_player_anti_aircraft")
-        result_japanese_anti_aircraft = results.get("result_enemy_anti_aircraft")
-        result_allied_ship_air_attack = results.get("result_player_ship_air_attack")
-        result_japanese_ship_air_attack = results.get("result_enemy_ship_air_attack")
-        result_allied_base_air_attack = results.get("result_player_base_air_attack")
-        result_japanese_base_air_attack = results.get("result_enemy_base_air_attack")
-        if result_allied_a2a:
-            
-            lines.append("Allied Air 2 Air Combat Results:")
-            lines.append(f" {result_allied_a2a['interceptor_hits_on_bombers']}")
-            lines.append(f" {result_allied_a2a['interceptor_hits_on_escorts']}")
-            lines.append(f" {result_allied_a2a['escort_hits_on_interceptors']}")
-            lines.append(f" {result_allied_a2a['bomber_hits_on_interceptors']}")
-        if result_japanese_a2a:
-            lines.append("Japanese Air 2 Air Combat Results:")
-            lines.append(f" {result_japanese_a2a['interceptor_hits_on_bombers']}")
-            lines.append(f" {result_japanese_a2a['interceptor_hits_on_escorts']}")
-            lines.append(f" {result_japanese_a2a['escort_hits_on_interceptors']}")
-            lines.append(f" {result_japanese_a2a['bomber_hits_on_interceptors']}")
-        
-        
+        result_player_a2a = results.get("result_player_a2a")
+        result_computer_a2a = results.get("result_enemy_a2a")
+        result_player_anti_aircraft = results.get("result_player_anti_aircraft")
+        result_computer_anti_aircraft = results.get("result_enemy_anti_aircraft")
+        result_player_ship_air_attack = results.get("result_player_ship_air_attack")
+        result_computer_ship_air_attack = results.get("result_enemy_ship_air_attack")
+        result_player_base_air_attack = results.get("result_player_base_air_attack")
+        result_computer_base_air_attack = results.get("result_enemy_base_air_attack")
+        if result_player_a2a:
+
+            lines.append("Player Air 2 Air Combat Results:")
+            lines.append(f" {result_player_a2a['interceptor_hits_on_bombers']}")
+            lines.append(f" {result_player_a2a['interceptor_hits_on_escorts']}")
+            lines.append(f" {result_player_a2a['escort_hits_on_interceptors']}")
+            lines.append(f" {result_player_a2a['bomber_hits_on_interceptors']}")
+        if result_computer_a2a:
+            lines.append("Computer Air 2 Air Combat Results:")
+            lines.append(f" {result_computer_a2a['interceptor_hits_on_bombers']}")
+            lines.append(f" {result_computer_a2a['interceptor_hits_on_escorts']}")
+            lines.append(f" {result_computer_a2a['escort_hits_on_interceptors']}")
+            lines.append(f" {result_computer_a2a['bomber_hits_on_interceptors']}")
+
+
         lines.append(f"\n")
 
         ## anti-aircraft summary ##
-        if result_allied_anti_aircraft:
-            # Show the combat results for Allied anti aircraft combat
-            lines.append(f"Allied Anti Aircraft Combat Results:")
-            lines.append(f" {result_allied_anti_aircraft['anti_aircraft'].summary}")
-            
+        if result_player_anti_aircraft:
+            # Show the combat results for Player anti aircraft combat
+            lines.append(f"Player Anti Aircraft Combat Results:")
+            lines.append(f" {result_player_anti_aircraft['anti_aircraft'].summary}")
 
-        if result_japanese_anti_aircraft:   
-            # Show the combat results for Japanese anti aircraft combat
-            lines.append(f"Japanese Anti Aircraft Combat Results:")
-            lines.append(f" {result_japanese_anti_aircraft['anti_aircraft'].summary}")
-        
-        
+
+        if result_computer_anti_aircraft:
+            # Show the combat results for Computer anti aircraft combat
+            lines.append(f"Computer Anti Aircraft Combat Results:")
+            lines.append(f" {result_computer_anti_aircraft['anti_aircraft'].summary}")
+
+
         ## air combat against ship
-        if result_allied_ship_air_attack:
-            lines.append("Allied Air Attack Results against Ship")
+        if result_player_ship_air_attack:
+            lines.append("Player Air Attack Results against Ship")
             #loop through the results and add the summary for each ship
-            for result in result_allied_ship_air_attack:
+            for result in result_player_ship_air_attack:
                 if result:
                     lines.append(result["bomber_hits"].summary)
 
-        if result_japanese_ship_air_attack:
-            lines.append("Japanese Air Attack Results against Ship")
-            for result in result_japanese_ship_air_attack:
+        if result_computer_ship_air_attack:
+            lines.append("Computer Air Attack Results against Ship")
+            for result in result_computer_ship_air_attack:
                 if result:
                     lines.append(result["bomber_hits"].summary)
 
-        if result_allied_base_air_attack:
-            lines.append("Allied Air Attack Results against Base")
-            lines.append(result_allied_base_air_attack["bomber_hits"].summary)
+        if result_player_base_air_attack:
+            lines.append("Player Air Attack Results against Base")
+            lines.append(result_player_base_air_attack["bomber_hits"].summary)
 
-        if result_japanese_base_air_attack:
-            lines.append("Japanese Air Attack Results against Base")
-            lines.append(result_japanese_base_air_attack["bomber_hits"].summary)
+        if result_computer_base_air_attack:
+            lines.append("Computer Air Attack Results against Base")
+            lines.append(result_computer_base_air_attack["bomber_hits"].summary)
 
 
         text = "\n".join(lines)
@@ -889,7 +916,7 @@ class DesktopUI:
                     if popup_event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
-
+"""
 
     def render_piece_selection_popup(self, pieces, pos):
         return draw_piece_selection_popup(self.screen, pieces, pos)

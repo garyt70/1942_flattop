@@ -1,7 +1,7 @@
 """
 Computer opponent engine for the Flattop game.
 This module contains the logic for the computer opponent's actions and decisions during the game.
-It is designed to simulate a human player's decisions based on the current game state.
+It is designed to simulate a human computer's decisions based on the current game state.
 
 Example usage:
 ---------------
@@ -33,7 +33,6 @@ TODO: Fixes for known issues:
 
 - Air formations should not move into storm hexes
 - Task forces should prioritize attacking enemy ships over land targets
-- Combat needs to remove sunk ships from the task force
 - Combat must remove task forces from the board when they are destroyed (no ships left)
 - BUG: Aircraft for computer are being lost in the base when landing. Either they are not landing or something else is going on.
 
@@ -743,28 +742,11 @@ class ComputerOpponent:
             and p.position == piece.position
             and p.side == piece.side
         ]
-        # Group by side
-        sides = set(p.side for p in hex_airformations)
 
-        player_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == piece.side]
-        enemy_aircraft_pieces = [p.game_model for p in hex_enemies if isinstance(p.game_model, AirFormation) and p.position == piece.position]
-
-        # Gather aircraft by role (interceptor, escort, bomber)
-        player_interceptors, player_escorts, player_bombers = classify_aircraft(player_aircraft_pieces)
-        enemy_interceptors, enemy_escorts, enemy_bombers = classify_aircraft(enemy_aircraft_pieces)
-
-        pre_combat_count_player_interceptors = sum(ic.count for ic in player_interceptors)
-        pre_combat_count_player_bombers = sum(b.count for b in player_bombers)
-        pre_combat_count_player_escorts = sum(ec.count for ec in player_escorts)
-
-        pre_combat_count_enemy_interceptors = sum(ic.count for ic in enemy_interceptors)
-        pre_combat_count_enemy_bombers = sum(b.count for b in enemy_bombers)
-        pre_combat_count_enemy_escorts = sum(ec.count for ec in enemy_escorts)
-
-        player_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == piece.side and p.position == piece.position]
+        computer_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side == piece.side and p.position == piece.position]
         enemy_taskforce_pieces = [p for p in self.board.pieces if isinstance(p.game_model, TaskForce) and p.side != piece.side and p.position == piece.position]
 
-        player_taskforce_p:TaskForce = None
+        computer_taskforce_p:TaskForce = None
         # if there is more than one taskforce, then we need to choose the one with the most carriers and high value ships
         def get_high_value_ship_count(taskforce):
             """
@@ -782,16 +764,16 @@ class ComputerOpponent:
             other_count = sum(1 for ship in taskforce.ships if getattr(ship, 'type', None) not in cv_types + bbs_types + ca_types)
             return (cv_count, bbs_count, ca_count, other_count)
 
-        if len(player_taskforce_pieces) > 0:
-            player_taskforce_pieces = sorted(
-            player_taskforce_pieces,
+        if len(computer_taskforce_pieces) > 0:
+            computer_taskforce_pieces = sorted(
+            computer_taskforce_pieces,
             key=lambda p: (
                 len(p.game_model.get_carriers() if hasattr(p.game_model, 'get_carriers') else []),
                 get_high_value_ship_count(p.game_model)
             ),
             reverse=True
             )
-            player_taskforce_p = player_taskforce_pieces[:1][0]
+            computer_taskforce_p = computer_taskforce_pieces[:1][0]
 
         enemy_taskforce_p:TaskForce = None
         if len(enemy_taskforce_pieces) > 0:
@@ -805,8 +787,24 @@ class ComputerOpponent:
             )
             enemy_taskforce_p = enemy_taskforce_pieces[:1][0]
 
-        result_player_a2a = None
-        result_enemy_a2a = None
+        computer_aircraft_pieces = [p.game_model for p in hex_airformations if p.side == piece.side]
+        enemy_aircraft_pieces = [p.game_model for p in hex_enemies if isinstance(p.game_model, AirFormation) and p.position == piece.position]
+
+        # Gather aircraft by role (interceptor, escort, bomber)
+        computer_interceptors, computer_escorts, computer_bombers = classify_aircraft(computer_aircraft_pieces)
+        enemy_interceptors, enemy_escorts, enemy_bombers = classify_aircraft(enemy_aircraft_pieces)
+
+        pre_combat_count_computer_interceptors = sum(ic.count for ic in computer_interceptors)
+        pre_combat_count_computer_bombers = sum(b.count for b in computer_bombers)
+        pre_combat_count_computer_escorts = sum(ec.count for ec in computer_escorts)
+
+        pre_combat_count_enemy_interceptors = sum(ic.count for ic in enemy_interceptors)
+        pre_combat_count_enemy_bombers = sum(b.count for b in enemy_bombers)
+        pre_combat_count_enemy_escorts = sum(ec.count for ec in enemy_escorts)
+
+        
+
+        result_computer_a2a = None
 
         in_clouds = self.weather_manager.is_cloud_hex(piece.position)
         at_night = self.turn_manager.is_night()
@@ -815,29 +813,15 @@ class ComputerOpponent:
         #and there are two airformations
 
         # if no bombers on either side then convert interceptors to escorts 
-        if not player_bombers and not enemy_bombers:
+        if not computer_bombers and not enemy_bombers:
             # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
             enemy_escorts.extend(enemy_interceptors)
             enemy_interceptors = []
 
-        result_player_a2a = resolve_air_to_air_combat(
-            interceptors=player_interceptors,
+        result_computer_a2a = resolve_air_to_air_combat(
+            interceptors=computer_interceptors,
             escorts=enemy_escorts,
             bombers=enemy_bombers,
-            rf_expended=True,
-            clouds=in_clouds,
-            night=at_night
-        )
-
-        if not player_bombers and not enemy_bombers:
-            # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
-            player_escorts.extend(player_interceptors)
-            player_interceptors = []
-
-        result_enemy_a2a = resolve_air_to_air_combat(
-            interceptors=enemy_interceptors,
-            escorts=player_escorts,
-            bombers=player_bombers,
             rf_expended=True,
             clouds=in_clouds,
             night=at_night
@@ -846,7 +830,7 @@ class ComputerOpponent:
         # need to update the air operations chart for each side
         # remove aircraft from air formations that have 0 or less count
         # removed airformations that have no aircraft left
-        for af in player_aircraft_pieces:
+        for af in computer_aircraft_pieces:
             af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
             if not af.aircraft:
                 self.board.pieces.remove([p for p in hex_airformations if p.game_model == af][0])
@@ -877,21 +861,15 @@ class ComputerOpponent:
 
 
         ### Anti-Aircraft combat ###
-        result_player_anti_aircraft = None
-        result_enemy_anti_aircraft = None
-        if player_taskforce_p:
-            result_player_anti_aircraft = perform_taskforce_anti_aircraft_combat(enemy_bombers, player_taskforce_p.game_model, piece.position)
+        result_tf_anti_aircraft = None
         if enemy_taskforce_p:
-            result_enemy_anti_aircraft = perform_taskforce_anti_aircraft_combat(player_bombers, enemy_taskforce_p.game_model, piece.position)
+            result_tf_anti_aircraft = perform_taskforce_anti_aircraft_combat(computer_bombers, enemy_taskforce_p.game_model, piece.position)
 
-        player_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side == piece.side and p.position == piece.position]
         enemy_base_pieces = [p for p in self.board.pieces if isinstance(p.game_model, Base) and p.side != piece.side and p.position == piece.position]
-        #assume there is only ever one base.  Also re-using the anti-aircraft results as assuming TF and Base won't be in same hex.
-        if player_base_pieces:
-            result_player_anti_aircraft = perform_base_anti_aircraft_combat(enemy_bombers,player_base_pieces[0].game_model)
-        #assume there is only ever one base
+         #assume there is only ever one base
+        result_base_anti_aircraft = None
         if enemy_base_pieces:
-            result_enemy_anti_aircraft = perform_base_anti_aircraft_combat(player_bombers,enemy_base_pieces[0].game_model)
+            result_base_anti_aircraft = perform_base_anti_aircraft_combat(computer_bombers,enemy_base_pieces[0].game_model)
 
         #### execute the air combat attack against selected ship ####
 
@@ -1005,25 +983,16 @@ class ComputerOpponent:
 
     
     
-        #player attack ship
+        #computer attack ship
         # airplanes attacking ships need to select a taskforce
-        result_player_ship_air_attack = None
+        result_computer_ship_air_attack = None
 
         if enemy_taskforce_p:
-            result_player_ship_air_attack = perform_air_to_ship_combat(player_bombers,enemy_taskforce_p.game_model)
-        #enemy attack ship
-        result_enemy_ship_air_attack = None
-        if player_taskforce_p:
-            result_enemy_ship_air_attack = perform_air_to_ship_combat(enemy_bombers,player_taskforce_p.game_model)
+            result_computer_ship_air_attack = perform_air_to_ship_combat(computer_bombers,enemy_taskforce_p.game_model)
 
-
-        result_player_base_air_attack = None
+        result_computer_base_air_attack = None
         if enemy_base_pieces:
-            result_player_base_air_attack = resolve_air_to_base_combat(player_bombers, enemy_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
-
-        result_enemy_base_air_attack = None
-        if player_base_pieces:
-            result_enemy_base_air_attack = resolve_air_to_base_combat(enemy_bombers, player_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+            result_computer_base_air_attack = resolve_air_to_base_combat(computer_bombers, enemy_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
         # First, remove aircraft with count 0 from all air formations in the hex
         for af_piece in hex_airformations + [p for p in hex_enemies if isinstance(p.game_model, AirFormation)]:
@@ -1038,20 +1007,17 @@ class ComputerOpponent:
 
 
         combat_results = {
-            "result_player_a2a": result_player_a2a,
-            "result_enemy_a2a": result_enemy_a2a,
-            "result_player_anti_aircraft": result_player_anti_aircraft,
-            "result_enemy_anti_aircraft": result_enemy_anti_aircraft,
-            "result_player_ship_air_attack": result_player_ship_air_attack,
-            "result_enemy_ship_air_attack": result_enemy_ship_air_attack,
-            "result_player_base_air_attack": result_player_base_air_attack,
-            "result_enemy_base_air_attack": result_enemy_base_air_attack,
-            "pre_combat_count_player_interceptors": pre_combat_count_player_interceptors,
-            "pre_combat_count_player_bombers": pre_combat_count_player_bombers,
-            "pre_combat_count_player_escorts": pre_combat_count_player_escorts,
-            "pre_combat_count_enemy_interceptors": pre_combat_count_enemy_interceptors,
-            "pre_combat_count_enemy_bombers": pre_combat_count_enemy_bombers,
-            "pre_combat_count_enemy_escorts": pre_combat_count_enemy_escorts
+            "result_attacker_a2a": result_computer_a2a,
+            "result_tf_anti_aircraft": result_tf_anti_aircraft,
+            "result_base_anti_aircraft": result_base_anti_aircraft,
+            "result_attacker_ship_air_attack": result_computer_ship_air_attack,
+            "result_attacker_base_air_attack": result_computer_base_air_attack,
+            "pre_combat_count_attacker_interceptors": pre_combat_count_computer_interceptors,
+            "pre_combat_count_attacker_bombers": pre_combat_count_computer_bombers,
+            "pre_combat_count_attacker_escorts": pre_combat_count_computer_escorts,
+            "pre_combat_count_defender_interceptors": pre_combat_count_enemy_interceptors,
+            "pre_combat_count_defender_bombers": pre_combat_count_enemy_bombers,
+            "pre_combat_count_defender_escorts": pre_combat_count_enemy_escorts
         }
 
         return combat_results
