@@ -258,6 +258,7 @@ class AirCombatResult:
     def __init__(self):
         self.hits = {}
         self.summary = ""
+        self.story_line = [] #list to hold the story for the attack.
 
     def add_hit(self, plane_type, count):
         self.hits[plane_type] = self.hits.get(plane_type, 0) + count
@@ -271,101 +272,101 @@ class AirCombatResult:
 
 
 def classify_aircraft(airformation_list):
-                    """
-                    ### 8.12 Plane Missions
+    """
+    ### 8.12 Plane Missions
 
-                    Only certain planes can perform certain missions.
+    Only certain planes can perform certain missions.
 
-                    - **8.12.1** The following planes can always serve as interceptors, escorts, or bombers: Zero, P-38, P-39, P-40, Beaufighter, Wildcat.  
-                        The following planes can serve as interceptors and escorts, but not as bombers: Dave, Jake, Pete.  
-                        The following planes can serve as bombers, but not as escorts: Avenger, Dauntless, Judy, Val.
-                    - **8.12.2** If an Air Factor that can serve as an interceptor or escort is in an Air Formation with bombers, it is an escort. If the Air Formation does not have bombers, it is an interceptor.
-                    - **8.12.3** All other planes can only serve as bombers.
-                    - **8.12.4** If an Air Factor is armed when it takes off, it is considered to be a bomber until it lands, even after it has performed its bombing mission or jettisoned its bomb. Each armed Air Factor may only make one attack; to make another attack it must land and then rearm again before taking off.
-                    - **8.12.5** Planes which cannot serve as interceptors or escorts may be in flight unarmed. They cannot initiate combat of any kind.
+    - **8.12.1** The following planes can always serve as interceptors, escorts, or bombers: Zero, P-38, P-39, P-40, Beaufighter, Wildcat.  
+        The following planes can serve as interceptors and escorts, but not as bombers: Dave, Jake, Pete.  
+        The following planes can serve as bombers, but not as escorts: Avenger, Dauntless, Judy, Val.
+    - **8.12.2** If an Air Factor that can serve as an interceptor or escort is in an Air Formation with bombers, it is an escort. If the Air Formation does not have bombers, it is an interceptor.
+    - **8.12.3** All other planes can only serve as bombers.
+    - **8.12.4** If an Air Factor is armed when it takes off, it is considered to be a bomber until it lands, even after it has performed its bombing mission or jettisoned its bomb. Each armed Air Factor may only make one attack; to make another attack it must land and then rearm again before taking off.
+    - **8.12.5** Planes which cannot serve as interceptors or escorts may be in flight unarmed. They cannot initiate combat of any kind.
 
-                    ---
-                    """
-                    # Plane type sets for rule 8.12.1
-                    CAN_DO_ALL = {
-                        AircraftType.ZERO,
-                        AircraftType.P38,
-                        AircraftType.P39,
-                        AircraftType.P40,
-                        AircraftType.BEAUFIGHTER,
-                        AircraftType.WILDCAT,
-                    }
-                    INTERCEPT_ESCORT_ONLY = {
-                        AircraftType.DAVE,
-                        AircraftType.JAKE,
-                        AircraftType.PETE,
-                    }
-                    BOMBER_ONLY = {
-                        AircraftType.AVENGER,
-                        AircraftType.DAUNTLESS,
-                        AircraftType.JUDY,
-                        AircraftType.VAL,
-                        AircraftType.B17,
-                        AircraftType.B25,
-                        AircraftType.B26,
-                        AircraftType.AVENGER,
-                        AircraftType.KATE
-                        
-                    }
+    ---
+    """
+    # Plane type sets for rule 8.12.1
+    CAN_DO_ALL = {
+        AircraftType.ZERO,
+        AircraftType.P38,
+        AircraftType.P39,
+        AircraftType.P40,
+        AircraftType.BEAUFIGHTER,
+        AircraftType.WILDCAT,
+    }
+    INTERCEPT_ESCORT_ONLY = {
+        AircraftType.DAVE,
+        AircraftType.JAKE,
+        AircraftType.PETE,
+    }
+    BOMBER_ONLY = {
+        AircraftType.AVENGER,
+        AircraftType.DAUNTLESS,
+        AircraftType.JUDY,
+        AircraftType.VAL,
+        AircraftType.B17,
+        AircraftType.B25,
+        AircraftType.B26,
+        AircraftType.AVENGER,
+        AircraftType.KATE
+        
+    }
 
-                    interceptors, escorts, bombers = [], [], []
+    interceptors, escorts, bombers = [], [], []
 
-                    # First, collect all aircraft and classify by type and armament
-                    for af in airformation_list:
-                        has_bombers = False
-                        # Determine if this air formation has bombers (for 8.12.2)
-                        for ac in af.aircraft:
-                            if ac.type not in CAN_DO_ALL and ac.type not in INTERCEPT_ESCORT_ONLY:  
-                                has_bombers = True
-                                break
+    # First, collect all aircraft and classify by type and armament
+    for af in airformation_list:
+        has_bombers = False
+        # Determine if this air formation has bombers (for 8.12.2)
+        for ac in af.aircraft:
+            if ac.type not in CAN_DO_ALL and ac.type not in INTERCEPT_ESCORT_ONLY:  
+                has_bombers = True
+                break
 
-                        # 8.12.1: Classify aircraft in the air formation
-                        ac:Aircraft
-                        for ac in af.aircraft:
-                            ac_type = ac.type
-                            is_armed = getattr(ac, "armament", False)
-                            # 8.12.4: If armed, always bomber
-                            if is_armed:
-                                bombers.append(ac)
-                                has_bombers = True
-                                continue
+        # 8.12.1: Classify aircraft in the air formation
+        ac:Aircraft
+        for ac in af.aircraft:
+            ac_type = ac.type
+            is_armed = getattr(ac, "armament", False)
+            # 8.12.4: If armed, always bomber
+            if is_armed:
+                bombers.append(ac)
+                has_bombers = True
+                continue
 
-                            # 8.12.3: All others bomber
-                            if ac_type not in CAN_DO_ALL and ac_type not in INTERCEPT_ESCORT_ONLY:   
-                                bombers.append(ac)
-                                has_bombers = True
-                                continue
+            # 8.12.3: All others bomber
+            if ac_type not in CAN_DO_ALL and ac_type not in INTERCEPT_ESCORT_ONLY:   
+                bombers.append(ac)
+                has_bombers = True
+                continue
 
-                            # 8.12.1: Classification by type
-                            if ac_type in CAN_DO_ALL:
-                                # 8.12.2: If in formation with bombers, act as escort, else interceptor
-                                if has_bombers:
-                                    escorts.append(ac)
-                                else:
-                                    interceptors.append(ac)
-                            elif ac_type in INTERCEPT_ESCORT_ONLY:
-                                # Can only be interceptor or escort, never bomber
-                                if has_bombers:
-                                    escorts.append(ac)
-                                else:
-                                    interceptors.append(ac)
-                            elif ac_type in BOMBER_ONLY:
-                                # Can only be bomber, never escort
-                                bombers.append(ac)
-                            else:
-                                
-                                # If in formation with bombers, act as escort, else interceptor
-                                if has_bombers:
-                                    escorts.append(ac)  
-                                else:
-                                    interceptors.append(ac)
-                            # Note: Unarmed aircraft that cannot serve as interceptors or escorts are ignored
-                    return interceptors, escorts, bombers
+            # 8.12.1: Classification by type
+            if ac_type in CAN_DO_ALL:
+                # 8.12.2: If in formation with bombers, act as escort, else interceptor
+                if has_bombers:
+                    escorts.append(ac)
+                else:
+                    interceptors.append(ac)
+            elif ac_type in INTERCEPT_ESCORT_ONLY:
+                # Can only be interceptor or escort, never bomber
+                if has_bombers:
+                    escorts.append(ac)
+                else:
+                    interceptors.append(ac)
+            elif ac_type in BOMBER_ONLY:
+                # Can only be bomber, never escort
+                bombers.append(ac)
+            else:
+                
+                # If in formation with bombers, act as escort, else interceptor
+                if has_bombers:
+                    escorts.append(ac)  
+                else:
+                    interceptors.append(ac)
+            # Note: Unarmed aircraft that cannot serve as interceptors or escorts are ignored
+    return interceptors, escorts, bombers
 
 def roll_die():
     return random.randint(1, 6)
@@ -462,7 +463,9 @@ def resolve_air_to_air_combat(
     if interceptors and escorts:
         for ic in interceptors:
             hits = determine_hits([ic], "escorts")
-            logger.info(f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}")
+            story_text = f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}"
+            logger.info(story_text)
+            result["interceptor_hits_on_escorts"].story_line.append(story_text)
             if hits > 0:
                 result["interceptor_hits_on_escorts"].add_hit(str(ic.type), hits)
             hits_on_escorts += hits
@@ -471,7 +474,9 @@ def resolve_air_to_air_combat(
 
         for ec in escorts:
             hits = determine_hits([ec], "interceptors")
-            logger.info(f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}")
+            story_text = f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}"
+            logger.info(story_text)
+            result["escort_hits_on_interceptors"].story_line.append(story_text)
             if hits > 0:
                 result["escort_hits_on_interceptors"].add_hit(str(ec.type), hits)
             hits_on_interceptors += hits
@@ -487,7 +492,9 @@ def resolve_air_to_air_combat(
     if bombers and (interceptor_advantage or not escorts):
         for ic in interceptors:
             hits = determine_hits([ic], "bombers")
-            logger.info(f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}")
+            story_text = f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}"
+            logger.info(story_text)
+            result["interceptor_hits_on_bombers"].story_line.append(story_text)
             if hits > 0:
                 result["interceptor_hits_on_bombers"].add_hit(str(ic.type), hits)
             hits_on_bombers += hits
@@ -496,7 +503,9 @@ def resolve_air_to_air_combat(
         # Bombers can return fire if allowed by scenario/rules (not typical, but for completeness)
         for bc in bombers:
             hits = determine_hits([bc], "interceptors")
-            logger.info(f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}")
+            story_text = f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}"
+            logger.info(story_text)
+            result["bomber_hits_on_interceptors"].story_line.append(story_text)
             if hits > 0:
                 result["bomber_hits_on_interceptors"].add_hit(str(bc.type), hits)
             hits_on_interceptors += hits
@@ -529,6 +538,9 @@ def resolve_air_to_air_combat(
                 ac.range_remaining -= 1
             if ac.count > 0:
                 aircraft_list.append(ac)
+            story_text = f"{ac.type} lost {hits_to_remove} Air Factors."
+            logger.info(story_text)
+            result["eliminated"]["bombers"].append((ac.type, hits_to_remove))
 
     remove_hits(interceptors, hits_on_interceptors, rf_expended)
     remove_hits(escorts, hits_on_escorts, rf_expended)  
@@ -584,9 +596,11 @@ def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modi
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            logger.info(f"Bomber {ac.type} lost {lost} Air Factors.")
-            result["eliminated"]["bombers"].append((ac.type, lost)) 
-                
+            story_text = f"Bomber {ac.type} lost {lost} Air Factors."
+            logger.info(story_text)
+            result["anti_aircraft"].story_line.append(story_text)
+            result["eliminated"]["bombers"].append((ac.type, lost))
+
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{taskforce.name} anti-aircraft fire destoryed {bombers_lost} bombers"
     logger.info(f"Total bombers lost: {bombers_lost}")
@@ -637,9 +651,11 @@ def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            logger.info(f"Bomber {ac.type} lost {lost} Air Factors.")
-            result["eliminated"]["bombers"].append((ac.type, lost)) 
-                
+            story_text = f"Bomber {ac.type} lost {lost} Air Factors."
+            logger.info(story_text)
+            result["anti_aircraft"].story_line.append(story_text)
+            result["eliminated"]["bombers"].append((ac.type, lost))
+
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{base.name} anti-aircraft fire destoryed {bombers_lost} bombers"
     logger.info(f"Total bombers lost: {bombers_lost}")
@@ -691,7 +707,8 @@ def _resolve_base_aircraft_hits(base:Base, total_hits:int, results:dict):
             hits_to_apply = min(hit_tracker, ac.count)
             ac.count -= hits_to_apply
             hit_tracker -= hits_to_apply
-            logger.info(f"Eliminated {hits_to_apply} from {ac.type}")
+            story_text = f"Eliminated {hits_to_apply} from {ac.type}"
+            logger.info(story_text)
             results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
             if ac.count <= 0:
                 for lst in [base.air_operations_tracker.ready, base.air_operations_tracker.just_landed, base.air_operations_tracker.readying]:
@@ -770,7 +787,9 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         hits = determine_hits(ac, ship, attack_type, clouds, night )
         ship.damage += hits
         total_hits += hits
-        logger.info(f"Bomber {ac.type} hits {hits} against ship {ship.name}.")
+        story_text = f"Bomber {ac.type} hits {hits} against ship {ship.name}."
+        logger.info(story_text)
+        results["bomber_hits"].story_line.append(story_text)
         results["bomber_hits"].add_hit(ac.type, hits)
         
         #resolve impact on range of aircraft
@@ -783,6 +802,7 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
 
         if ship.damage >= ship.damage_factor:
             ship.status = "Sunk"
+            results["bomber_hits"].story_line.append(f"Ship {ship.name} is sunk by {ac.type.value}.")
             logger.info(f"Ship {ship.name}, sunk.")
             break
     
@@ -792,7 +812,9 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         if carrier.status == "Sunk":
             for ac in carrier.air_operations.ready + carrier.air_operations.just_landed + carrier.air_operations.readying:
                 results["eliminated"]["aircraft"].append((ac.type, ac.count))
-                logger.info(f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}.")
+                story_text = f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}."
+                logger.info(story_text)
+                results["bomber_hits"].story_line.append(story_text)
                 ac.count = 0
             carrier.air_operations.ready.clear()
             carrier.air_operations.just_landed.clear()
@@ -800,7 +822,11 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         else:
             results = _resolve_base_aircraft_hits(ship.base, total_hits, results)
 
-    results["bomber_hits"].summary = f"Ship {ship.name} took {total_hits} hits."
+    summary_text = f"Ship {ship.name} took {total_hits} hits."
+    if ship.status == "Sunk":
+        summary_text += f" Ship {ship.name} is now sunk."
+
+    results["bomber_hits"].summary = summary_text
 
     return results
 
@@ -866,8 +892,10 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
         hits = determine_hits(ac, base, attack_type, clouds, night )
         base.damage += hits
         total_hits += hits
-        logger.info(f"Bomber {ac.type} hits {hits} against base {base.name}.")
+        story_text = f"Bomber {ac.type} hits {hits} against base {base.name}."
+        logger.info(story_text)
         results["bomber_hits"].add_hit(ac.type, hits)
+        results["bomber_hits"].story_line.append(story_text)
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
         if not (attack_type == "Level" and ac.height == "High"):

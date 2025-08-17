@@ -61,6 +61,35 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class ComputerOpponent:
+    def _update_last_spotted_taskforce(self, observed_enemy_pieces):
+        """
+        Update the last known location of enemy task forces.
+        """
+        if not hasattr(self, '_last_spotted_taskforces'):
+            self._last_spotted_taskforces = {}
+        for enemy in observed_enemy_pieces:
+            gm = getattr(enemy, 'game_model', None)
+            if isinstance(gm, TaskForce):
+                self._last_spotted_taskforces[enemy.name] = enemy.position
+
+    def _get_last_spotted_taskforce_hex(self):
+        """
+        Return the most recently spotted enemy task force location, if any.
+        """
+        if hasattr(self, '_last_spotted_taskforces') and self._last_spotted_taskforces:
+            # Return the most recently updated location
+            # (dict preserves insertion order in Python 3.7+)
+            return list(self._last_spotted_taskforces.values())[-1]
+        return None
+
+    def _focused_search_pattern(self, center_hex, radius=2):
+        """
+        Return a list of hexes in a ring/spiral around center_hex within the given radius.
+        """
+        from flattop.hex_board_game_model import get_distance
+        if not center_hex:
+            return []
+        return [tile for tile in self.board.tiles if 0 < get_distance(center_hex, tile) <= radius]
     def _move_toward(self, piece, target_hex, stop_distance=0):
         logger.debug(f"_move_toward: Moving {piece.name} toward {target_hex} with stop_distance={stop_distance}")
         """
@@ -542,7 +571,33 @@ class ComputerOpponent:
         own_pieces = [p for p in self.board.pieces if p.side == self.side]
         bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
         base_hexes = [b.position for b in bases]
+        # Update last spotted enemy task force locations
+        self._update_last_spotted_taskforce(observed_enemy_pieces)
+
+        # If no currently observed enemy, but a task force was previously spotted, do focused search
+        last_spotted_hex = self._get_last_spotted_taskforce_hex() if not observed_enemy_pieces else None
+        search_airformations = []
+        if last_spotted_hex:
+            # Select 2-3 available air formations (prefer bombers)
+            airformations = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
+            bombers = [p for p in airformations if any(ac.is_bomber for ac in p.game_model.aircraft)]
+            others = [p for p in airformations if p not in bombers]
+            search_airformations = bombers[:3] if len(bombers) >= 2 else (bombers + others)[:3]
+
+            # Get search hexes around last spotted location
+            search_hexes = self._focused_search_pattern(last_spotted_hex, radius=2)
+            # Assign each air formation a different search hex (spread out)
+            for idx, piece in enumerate(search_airformations):
+                if search_hexes:
+                    target_hex = search_hexes[idx % len(search_hexes)]
+                    self._move_toward(piece, target_hex, stop_distance=0)
+                    if hasattr(self, 'perform_observation'):
+                        self.perform_observation()
+
         for piece in actionable:
+            # If this piece was already used for focused search, skip normal search logic
+            if piece in search_airformations:
+                continue
             gm = getattr(piece, 'game_model', None)
             #handle running out of range
             # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
@@ -568,7 +623,7 @@ class ComputerOpponent:
                     self._handle_airformation_move_to_base(piece, gm, nearest_base, min_range_left, min_base_dist, bases)
                     continue    
 
-            if not observed_enemy_pieces or len(observed_enemy_pieces) == 0:
+            if (not observed_enemy_pieces or len(observed_enemy_pieces) == 0) and not last_spotted_hex:
                 # No observed enemies: move in a search pattern                
                 if isinstance(gm, AirFormation):
                     # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor

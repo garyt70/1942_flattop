@@ -197,6 +197,11 @@ class CombatResultsScreen:
                 for k in ["interceptor_hits_on_escorts", "escort_hits_on_interceptors", "interceptor_hits_on_bombers", "bomber_hits_on_interceptors"]:
                         v = a2a.get(k) if a2a else None
                         lines = self._aircombat_result_to_lines(v)
+                        # Add story_line if present
+                        if v and hasattr(v, "story_line") and v.story_line:
+                            for story in v.story_line:
+                                self.draw_text(f"{k.replace('_', ' ').title()} Story: {story}", self.PADDING * 2, y)
+                                y += self.DETAIL_LINE_HEIGHT
                         for line in lines:
                                 self.draw_text(f"{k.replace('_', ' ').title()}: {line}", self.PADDING * 2, y)
                                 y += self.DETAIL_LINE_HEIGHT
@@ -210,6 +215,11 @@ class CombatResultsScreen:
                 y += self.DETAIL_LINE_HEIGHT
                 for aa in aa_list:
                         v = aa.get("anti_aircraft") if aa else None
+                        # Add story_line if present
+                        if v and hasattr(v, "story_line") and v.story_line:
+                            for story in v.story_line:
+                                self.draw_text(f"AA Story: {story}", self.PADDING * 2, y)
+                                y += self.DETAIL_LINE_HEIGHT
                         for line in self._aircombat_result_to_lines(v):
                                 self.draw_text(line, self.PADDING * 2, y)
                                 y += self.DETAIL_LINE_HEIGHT
@@ -222,6 +232,11 @@ class CombatResultsScreen:
                 self.draw_text("Base Details:", self.PADDING, y)
                 y += self.DETAIL_LINE_HEIGHT
                 v = base.get("bomber_hits") if base else None
+                # Add story_line if present
+                if v and hasattr(v, "story_line") and v.story_line:
+                    for story in v.story_line:
+                        self.draw_text(f"Base Story: {story}", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
                 for line in self._aircombat_result_to_lines(v):
                         self.draw_text(line, self.PADDING * 2, y)
                         y += self.DETAIL_LINE_HEIGHT
@@ -231,21 +246,26 @@ class CombatResultsScreen:
                 return y
 
         def _draw_ship_details(self, y, ship_list):
-            self.draw_text("Ship Details:", self.PADDING, y)
-            y += self.DETAIL_LINE_HEIGHT
-            if not ship_list:
-                self.draw_text("No ship combat.", self.PADDING * 2, y)
+                self.draw_text("Ship Details:", self.PADDING, y)
                 y += self.DETAIL_LINE_HEIGHT
+                if not ship_list:
+                        self.draw_text("No ship combat.", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        return y
+                for ship in ship_list:
+                        v = ship.get("bomber_hits") if ship else None
+                        # Add story_line if present
+                        if v and hasattr(v, "story_line") and v.story_line:
+                                for story in v.story_line:
+                                        self.draw_text(f"Ship Story: {story}", self.PADDING * 2, y)
+                                        y += self.DETAIL_LINE_HEIGHT
+                        for line in self._aircombat_result_to_lines(v):
+                                self.draw_text(line, self.PADDING * 2, y)
+                                y += self.DETAIL_LINE_HEIGHT
+                        for line in self._eliminated_to_lines(ship.get("eliminated", {}) if ship else {}):
+                                self.draw_text(line, self.PADDING * 2, y)
+                                y += self.DETAIL_LINE_HEIGHT
                 return y
-            for ship in ship_list:
-                v = ship.get("bomber_hits") if ship else None
-                for line in self._aircombat_result_to_lines(v):
-                    self.draw_text(line, self.PADDING * 2, y)
-                    y += self.DETAIL_LINE_HEIGHT
-                for line in self._eliminated_to_lines(ship.get("eliminated", {}) if ship else {}):
-                    self.draw_text(line, self.PADDING * 2, y)
-                    y += self.DETAIL_LINE_HEIGHT
-            return y
 
         def _aircombat_result_to_lines(self, result):
                 if result is None:
