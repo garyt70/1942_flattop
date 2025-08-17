@@ -253,18 +253,18 @@ class CombatResultsScreen:
                         y += self.DETAIL_LINE_HEIGHT
                         return y
                 for ship in ship_list:
-                        v = ship.get("bomber_hits") if ship else None
-                        # Add story_line if present
-                        if v and hasattr(v, "story_line") and v.story_line:
-                                for story in v.story_line:
-                                        self.draw_text(f"Ship Story: {story}", self.PADDING * 2, y)
-                                        y += self.DETAIL_LINE_HEIGHT
-                        for line in self._aircombat_result_to_lines(v):
-                                self.draw_text(line, self.PADDING * 2, y)
-                                y += self.DETAIL_LINE_HEIGHT
-                        for line in self._eliminated_to_lines(ship.get("eliminated", {}) if ship else {}):
-                                self.draw_text(line, self.PADDING * 2, y)
-                                y += self.DETAIL_LINE_HEIGHT
+                    v = ship.get("bomber_hits") if ship else None
+                    # Add story_line if present
+                    if v and hasattr(v, "story_line") and v.story_line:
+                        for story in v.story_line:
+                            self.draw_text(f"Ship Story: {story}", self.PADDING * 2, y)
+                            y += self.DETAIL_LINE_HEIGHT
+                    for line in self._aircombat_result_to_lines(v):
+                        self.draw_text(line, self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                    for line in self._eliminated_to_lines(ship.get("eliminated", {}) if ship else {}):
+                        self.draw_text(line, self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
                 return y
 
         def _aircombat_result_to_lines(self, result):
