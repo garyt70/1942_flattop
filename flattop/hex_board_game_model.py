@@ -279,11 +279,7 @@ class HexBoardModel:
                 tf:TaskForce
                 tf = piece.game_model
                 tf.reset_for_new_turn()
-                carrier_list = tf.get_carriers()
-                if len(carrier_list) > 0:
-                    cv:Carrier
-                    cv = carrier_list[0]
-                    cv.base.reset_for_new_turn()
+                
 
 def get_distance(start_hex: Hex, dest_hex: Hex):
     # Calculate distance using offset coordinates (odd-q vertical layout)

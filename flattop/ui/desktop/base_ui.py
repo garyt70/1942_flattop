@@ -557,7 +557,6 @@ class BaseUIDisplay:
                     self.base.air_operations_tracker.set_operations_status(btn.to_aircraft, AircraftOperationsStatus.READY, btn.from_aircraft)
                     btn.to_aircraft = None
 
-            self.base.used_ready_factor = self.base.used_ready_factor + self.temp_ready_factor
             self.temp_ready_factor = 0
             
     def _handle_aircraft_command_btn_click(self, mx, my):

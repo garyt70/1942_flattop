@@ -326,7 +326,9 @@ class ComputerOpponent:
                 readying = list(base.air_operations_tracker.readying)
                 ready = list(base.air_operations_tracker.ready)
                 ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
-                logger.debug(f"Base {base.name} has {ready_factors_left} ready factors left.")
+                if ready_factors_left <= 0:
+                    logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
+                    break
                 # Arm aircraft in readying with AP and move to ready if possible
                 for ac in readying:
                     if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
@@ -355,6 +357,9 @@ class ComputerOpponent:
                     readying = list(base.air_operations_tracker.readying)
                     ready = list(base.air_operations_tracker.ready)
                     ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+                    if ready_factors_left <= 0:
+                        logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
+                        break
 
                     for ac in readying:
                         if getattr(ac, 'armament', None) != 'AP' and ready_factors_left > 0:
@@ -409,6 +414,9 @@ class ComputerOpponent:
         for base_piece in bases:
             base: Base = base_piece.game_model
             ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+            if ready_factors_left <= 0:
+                logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
+                continue
             just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
             for ac in just_landed:
                 if ready_factors_left <= 0:
@@ -423,6 +431,9 @@ class ComputerOpponent:
                 if not base:
                     continue
                 ready_factors_left = base.air_operations_config.ready_factors - base.used_ready_factor
+                if ready_factors_left <= 0:
+                    logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
+                    continue
                 just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
                 for ac in just_landed:
                     if ready_factors_left <= 0:

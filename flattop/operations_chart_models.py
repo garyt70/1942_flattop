@@ -179,6 +179,10 @@ Text from rule book
         """
         self.observed_condition = 0
         # Reset any other state as needed
+        carrier_list = self.get_carriers()
+        cv:Carrier
+        for cv in carrier_list:
+            cv.base.reset_for_new_turn()
 
     @property
     def movement_factor(self):
@@ -223,8 +227,8 @@ class Base:
         self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
         self.air_operations_tracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
-        self.used_ready_factor = 0
-        self.used_launch_factor = 0
+        #self.used_ready_factor = 0
+        #self.used_launch_factor = 0
         #TODO: consider refactor Base to become Runway and then Base and Carrier have a runway. A Base can then have damage and anti-aircraft
         self.damage = 0
         self.anti_aircraft_factor = 4 #making this the default.
@@ -259,13 +263,13 @@ class Base:
         if number < 1 or number > 35:
             raise ValueError("Air Formation number must be between 1 and 35.")
 
-        air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
-
         # Determine how many aircraft can be launched this turn
         allowed = self.air_operations_config.launch_factor_max - self.used_launch_factor
         moved = 0
         if allowed <= 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
+
+        air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
 
         # if aircraft is provided, use it and remove the appropriate aircraft from READY
         if aircraft:
@@ -320,10 +324,27 @@ class Base:
             return None
         return air_formation
 
+    
+
+    @property   
+    def used_ready_factor(self):
+        return self.air_operations_tracker.used_ready_factor
+
+    @used_ready_factor.setter
+    def used_ready_factor(self, value):
+        self.air_operations_tracker.used_ready_factor = value
+
+    @property
+    def used_launch_factor(self):
+        return self.air_operations_tracker.used_launch_factor
+
+    @used_launch_factor.setter
+    def used_launch_factor(self, value):
+        self.air_operations_config.used_launch_factor = value
+
     def reset_for_new_turn(self):
         self.used_ready_factor = 0
         self.used_launch_factor = 0
-        
 
     def __repr__(self):
         return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self.air_operations_config})"
@@ -922,6 +943,11 @@ class AirOperationsTracker:
                 raise ValueError(f"Invalid status string: {status}")
         else:
             raise TypeError("status must be an AircraftStatus or str")
+
+        if self.used_ready_factor > self.air_op_config.ready_factors:
+            # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
+            print("Exceeded ready factors")
+            return
 
         if from_aircraft:
             from_aircraft.count -= to_aircraft.count
