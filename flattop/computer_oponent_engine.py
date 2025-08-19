@@ -50,7 +50,7 @@ from flattop.aircombat_engine import (
     resolve_air_to_ship_combat,
     resolve_air_to_base_combat
 )
-from flattop.game_engine import get_actionable_pieces, perform_observation_for_side
+from flattop.game_engine import get_actionable_pieces, perform_observation_for_piece, perform_observation_for_side
 from flattop.weather_model import WeatherManager
 
 # Configure logging for this module
@@ -126,6 +126,8 @@ class ComputerOpponent:
                 best_dist = dist
         if best_hex:
             self.board.move_piece(piece, best_hex)
+            observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
+            self._update_last_spotted_taskforce(observed_enemy_pieces)
 
     def _move_random_within_range(self, piece, max_range=2):
         logger.debug(f"_move_random_within_range: Moving {piece.name} randomly within range {max_range}")
@@ -151,6 +153,8 @@ class ComputerOpponent:
         if candidates:
             dest = random.choice(candidates)
             self.board.move_piece(piece, dest)
+            observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
+            self._update_last_spotted_taskforce(observed_enemy_pieces)
 
     def _move_intelligent_search(self, piece, max_range=4):
         logger.debug(f"_move_intelligent_search: {piece.name} searching with max_range={max_range}")
@@ -246,8 +250,13 @@ class ComputerOpponent:
                 self._search_history[piece.name].add(best_hex)
 
                 # Perform observation after each move
-                if hasattr(self, 'perform_observation'):
-                    self.perform_observation()
+                observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
+                if len(observed_enemy_pieces) > 0:
+                    #stop when an enemy is spotted
+                    self._update_last_spotted_taskforce(observed_enemy_pieces)
+                    moves_remaining = 0
+                    break
+
 
                 # Periodically change direction
                 if random.random() < 0.2:  # 20% chance to change direction
@@ -603,7 +612,8 @@ class ComputerOpponent:
                     target_hex = search_hexes[idx % len(search_hexes)]
                     self._move_toward(piece, target_hex, stop_distance=0)
                     if hasattr(self, 'perform_observation'):
-                        self.perform_observation()
+                        observed_enemy_pieces = self.perform_observation()
+                        self._update_last_spotted_taskforce(observed_enemy_pieces)
 
         for piece in actionable:
             # If this piece was already used for focused search, skip normal search logic
@@ -662,6 +672,7 @@ class ComputerOpponent:
                                             result = self.perform_observation()
                                             if len(result) > 0:
                                                 logger.info(f"Observation result: {result}")
+                                                self._update_last_spotted_taskforce(result)
                                                 break #stop moving
                             else:
                                 # Already close, loiter or move randomly within 2 hexes
