@@ -340,7 +340,7 @@ class Base:
 
     @used_launch_factor.setter
     def used_launch_factor(self, value):
-        self.air_operations_config.used_launch_factor = value
+        self.air_operations_tracker.used_launch_factor = value
 
     def reset_for_new_turn(self):
         self.used_ready_factor = 0

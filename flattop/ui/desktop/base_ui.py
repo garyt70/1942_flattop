@@ -412,8 +412,6 @@ class AirOperationsTrackerDisplay:
         self.ready_btn_list = []
         self.just_landed_btn_list = []
         self.readying_btn_list = []
-        self.used_launch_factor = 0
-        self.used_ready_factor = 0
 
 
     def draw_aircraft_list(self, aircraft_list, x, y):
@@ -434,7 +432,7 @@ class AirOperationsTrackerDisplay:
 
         self.surface.blit(self.font.render("Ready", True, COLOR_YELLOW), (x, y))
         y += 25
-        if self.used_launch_factor < self.config.launch_factor_max:
+        if self.tracker.used_launch_factor < self.config.launch_factor_max:
             y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.ready, x, y )
         else:
             y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.ready, x, y )
@@ -443,7 +441,7 @@ class AirOperationsTrackerDisplay:
         
         self.surface.blit(self.font.render("Readying", True, COLOR_YELLOW), (x, y))
         y += 25
-        if self.used_ready_factor < self.config.ready_factors:
+        if self.tracker.used_ready_factor < self.config.ready_factors:
             y, btn_list = AircraftDisplay.draw_aircraft_list_with_armament_btn(self.surface, self.tracker.readying, x, y )
         else:
             y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.readying, x, y )
@@ -452,7 +450,7 @@ class AirOperationsTrackerDisplay:
         
         self.surface.blit(self.font.render("Just Landed", True, COLOR_YELLOW), (x, y))
         y += 25
-        if self.used_ready_factor < self.config.ready_factors:
+        if self.tracker.used_ready_factor < self.config.ready_factors:
             y, btn_list = AircraftDisplay.draw_aircraft_list_with_btn(self.surface, self.tracker.just_landed, x, y )
         else:
             y = AircraftDisplay.draw_aircraft_list(self.surface, self.tracker.just_landed, x, y )
@@ -521,13 +519,7 @@ class BaseUIDisplay:
             for btn in self.ready_btn_list:
                 if btn.to_aircraft:
                     aircraft_list.append(btn.to_aircraft)
-                    # reduce the count of the from_aircraft by to_aircraft.count
-                    #btn.from_aircraft.count -= btn.to_aircraft.count
-                    self.temp_launch_factor += btn.to_aircraft.count
                     btn.to_aircraft = None  # Clear the to_aircraft after adding to the formation
-                    #btn.from_aircraft.count -= 1
-                #if btn.from_aircraft.count <= 0:
-                #    self.base.air_operations_tracker.ready.remove(btn.from_aircraft)
 
             if len(aircraft_list) > 0:
                 airformation = self.base.create_air_formation(af_number,  aircraft_list)
@@ -536,7 +528,8 @@ class BaseUIDisplay:
                 self.air_op_chart.air_formations[af_number] = airformation
                 self.last_airformation = airformation
                 
-            
+                self.temp_launch_factor = 0
+
         else:
             self.last_airformation = None
 
@@ -557,6 +550,7 @@ class BaseUIDisplay:
                     self.base.air_operations_tracker.set_operations_status(btn.to_aircraft, AircraftOperationsStatus.READY, btn.from_aircraft)
                     btn.to_aircraft = None
 
+            self.base.used_ready_factor += self.temp_ready_factor
             self.temp_ready_factor = 0
             
     def _handle_aircraft_command_btn_click(self, mx, my):
@@ -663,8 +657,6 @@ class BaseUIDisplay:
 
         # Draw the header text
         self.config_display.draw(pos=BaseUIDisplay.POS_HEADER_BOX)
-        self.tracker_display.used_launch_factor = self.base.used_launch_factor + getattr(self, "temp_launch_factor", 0)
-        self.tracker_display.used_ready_factor = self.base.used_ready_factor + getattr(self, "temp_ready_factor", 0)
         self.tracker_display.draw(pos=BaseUIDisplay.POS_DETAILS_BOX)
         self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
                                                                  True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
