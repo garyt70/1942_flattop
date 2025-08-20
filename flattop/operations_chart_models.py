@@ -877,7 +877,7 @@ class AirOperationsTracker:
         self.used_launch_factor = 0  # Used to track how many launch factors have been used this turn
 
     def __repr__(self):
-         return f"Piece(owner={self.name}, position={self.description})"
+         return f"AirOperationsTracker(owner={self.name}, position={self.description})"
     
     def __str__(self):
         header = f"{self.name}\n{self.description}\n"

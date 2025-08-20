@@ -538,25 +538,25 @@ class ComputerOpponent:
                                     ac.armament = 'AP'  # default to AP as assuming searching for enemy ships
                                     base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
-    def _handle_airformation_move_to_base(self, piece, gm, nearest_base, min_range_left, min_base_dist, bases):
+    def _handle_airformation_move_to_base(self, piece, nearest_base_piece:Piece, min_range_left, min_base_dist):
         # Move toward base in short hops (2-3 hexes)
         hops = min(3, min_range_left, min_base_dist)
         for _ in range(hops):
-            if get_distance(piece.position, nearest_base) > 0:
-                self._move_toward(piece, nearest_base, stop_distance=0)
+            if get_distance(piece.position, nearest_base_piece.position) > 0:
+                self._move_toward(piece, nearest_base_piece.position, stop_distance=0)
                 # Optionally, call observation after each move
                 if hasattr(self, 'perform_observation'):
                     self.perform_observation()
         # If air formation is at base, land it and remove from board
-        if piece.position == nearest_base:
+        if piece.position == nearest_base_piece.position:
+            base: Base = nearest_base_piece.game_model
+            airformation: AirFormation = piece.game_model
             # Land each aircraft in the air formation
-            for ac in gm.aircraft:
+            logger.info(f"AirFormation {airformation.name} landing at base {base.name}.")
+            for ac in airformation.aircraft:
                 # Add aircraft back to base's tracker (simulate landing)
-                base_piece = next((b for b in bases if b.position == nearest_base), None)
-                if base_piece:
-                    base: Base = base_piece.game_model
-                    base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
-                    logger.info(f"AirFormation {gm.name} landed at base {base.name}.")
+                base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
+                logger.info(f"Aircraft {ac} landed at base {base.name}.")
             # Remove air formation piece from board
             if piece in self.board.pieces:
                 self.board.pieces.remove(piece)
@@ -589,60 +589,61 @@ class ComputerOpponent:
             return
         
         own_pieces = [p for p in self.board.pieces if p.side == self.side]
-        bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
-        base_hexes = [b.position for b in bases]
+        base_pieces = [p for p in own_pieces if isinstance(p.game_model, Base)]
+        base_hexes = [b.position for b in base_pieces]
         # Update last spotted enemy task force locations
         self._update_last_spotted_taskforce(observed_enemy_pieces)
-
-        # If no currently observed enemy, but a task force was previously spotted, do focused search
-        last_spotted_hex = self._get_last_spotted_taskforce_hex() if not observed_enemy_pieces else None
-        search_airformations = []
-        if last_spotted_hex:
-            # Select 2-3 available air formations (prefer bombers)
-            airformations = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
-            bombers = [p for p in airformations if any(ac.is_bomber for ac in p.game_model.aircraft)]
-            others = [p for p in airformations if p not in bombers]
-            search_airformations = bombers[:3] if len(bombers) >= 2 else (bombers + others)[:3]
-
-            # Get search hexes around last spotted location
-            search_hexes = self._focused_search_pattern(last_spotted_hex, radius=2)
-            # Assign each air formation a different search hex (spread out)
-            for idx, piece in enumerate(search_airformations):
-                if search_hexes:
-                    target_hex = search_hexes[idx % len(search_hexes)]
-                    self._move_toward(piece, target_hex, stop_distance=0)
-                    if hasattr(self, 'perform_observation'):
-                        observed_enemy_pieces = self.perform_observation()
-                        self._update_last_spotted_taskforce(observed_enemy_pieces)
+      
 
         for piece in actionable:
-            # If this piece was already used for focused search, skip normal search logic
-            if piece in search_airformations:
-                continue
+            logger.debug(f"Processing piece {piece.name} for movement.")
             gm = getattr(piece, 'game_model', None)
             #handle running out of range
             # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
             if isinstance(gm, AirFormation):
                 min_range_left = gm.range_remaining * gm.movement_factor
                 # Find nearest base
-                nearest_base = None
+                nearest_base_piece = None
                 min_base_dist = float('inf')
-                for base_hex in base_hexes:
-                    dist = get_distance(piece.position, base_hex)
+                for base_piece in base_pieces:
+                    dist = get_distance(piece.position, base_piece.position)
                     if dist < min_base_dist:
                         min_base_dist = dist
-                        nearest_base = base_hex
+                        nearest_base_piece = base_piece
                 # If range is low (<= distance to base + 1), start moving back
-                if nearest_base and min_range_left <= min_base_dist + 1:
-                    logger.info(f"AirFormation {gm.name} low on range, moving toward nearest base {nearest_base}.")
-                    self._handle_airformation_move_to_base(piece, gm, nearest_base, min_range_left, min_base_dist, bases)
+                if (nearest_base_piece and min_range_left <= min_base_dist + 1) or gm.range_remaining <= 2:
+                    logger.info(f"AirFormation {gm.name} low on range, moving toward nearest base {nearest_base_piece}.")
+                    self._handle_airformation_move_to_base(piece, nearest_base_piece, min_range_left, min_base_dist)
                     continue
                 
                 # if a bomber and there are no armed aircraft then move toward base to re-arm
                 if isinstance(gm, AirFormation) and any(ac.is_bomber and ac.armament is None for ac in gm.aircraft):
                     logger.info(f"AirFormation {gm.name} no longer armed, moving toward nearest base {nearest_base}.")
-                    self._handle_airformation_move_to_base(piece, gm, nearest_base, min_range_left, min_base_dist, bases)
-                    continue    
+                    self._handle_airformation_move_to_base(piece, nearest_base, min_range_left, min_base_dist)
+                    continue
+
+            # If no currently observed enemy, but a task force was previously spotted, do focused search
+            last_spotted_hex = self._get_last_spotted_taskforce_hex() if not observed_enemy_pieces else None
+            search_airformations = []
+            if last_spotted_hex:
+                # Select 2-3 available air formations (prefer bombers)
+                airformations = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
+                bombers = [p for p in airformations if any(ac.is_bomber for ac in p.game_model.aircraft)]
+                others = [p for p in airformations if p not in bombers]
+                search_airformations = bombers[:3] if len(bombers) >= 2 else (bombers + others)[:3]
+
+                # Get search hexes around last spotted location
+                search_hexes = self._focused_search_pattern(last_spotted_hex, radius=2)
+                # Assign each air formation a different search hex (spread out)
+                for idx, piece in enumerate(search_airformations):
+                    if search_hexes:
+                        target_hex = search_hexes[idx % len(search_hexes)]
+                        self._move_toward(piece, target_hex, stop_distance=0)
+                        if hasattr(self, 'perform_observation'):
+                            observed_enemy_pieces = self.perform_observation()
+                            self._update_last_spotted_taskforce(observed_enemy_pieces)
+                continue
+
 
             if (not observed_enemy_pieces or len(observed_enemy_pieces) == 0) and not last_spotted_hex:
                 # No observed enemies: move in a search pattern                

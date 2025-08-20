@@ -144,6 +144,7 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
     defending_base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base) and p.side != attacking_side and p.position == piece.position]
      #assume there is only ever one base
+    result_base_anti_aircraft = None
     if defending_base_pieces:
         result_base_anti_aircraft = perform_base_anti_aircraft_combat(attacking_bombers,defending_base_pieces[0].game_model)
 
