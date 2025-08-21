@@ -944,6 +944,10 @@ class AirOperationsTracker:
         else:
             raise TypeError("status must be an AircraftStatus or str")
 
+        if status_value == AircraftOperationsStatus.JUST_LANDED.value:
+            # Check if an aircraft of the same type already exists in just_landed
+            self._operation_status_add_aircraft(to_aircraft, self.just_landed)
+
         if self.used_ready_factor > self.air_op_config.ready_factors:
             # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
             print("Exceeded ready factors")
@@ -956,11 +960,6 @@ class AirOperationsTracker:
         # Add to the appropriate status list
         if status_value == AircraftOperationsStatus.IN_FLIGHT.value:
             self.in_flight.append(to_aircraft)
-            
-        elif status_value == AircraftOperationsStatus.JUST_LANDED.value:
-            # Check if an aircraft of the same type already exists in just_landed
-            self._operation_status_add_aircraft(to_aircraft, self.just_landed)
-
         elif status_value == AircraftOperationsStatus.READYING.value:
             self._operation_status_add_aircraft(to_aircraft, self.readying)
 
@@ -972,8 +971,7 @@ class AirOperationsTracker:
             self._operation_status_add_aircraft(to_aircraft, self.ready)
             if from_aircraft and from_aircraft in self.readying and from_aircraft.count <= 0:
                 self.readying.remove(from_aircraft)
-        else:
-            raise ValueError("Invalid status. Must be one of: 'in_flight', 'just_landed', 'readying', 'ready'.")
+        
 
 
 class AircraftOperationsStatus(Enum):
