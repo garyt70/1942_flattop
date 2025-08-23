@@ -225,7 +225,7 @@ class Base:
         """
         self.name = name or "Base"
         self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
-        self.air_operations_tracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
+        self.air_operations_tracker:AirOperationsTracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
         self.side = side  # "Allied" or "Japanese"
         #self.used_ready_factor = 0
         #self.used_launch_factor = 0
@@ -234,6 +234,7 @@ class Base:
         self.anti_aircraft_factor = 4 #making this the default.
         self.can_observe = True  # Base can observe air units at high altitude
         self.has_radar = False  # Base has no radar capabilities by default
+        self.attacked_this_turn = False  # Track if the base has been attacked this turn
 
 
     """
@@ -264,7 +265,7 @@ class Base:
             raise ValueError("Air Formation number must be between 1 and 35.")
 
         # Determine how many aircraft can be launched this turn
-        allowed = self.air_operations_config.launch_factor_max - self.used_launch_factor
+        allowed = self.available_launch_factor_max - self.used_launch_factor
         moved = 0
         if allowed <= 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
@@ -342,9 +343,26 @@ class Base:
     def used_launch_factor(self, value):
         self.air_operations_tracker.used_launch_factor = value
 
+    @property
+    def available_ready_factor(self):
+        return self.air_operations_config.ready_factors - self.damage
+    
+    @property
+    def available_launch_factor_min(self):
+        return self.air_operations_config.launch_factor_min - self.damage
+
+    @property
+    def available_launch_factor_max(self):
+        return self.air_operations_config.launch_factor_max - self.damage * 4
+
+    @property
+    def available_launch_factor_normal(self):
+        return self.air_operations_config.launch_factor_normal - self.damage * 2
+
     def reset_for_new_turn(self):
         self.used_ready_factor = 0
         self.used_launch_factor = 0
+        self.attacked_this_turn = False
 
     def __repr__(self):
         return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self.air_operations_config})"
@@ -831,10 +849,12 @@ class Carrier(Ship):
     """
     
     def __init__(self, name, type, status, attack_factor=0, anti_air_factor=0, move_factor=2, damage_factor=4):
-        super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor)
         #a carrier is in effect a ship with a base  
         self.base = Base(name=f"{name} Base")
         self.has_radar = False  # Carriers do not have radar by default 
+        super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor)
+        
+        
 
     
     @property
@@ -849,7 +869,13 @@ class Carrier(Ship):
     def air_operations_config(self, value : AirOperationsConfiguration):
         self.base.air_operations_config = value
 
-               
+    @property
+    def damage(self):
+        return self.base.damage
+    
+    @damage.setter
+    def damage(self, value):
+        self.base.damage = value  # Sync damage with the base
 
 
 class AirOperationsTracker:
@@ -943,15 +969,17 @@ class AirOperationsTracker:
                 raise ValueError(f"Invalid status string: {status}")
         else:
             raise TypeError("status must be an AircraftStatus or str")
+        
+        if self.used_ready_factor > self.air_op_config.ready_factors:
+            # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
+            print("Exceeded ready factors")
+            return
 
         if status_value == AircraftOperationsStatus.JUST_LANDED.value:
             # Check if an aircraft of the same type already exists in just_landed
             self._operation_status_add_aircraft(to_aircraft, self.just_landed)
 
-        if self.used_ready_factor > self.air_op_config.ready_factors:
-            # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
-            print("Exceeded ready factors")
-            return
+        
 
         if from_aircraft:
             from_aircraft.count -= to_aircraft.count

@@ -16,7 +16,7 @@ from flattop.observation_rules import attempt_observation, TURN_DAY, TURN_NIGHT,
 logger = logging.getLogger(__name__)
 
 
-def perform_observation_for_piece(piece: Piece, board, weather_manager, turn_manager):
+def perform_observation_for_piece(piece: Piece, board, weather_manager:WeatherManager, turn_manager):
     """
     Perform observation for a single piece (can be used by AI or UI).
     Returns a list of observed targets.
@@ -25,6 +25,13 @@ def perform_observation_for_piece(piece: Piece, board, weather_manager, turn_man
     observed_targets = []
     #get a list of pieces that are not cloud pieces and are not the same side as the observer piece
     #this should automatically exclude cloud markers
+
+    #if the piece is in a storm it cannot observe anything and cannot be observed
+    if weather_manager.is_storm_hex(piece.position):
+        logger.info(f"{piece} is in a storm and cannot observe or be observed.")
+        piece.observed_condition = 0
+        return observed_targets
+
     pieces = [p for p in board.pieces if p.side != piece.side and not isinstance(p, CloudMarker)]
     for target in pieces:
         target_location = target.position

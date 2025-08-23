@@ -334,7 +334,7 @@ class ComputerOpponent:
                 base: Base = base_piece.game_model
                 readying = list(base.air_operations_tracker.readying)
                 ready = list(base.air_operations_tracker.ready)
-                if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                if base.used_ready_factor >= base.available_ready_factor:
                     logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
                     break
                 # Arm aircraft in readying with AP and move to ready if possible
@@ -347,7 +347,7 @@ class ComputerOpponent:
                 # If there are ready aircraft, create an air formation to attack the taskforce
                 if ready:
                     # Select up to the available number of launch factors for the attack formation
-                    max_launch = min(sum(ac.count for ac in ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
+                    max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
                     attack_aircraft = ready[:max_launch] if max_launch > 0 else []
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                     if af:
@@ -363,7 +363,7 @@ class ComputerOpponent:
                         continue
                     readying = list(base.air_operations_tracker.readying)
                     ready = list(base.air_operations_tracker.ready)
-                    if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                    if base.used_ready_factor >= base.available_ready_factor:
                         logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
                         break
 
@@ -374,7 +374,7 @@ class ComputerOpponent:
 
                     if ready:
                         # Select up to the available number of launch factors for the attack formation
-                        max_launch = min(sum(ac.count for ac in ready), base.air_operations_config.launch_factor_max - base.used_launch_factor)
+                        max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
                         attack_aircraft = ready[:max_launch] if max_launch > 0 else []
                         af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                         if af:
@@ -420,12 +420,12 @@ class ComputerOpponent:
         # Move aircraft in just landed to readying, using ready_factor limits
         for base_piece in bases:
             base: Base = base_piece.game_model
-            if base.used_ready_factor >= base.air_operations_config.ready_factors:
+            if base.used_ready_factor >= base.available_ready_factor:
                 logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
                 continue
             just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
             for ac in just_landed:
-                if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                if base.used_ready_factor >= base.available_ready_factor:
                     break
                 to_aircraft:Aircraft = ac.copy()
                 base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
@@ -436,12 +436,12 @@ class ComputerOpponent:
                 base = getattr(carrier, 'base', None)
                 if not base:
                     continue
-                if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                if base.used_ready_factor >= base.available_ready_factor:
                     logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
                     continue
                 just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
                 for ac in just_landed:
-                    if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                    if base.used_ready_factor >= base.available_ready_factor:
                         break
                     to_aircraft:Aircraft = ac.copy()
                     base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
@@ -475,7 +475,7 @@ class ComputerOpponent:
             for base_piece in bases:
                 base: Base = base_piece.game_model
                 ready_aircraft = list(base.air_operations_tracker.ready)
-                launch_factors_left = base.air_operations_config.launch_factor_max - base.used_launch_factor
+                launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
                 if ready_aircraft and launch_factors_left > 0:
                     for _ in range(random.randint(1, 2)):
                         best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
@@ -490,7 +490,7 @@ class ComputerOpponent:
                                 board.add_piece(af_piece)
                             else:
                                 break
-                elif launch_factors_left > 0 and base.used_ready_factor < base.air_operations_config.ready_factors:
+                elif launch_factors_left > 0 and base.used_ready_factor < base.available_ready_factor:
                     # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
                     readying_aircraft = list(base.air_operations_tracker.readying)
                     if readying_aircraft:
@@ -500,7 +500,7 @@ class ComputerOpponent:
                                 logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
                                 ac.armament = 'AP' #default to AP as assuming searching for enemy ships
                                 base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
-                                if base.used_ready_factor >= base.air_operations_config.ready_factors:
+                                if base.used_ready_factor >= base.available_ready_factor:
                                     break
 
             for tf_piece in taskforces:
@@ -510,7 +510,7 @@ class ComputerOpponent:
                     if not base:
                         continue
                     ready_aircraft = list(base.air_operations_tracker.ready)
-                    launch_factors_left = base.air_operations_config.launch_factors - base.used_launch_factor
+                    launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
                     if ready_aircraft and launch_factors_left > 0:
                         for _ in range(random.randint(1, 2)):
                             best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))

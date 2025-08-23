@@ -462,8 +462,9 @@ class AirOperationsTrackerDisplay:
         y = self.draw_aircraft_list(self.tracker.in_flight, x, y)
 
 class AirOperationsConfigurationDisplay:
-    def __init__(self, config: AirOperationsConfiguration, surface, pos=(10, 10)):
-        self.config = config
+    def __init__(self, base: Base, surface, pos=(10, 10)):
+        self.config : AirOperationsConfiguration = base.air_operations_config
+        self.base = base
         self.surface = surface
         self.pos = pos
         self.font = pygame.font.SysFont(None, 24)
@@ -485,10 +486,10 @@ class AirOperationsConfigurationDisplay:
 
         # Render config values
         self.surface.blit(self.font.render(str(self.config.maximum_capacity), True, (255, 255, 255)), (x, y))
-        self.surface.blit(self.font.render(str(self.config.ready_factors), True, (255, 255, 255)), (x + 200, y))
-        self.surface.blit(self.font.render(str(self.config.launch_factor_normal), True, (255,   255, 255)), (x + 400, y))
-        self.surface.blit(self.font.render(str(self.config.launch_factor_min), True, (255, 255, 255)), (x + 600, y))
-        self.surface.blit(self.font.render(str(self.config.launch_factor_max), True, (255, 255, 255)), (x + 800, y))
+        self.surface.blit(self.font.render(str(self.base.available_ready_factor), True, (255, 255, 255)), (x + 200, y))
+        self.surface.blit(self.font.render(str(self.base.available_launch_factor_normal), True, (255, 255, 255)), (x + 400, y))
+        self.surface.blit(self.font.render(str(self.base.available_launch_factor_min), True, (255, 255, 255)), (x + 600, y))
+        self.surface.blit(self.font.render(str(self.base.available_launch_factor_max), True, (255, 255, 255)), (x + 800, y))
 
 
 class BaseUIDisplay:
@@ -501,7 +502,7 @@ class BaseUIDisplay:
     def __init__(self, base:Base, surface):
         self.surface = surface
         self.base = base
-        self.config_display = AirOperationsConfigurationDisplay(base.air_operations_config, surface)
+        self.config_display = AirOperationsConfigurationDisplay(base, surface)
         self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, base.air_operations_config, surface)
         self.create_af_button_rect = None  # Button rect for creating air formation
         self.ready_btn_list = [] #list of button for the ready plan list. This is used in create airformation
@@ -550,13 +551,13 @@ class BaseUIDisplay:
                     self.base.air_operations_tracker.set_operations_status(btn.to_aircraft, AircraftOperationsStatus.READY, btn.from_aircraft)
                     btn.to_aircraft = None
 
-            self.base.used_ready_factor += self.temp_ready_factor
+            #self.base.used_ready_factor += self.temp_ready_factor
             self.temp_ready_factor = 0
             
     def _handle_aircraft_command_btn_click(self, mx, my):
         #see if any of the ready button have been clicked
         btn : AircraftOperationChartCommandWidget
-        if self.base.used_launch_factor + self.temp_launch_factor < self.base.air_operations_config.launch_factor_max:
+        if self.base.used_launch_factor + self.temp_launch_factor < self.base.available_launch_factor_max:
             for btn in self.ready_btn_list:
                 #need to think of a better way to handle zero ready facotr to prevent need for loop
                 if btn.collidepoint(mx, my):
@@ -570,7 +571,7 @@ class BaseUIDisplay:
                         pygame.display.flip()
                     break
 
-        if self.base.used_ready_factor + self.temp_ready_factor < self.base.air_operations_config.ready_factors:    
+        if self.base.used_ready_factor + self.temp_ready_factor < self.base.available_ready_factor:
             #see if any of the just landed button have been clicked
             for btn in self.just_landed_btn_list:
                 if btn.collidepoint(mx, my):
@@ -598,12 +599,12 @@ class BaseUIDisplay:
     def _handle_button_click(self, event):
         mx, my = event.pos
         exit :bool = False
-        if self.create_af_button_rect.collidepoint(mx, my) and self.base.used_launch_factor + self.temp_launch_factor <= self.base.air_operations_config.launch_factor_max:
+        if self.create_af_button_rect.collidepoint(mx, my) and self.base.used_launch_factor + self.temp_launch_factor <= self.base.available_launch_factor_max:
             self._handle_create_airformation_click()
             # # Redraw to show the new air formation  
             self.draw()  # Redraw the display to reflect changes
             pygame.display.flip()     
-        elif self.action_ready_factor_button_rect.collidepoint(mx, my) and self.base.used_ready_factor + self.temp_ready_factor <= self.base.air_operations_config.ready_factors:
+        elif self.action_ready_factor_button_rect.collidepoint(mx, my) and self.base.used_ready_factor + self.temp_ready_factor <= self.base.available_ready_factor:
             self._handle_ready_factor_click()
             self.draw() # Redraw the display to reflect changes
             pygame.display.flip()

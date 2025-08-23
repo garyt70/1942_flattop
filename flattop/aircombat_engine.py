@@ -891,6 +891,7 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
             continue
         hits = determine_hits(ac, base, attack_type, clouds, night )
         base.damage += hits
+        base.attacked_this_turn = True
         total_hits += hits
         story_text = f"Bomber {ac.type} hits {hits} against base {base.name}."
         logger.info(story_text)
