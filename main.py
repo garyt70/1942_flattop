@@ -131,8 +131,7 @@ def scenario_one_setup():
     hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
-    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2, 4)
-    carrierLexington.air_operations_config = AirOperationsConfiguration(
+    lexington_air_ops_config = AirOperationsConfiguration(
         name="Lexington",
         description="Configuration for air operations on Lexington",
         maximum_capacity=20,
@@ -142,6 +141,9 @@ def scenario_one_setup():
         ready_factors=6,
         plane_handling_type="SP"
     )
+    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2, 4)
+    carrierLexington.air_operations_config = lexington_air_ops_config
+
     carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=8),AircraftOperationsStatus.READY)
     ac = AircraftFactory.create(AircraftType.DAUNTLESS, count=12)
     ac.armament = "GP"

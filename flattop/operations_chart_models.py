@@ -224,8 +224,8 @@ class Base:
             name (str, optional): Optional name for the Base.
         """
         self.name = name or "Base"
-        self.air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
-        self.air_operations_tracker:AirOperationsTracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self.air_operations_config)
+        self._air_operations_config = air_operations_config or AirOperationsConfiguration(name=f"{self.name} Air Operations Configuration", description=f"Configuration for {self.name} base")
+        self.air_operations_tracker:AirOperationsTracker = air_operations_tracker or AirOperationsTracker(name=f"{self.name} Operations Chart", description=f"Operations chart for {self.name}", op_config=self._air_operations_config)
         self.side = side  # "Allied" or "Japanese"
         #self.used_ready_factor = 0
         #self.used_launch_factor = 0
@@ -325,7 +325,14 @@ class Base:
             return None
         return air_formation
 
-    
+    @property
+    def air_operations_config(self):
+        return self._air_operations_config
+
+    @air_operations_config.setter
+    def air_operations_config(self, value):
+        self.air_operations_tracker.air_op_config = value
+        self._air_operations_config = value
 
     @property   
     def used_ready_factor(self):
@@ -345,19 +352,19 @@ class Base:
 
     @property
     def available_ready_factor(self):
-        return self.air_operations_config.ready_factors - self.damage
+        return self._air_operations_config.ready_factors - self.damage
     
     @property
     def available_launch_factor_min(self):
-        return self.air_operations_config.launch_factor_min - self.damage
+        return self._air_operations_config.launch_factor_min - self.damage
 
     @property
     def available_launch_factor_max(self):
-        return self.air_operations_config.launch_factor_max - self.damage * 4
+        return self._air_operations_config.launch_factor_max - self.damage * 4
 
     @property
     def available_launch_factor_normal(self):
-        return self.air_operations_config.launch_factor_normal - self.damage * 2
+        return self._air_operations_config.launch_factor_normal - self.damage * 2
 
     def reset_for_new_turn(self):
         self.used_ready_factor = 0
@@ -365,7 +372,7 @@ class Base:
         self.attacked_this_turn = False
 
     def __repr__(self):
-        return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self.air_operations_config})"
+        return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self._air_operations_config})"
     
 
 class AirOperationsConfiguration:
@@ -864,7 +871,7 @@ class Carrier(Ship):
     @property
     def air_operations_config(self):
         return self.base.air_operations_config
-    
+
     @air_operations_config.setter
     def air_operations_config(self, value : AirOperationsConfiguration):
         self.base.air_operations_config = value

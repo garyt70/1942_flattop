@@ -29,7 +29,7 @@ def perform_observation_for_piece(piece: Piece, board, weather_manager:WeatherMa
     #if the piece is in a storm it cannot observe anything and cannot be observed
     if weather_manager.is_storm_hex(piece.position):
         logger.info(f"{piece} is in a storm and cannot observe or be observed.")
-        piece.observed_condition = 0
+        piece.game_model.observed_condition = 0
         return observed_targets
 
     pieces = [p for p in board.pieces if p.side != piece.side and not isinstance(p, CloudMarker)]
@@ -98,7 +98,7 @@ def get_actionable_pieces(board, turn_manager):
 
             # Check if the base has any aircraft that can launch or are ready
             if base:
-                air_op_config = base.air_operations_config
+                air_op_config = base._air_operations_config
                 if base.used_launch_factor < air_op_config.launch_factor_max or \
                     base.used_ready_factor < air_op_config.ready_factors:
                     air_op_tracker = base.air_operations_tracker

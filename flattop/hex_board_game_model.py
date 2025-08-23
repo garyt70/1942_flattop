@@ -321,7 +321,6 @@ class TurnManager:
 
     PHASES = [
         "Air Operations",
-        "Shadowing",
         "Task Force Movement",
         "Plane Movement",
         "Combat",

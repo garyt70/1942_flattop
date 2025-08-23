@@ -463,7 +463,7 @@ class AirOperationsTrackerDisplay:
 
 class AirOperationsConfigurationDisplay:
     def __init__(self, base: Base, surface, pos=(10, 10)):
-        self.config : AirOperationsConfiguration = base.air_operations_config
+        self.config : AirOperationsConfiguration = base._air_operations_config
         self.base = base
         self.surface = surface
         self.pos = pos
@@ -503,7 +503,7 @@ class BaseUIDisplay:
         self.surface = surface
         self.base = base
         self.config_display = AirOperationsConfigurationDisplay(base, surface)
-        self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, base.air_operations_config, surface)
+        self.tracker_display = AirOperationsTrackerDisplay(base.air_operations_tracker, base._air_operations_config, surface)
         self.create_af_button_rect = None  # Button rect for creating air formation
         self.ready_btn_list = [] #list of button for the ready plan list. This is used in create airformation
         self.just_landed_btn_list = [] #list of button for the just landed plan list. This is used to move planes from just landed to readying.

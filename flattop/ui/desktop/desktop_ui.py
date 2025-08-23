@@ -1054,22 +1054,20 @@ class DesktopUI:
                             self.computer_opponent.perform_turn()
                             print("Air Operations Phase")
                         case 1:
-                            print("Shadowing Phase")
-                        case 2:
                             print("Task Force Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Task Force Movement
                             self.computer_opponent.perform_turn()
-                        case 3:
+                        case 2:
                             print("Plane Movement Phase")
                             # no action this phase, just a placeholder. Menus change to Plane Movement
                             self.computer_opponent.perform_turn()
-                        case 4:
+                        case 3:
                             print("Combat Phase")
                             # no action this phase, just a placeholder. Menus change to Combat
                             self.turn_manager.last_combat_result = None
                             self.computer_opponent.perform_turn()
                             self.show_combat_results(self.turn_manager.last_combat_result, event.pos)
-                        case 5:
+                        case 4:
                             print("Repair Phase")
                             self.computer_opponent.perform_turn()
 
