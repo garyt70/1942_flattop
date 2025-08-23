@@ -324,7 +324,6 @@ class TurnManager:
         "Task Force Movement",
         "Plane Movement",
         "Combat",
-        "Repair",
     ]
 
     def __init__(self, total_days=1):

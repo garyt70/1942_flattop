@@ -1067,9 +1067,6 @@ class DesktopUI:
                             self.turn_manager.last_combat_result = None
                             self.computer_opponent.perform_turn()
                             self.show_combat_results(self.turn_manager.last_combat_result, event.pos)
-                        case 4:
-                            print("Repair Phase")
-                            self.computer_opponent.perform_turn()
 
                     return
                 # Check if click is on a piece line

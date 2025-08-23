@@ -69,6 +69,14 @@ def perform_observation_phase(board, weather_manager, turn_manager):
     }
 
 
+def perform_repair_phase(board):
+    for piece in board.pieces:
+        if piece.game_model and isinstance(piece.game_model, Base) and piece.side == piece.side:
+            base:Base = piece.game_model
+            if base.damage > 0 and not base.attacked_this_turn:
+                    base.damage -= 1
+                    logger.debug(f"Base {base.name} repair took place.")
+
 def get_actionable_pieces(board, turn_manager):
     """
     Move phase = get all pieces that can move but have not moved yet.
@@ -117,6 +125,7 @@ def perform_turn_start_actions(board:HexBoardModel, weather_manager:WeatherManag
     weather_manager.cloud_phase(turn_manager)
     board.reset_pieces_for_new_turn()
     perform_observation_phase(board, weather_manager, turn_manager)
+    perform_repair_phase(board)
     # Additional game logic (AI, combat, movement validation, etc.) can be added here.
 
 
