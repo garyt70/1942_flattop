@@ -66,9 +66,10 @@ class ComputerOpponent:
         self.board = board
         self.weather_manager = weather_manager
         self.turn_manager = turn_manager
-        logger.info(f"ComputerOpponent initialized for side: {side}")
         # Track created search air formations per base (by base_piece id)
         self._search_airformation_counts = {}  # {base_piece_id: count}
+        logger.info(f"ComputerOpponent initialized for side: {side}")
+        
     def _update_last_spotted_taskforce(self, observed_enemy_pieces):
         """
         Update the last known location of enemy task forces.
@@ -273,20 +274,7 @@ class ComputerOpponent:
                     self._search_direction[piece.name] = ['NE', 'E', 'SE', 'SW', 'W', 'NW'][new_idx]
             else:
                 break
-    # Implementation notes:
-    # - Only observed enemy pieces (observed_condition > 0) are considered for movement/attack
-    # - Air formations are created and launched if no enemies are observed, to simulate search/recon
-    # - Movement is toward the nearest observed enemy, avoiding land for task forces
-    # - Combat is resolved using the existing aircombat_engine functions
-    # - Surface combat for task forces is not implemented, but can be added
-    # - The AI does not currently coordinate multiple air formations or optimize search patterns
-    # - This class is designed for turn-based invocation from the main game loop
-    def __init__(self, side:str, board:HexBoardModel=None, weather_manager:WeatherManager=None, turn_manager:TurnManager=None):
-        self.side = side  # 'Allied' or 'Japanese'
-        self.board = board
-        self.weather_manager = weather_manager
-        self.turn_manager = turn_manager
-        logger.info(f"ComputerOpponent initialized for side: {side}")
+   
 
     def perform_turn(self):
         """
@@ -459,91 +447,7 @@ class ComputerOpponent:
         # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
         if not observed_enemy_pieces:
             logger.info("No observed enemies. Creating search air formations.")
-            def select_best_ready_aircraft(ready_list, max_count):
-                sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
-                selected = []
-                total = 0
-                for ac in sorted_ready:
-                    if total + ac.count > max_count:
-                        ac_copy = ac.copy()
-                        ac_copy.count = max_count - total
-                        ac.count -= ac_copy.count
-                        if ac.count <= 0:
-                            ready_list.remove(ac)
-                        if ac_copy.count <= 0:
-                            continue
-                        selected.append(ac_copy)
-                        break
-                    selected.append(ac)
-                    total += ac.count
-                    if total >= max_count:
-                        break
-                return selected
-
-            for base_piece in bases:
-                base: Base = base_piece.game_model
-                ready_aircraft = list(base.air_operations_tracker.ready)
-                launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
-                if ready_aircraft and launch_factors_left > 0:
-                    for _ in range(random.randint(1, 2)):
-                        best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
-                        if not best:
-                            break
-                        logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
-                        for ac in best:
-                            af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
-                            if af:
-                                logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  
-                                af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
-                                board.add_piece(af_piece)
-                            else:
-                                break
-                elif launch_factors_left > 0 and base.used_ready_factor < base.available_ready_factor:
-                    # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
-                    readying_aircraft = list(base.air_operations_tracker.readying)
-                    if readying_aircraft:
-                        best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
-                        if best:
-                            for ac in best:
-                                logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
-                                ac.armament = 'AP' #default to AP as assuming searching for enemy ships
-                                base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
-                                if base.used_ready_factor >= base.available_ready_factor:
-                                    break
-
-            for tf_piece in taskforces:
-                tf = tf_piece.game_model
-                for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
-                    base = getattr(carrier, 'base', None)
-                    if not base:
-                        continue
-                    ready_aircraft = list(base.air_operations_tracker.ready)
-                    launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
-                    if ready_aircraft and launch_factors_left > 0:
-                        for _ in range(random.randint(1, 2)):
-                            best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
-                            if not best:
-                                break
-                            af = base.create_air_formation(random.randint(1, 35), aircraft=best)
-                            if af:
-                                logger.debug(f"Creating search air formation {af.name} at carrier base {base.name}.")
-                                af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
-                                board.add_piece(af_piece)
-                            for used in best:
-                                if used in ready_aircraft and used.count <= 0:
-                                    ready_aircraft.remove(used)
-                            else:
-                                break
-                    elif launch_factors_left > 0:
-                        # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
-                        readying_aircraft = list(base.air_operations_tracker.readying)
-                        if readying_aircraft:
-                            best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
-                            if best:
-                                for ac in best:
-                                    logger.debug(f"Moving aircraft {ac.type} to ready at carrier base {base.name}.")
-                                    ac.armament = 'AP'  # default to AP as assuming searching for enemy ships
-                                    base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
+            self._create_search_airformations(board)
 
     def _handle_airformation_move_to_base(self, piece, nearest_base_piece:Piece, min_range_left, min_base_dist):
         # Move toward base in short hops (2-3 hexes)
@@ -1128,7 +1032,75 @@ class ComputerOpponent:
         return combat_results
 
 
-            
+    def _create_search_airformation_for_base(self, base, base_piece):
+        MAX_PER_BASE = 4
+        board = self.board
+
+        # Helper to get a unique id for a base_piece (use id() or a unique attribute)
+        def get_base_id(base_piece):
+            return id(base_piece)
+
+        def select_best_ready_aircraft(ready_list, max_count):
+                sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
+                selected = []
+                total = 0
+                for ac in sorted_ready:
+                    if total + ac.count > max_count:
+                        ac_copy = ac.copy()
+                        ac_copy.count = max_count - total
+                        ac.count -= ac_copy.count
+                        if ac.count <= 0:
+                            ready_list.remove(ac)
+                        if ac_copy.count <= 0:
+                            continue
+                        selected.append(ac_copy)
+                        break
+                    selected.append(ac)
+                    total += ac.count
+                    if total >= max_count:
+                        break
+                return selected
+        
+        ready_aircraft = list(base.air_operations_tracker.ready)
+        launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
+        created_airformation = []
+        
+        base_id = get_base_id(base)
+        if base_id not in self._search_airformation_counts:
+            self._search_airformation_counts[base_id] = 0
+        
+        if self._search_airformation_counts[base_id] >= MAX_PER_BASE:
+            return created_airformation
+
+        if ready_aircraft and launch_factors_left > 0:
+            for _ in range(random.randint(1, 2)):
+                best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
+                if not best:
+                    break
+                logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
+                for ac in best:
+                    af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
+                    created_airformation.append(af)
+                    if af:
+                        logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  
+                        af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
+                        board.add_piece(af_piece)
+                        self._search_airformation_counts[base_id] += 1
+                    else:
+                        break
+        elif launch_factors_left > 0 and base.used_ready_factor < base.available_ready_factor:
+            # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
+            readying_aircraft = list(base.air_operations_tracker.readying)
+            if readying_aircraft:
+                best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
+                if best:
+                    for ac in best:
+                        logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
+                        ac.armament = 'AP' #default to AP as assuming searching for enemy ships
+                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
+                        if base.used_ready_factor >= base.available_ready_factor:
+                            break
+        return created_airformation      
 
     def _create_search_airformations(self, board):
         logger.debug("Creating search air formations with per-base cap.")
@@ -1136,53 +1108,24 @@ class ComputerOpponent:
         During Air Operations phase: create air formations for search from available bases/carriers, but do not move them yet.
         Each base can create no more than 4 search air formations. Track created search air formations in self._search_airformation_counts.
         """
-        MAX_PER_BASE = 4
         own_pieces = [p for p in board.pieces if p.side == self.side]
         bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
         taskforces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
 
-        # Helper to get a unique id for a base_piece (use id() or a unique attribute)
-        def get_base_id(base_piece):
-            return id(base_piece)
-
-        # Initialize counts for any new bases
-        for base_piece in bases:
-            base_id = get_base_id(base_piece)
-            if base_id not in self._search_airformation_counts:
-                self._search_airformation_counts[base_id] = 0
 
         for base_piece in bases:
-            base = base_piece.game_model
-            base_id = get_base_id(base_piece)
-            if self._search_airformation_counts[base_id] >= MAX_PER_BASE:
+            base: Base = base_piece.game_model
+            if not base:
                 continue
-            if hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
-                af = base.create_air_formation(random.randint(1, 35))
-                if af:
-                    af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
-                    board.add_piece(af_piece)
-                    self._search_airformation_counts[base_id] += 1
+            self._create_search_airformation_for_base(base, base_piece)
 
         for tf_piece in taskforces:
-            tf = tf_piece.game_model
-            carriers = tf.get_carriers() if hasattr(tf, 'get_carriers') else []
-            for carrier in carriers:
+            tf: TaskForce = tf_piece.game_model
+            for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
                 base = getattr(carrier, 'base', None)
                 if not base:
                     continue
-                # Find the base_piece for this base (by position and side)
-                base_piece = next((b for b in bases if b.game_model is base), None)
-                if not base_piece:
-                    continue
-                base_id = get_base_id(base_piece)
-                if self._search_airformation_counts[base_id] >= MAX_PER_BASE:
-                    continue
-                if hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
-                    af = base.create_air_formation(random.randint(1, 35))
-                    if af:
-                        af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
-                        board.add_piece(af_piece)
-                        self._search_airformation_counts[base_id] += 1
+                self._create_search_airformation_for_base(base)
 
     def _move_search_airformations(self, board):
         logger.debug("Moving search air formations.")
