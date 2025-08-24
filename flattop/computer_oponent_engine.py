@@ -61,6 +61,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class ComputerOpponent:
+    def __init__(self, side:str, board:HexBoardModel=None, weather_manager:WeatherManager=None, turn_manager:TurnManager=None):
+        self.side = side  # 'Allied' or 'Japanese'
+        self.board = board
+        self.weather_manager = weather_manager
+        self.turn_manager = turn_manager
+        logger.info(f"ComputerOpponent initialized for side: {side}")
+        # Track created search air formations per base (by base_piece id)
+        self._search_airformation_counts = {}  # {base_piece_id: count}
     def _update_last_spotted_taskforce(self, observed_enemy_pieces):
         """
         Update the last known location of enemy task forces.
@@ -1123,30 +1131,58 @@ class ComputerOpponent:
             
 
     def _create_search_airformations(self, board):
-        logger.debug("Creating search air formations.")
+        logger.debug("Creating search air formations with per-base cap.")
         """
         During Air Operations phase: create air formations for search from available bases/carriers, but do not move them yet.
+        Each base can create no more than 4 search air formations. Track created search air formations in self._search_airformation_counts.
         """
+        MAX_PER_BASE = 4
         own_pieces = [p for p in board.pieces if p.side == self.side]
         bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
         taskforces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
+
+        # Helper to get a unique id for a base_piece (use id() or a unique attribute)
+        def get_base_id(base_piece):
+            return id(base_piece)
+
+        # Initialize counts for any new bases
+        for base_piece in bases:
+            base_id = get_base_id(base_piece)
+            if base_id not in self._search_airformation_counts:
+                self._search_airformation_counts[base_id] = 0
+
         for base_piece in bases:
             base = base_piece.game_model
+            base_id = get_base_id(base_piece)
+            if self._search_airformation_counts[base_id] >= MAX_PER_BASE:
+                continue
             if hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
                 af = base.create_air_formation(random.randint(1, 35))
                 if af:
                     af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                     board.add_piece(af_piece)
+                    self._search_airformation_counts[base_id] += 1
+
         for tf_piece in taskforces:
             tf = tf_piece.game_model
             carriers = tf.get_carriers() if hasattr(tf, 'get_carriers') else []
             for carrier in carriers:
                 base = getattr(carrier, 'base', None)
-                if base and hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
+                if not base:
+                    continue
+                # Find the base_piece for this base (by position and side)
+                base_piece = next((b for b in bases if b.game_model is base), None)
+                if not base_piece:
+                    continue
+                base_id = get_base_id(base_piece)
+                if self._search_airformation_counts[base_id] >= MAX_PER_BASE:
+                    continue
+                if hasattr(base, 'create_air_formation') and base.air_operations_tracker.ready:
                     af = base.create_air_formation(random.randint(1, 35))
                     if af:
                         af_piece = Piece(name=af.name, side=self.side, position=tf_piece.position, gameModel=af)
                         board.add_piece(af_piece)
+                        self._search_airformation_counts[base_id] += 1
 
     def _move_search_airformations(self, board):
         logger.debug("Moving search air formations.")
