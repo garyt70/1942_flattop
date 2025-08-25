@@ -1050,6 +1050,7 @@ class DesktopUI:
                         case 0:
                             print("Starting a new turn")
                             perform_turn_start_actions(board=self.board, turn_manager=self.turn_manager, weather_manager=self.weather_manager)
+                            self.computer_opponent.start_new_turn()
                             self.computer_opponent.perform_observation()
                             self.computer_opponent.perform_turn()
                             print("Air Operations Phase")

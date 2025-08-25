@@ -976,17 +976,16 @@ class AirOperationsTracker:
                 raise ValueError(f"Invalid status string: {status}")
         else:
             raise TypeError("status must be an AircraftStatus or str")
-        
-        if self.used_ready_factor > self.air_op_config.ready_factors:
-            # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
-            print("Exceeded ready factors")
-            return
 
+        #landing doesn't use ready factors and so can go ahead.
         if status_value == AircraftOperationsStatus.JUST_LANDED.value:
             # Check if an aircraft of the same type already exists in just_landed
             self._operation_status_add_aircraft(to_aircraft, self.just_landed)
 
-        
+        if self.used_ready_factor > self.air_op_config.ready_factors:
+            # Handle exceeding ready factors (e.g., by limiting the number of ready aircraft)
+            print("Exceeded ready factors")
+            return
 
         if from_aircraft:
             from_aircraft.count -= to_aircraft.count
