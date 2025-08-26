@@ -62,8 +62,8 @@ logger = logging.getLogger(__name__)
 
 
 # Helper to get a unique id for a base_piece (use id() or a unique attribute)
-def _get_base_id(base_piece):
-    return id(base_piece)
+def _get_base_id(base_piece:Piece):
+    return base_piece.name
 
 class ComputerOpponent:
     def __init__(self, side:str, board:HexBoardModel=None, weather_manager:WeatherManager=None, turn_manager:TurnManager=None):
@@ -105,12 +105,16 @@ class ComputerOpponent:
         if not center_hex:
             return []
         return [tile for tile in self.board.tiles if 0 < get_distance(center_hex, tile) <= radius]
+    
+    
     def _move_toward(self, piece : Piece, target_hex, stop_distance=0):
         logger.debug(f"_move_toward: Moving {piece.name} toward {target_hex} with stop_distance={stop_distance}")
         """
         Move the piece toward the target_hex, stopping at stop_distance if possible.
         Only move over sea hexes for air formations and task forces. Planes do not move into storm hexes.
         """
+        observed_enemy_pieces = []
+
         gm = getattr(piece, 'game_model', None)
         is_plane = isinstance(gm, AirFormation)
 
@@ -123,13 +127,14 @@ class ComputerOpponent:
 
         # If already within stop_distance, do not move
         from flattop.hex_board_game_model import get_distance
-        if get_distance(current, target_hex) <= stop_distance:
-            return
+        distance_to_destination = get_distance(current, target_hex)
+        if distance_to_destination <= stop_distance:
+            return None
         # Only allow sea hexes, and for planes, avoid storm hexes
         
         candidates = []
         for tile in self.board.tiles:
-            if get_distance(current, tile) > max_move:
+            if distance_to_destination > max_move:
                 continue
             # Only restrict to sea for TaskForce, not for AirFormation (planes can move over land and sea)
             if not is_plane and self.board.get_terrain(tile) != 'sea':
@@ -147,9 +152,30 @@ class ComputerOpponent:
                 best_hex = tile
                 best_dist = dist
         if best_hex:
-            self.board.move_piece(piece, best_hex)
-            observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
-            self._update_last_spotted_taskforce(observed_enemy_pieces)
+            # Move in increments of up to 3 hexes toward best_hex
+
+            steps = min(3, get_distance(piece.position, best_hex))
+            current_hex = piece.position
+
+            for _ in range(steps):
+                # Find the next hex 1 step closer to best_hex
+                neighbors = [tile for tile in self.board.tiles if get_distance(current_hex, tile) == 1]
+                if not neighbors:
+                    break
+                # Choose the neighbor closest to best_hex
+                next_hex = min(neighbors, key=lambda tile: get_distance(tile, best_hex))
+                # Avoid storm hexes for planes
+                if is_plane and self.weather_manager and self.weather_manager.get_weather_at_hex(next_hex) == 'storm':
+                    break
+                current_hex = next_hex
+                # Optionally, could observe after each step
+                self.board.move_piece(piece, current_hex)
+                observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
+                self._update_last_spotted_taskforce(observed_enemy_pieces)
+                if len(observed_enemy_pieces) > 0:
+                    break
+
+        return observed_enemy_pieces
 
     def _move_random_within_range(self, piece, max_range=2):
         logger.debug(f"_move_random_within_range: Moving {piece.name} randomly within range {max_range}")
@@ -179,7 +205,7 @@ class ComputerOpponent:
             self._update_last_spotted_taskforce(observed_enemy_pieces)
 
     def _move_intelligent_search(self, piece, max_range=4):
-        logger.debug(f"_move_intelligent_search: {piece.name} searching with max_range={max_range}")
+        logger.info(f"_move_intelligent_search: {piece.name} searching with max_range={max_range}")
         """
         Move the piece in an intelligent search pattern in short increments:
         1. Keep track of previously searched hexes
@@ -263,8 +289,10 @@ class ComputerOpponent:
             if best_hex:
                 # Move piece and reduce remaining movement
                 dist_moved = get_distance(piece.position, best_hex)
-                self.board.move_piece(piece, best_hex)
+                observed_enemy_pieces = self._move_toward(piece, best_hex)
                 moves_remaining -= dist_moved
+
+                logger.debug(f"Moving {piece.name} from {piece.position} to {best_hex}, distance moved: {dist_moved}")
 
                 # Record searched hex
                 if piece.name not in self._search_history:
@@ -272,10 +300,8 @@ class ComputerOpponent:
                 self._search_history[piece.name].add(best_hex)
 
                 # Perform observation after each move
-                observed_enemy_pieces = perform_observation_for_piece(piece,self.board, self.weather_manager, self.turn_manager)
                 if len(observed_enemy_pieces) > 0:
                     #stop when an enemy is spotted
-                    self._update_last_spotted_taskforce(observed_enemy_pieces)
                     moves_remaining = 0
                     break
 
@@ -467,7 +493,7 @@ class ComputerOpponent:
         hops = min(3, min_range_left, min_base_dist)
         for _ in range(hops):
             if get_distance(piece.position, nearest_base_piece.position) > 0:
-                self._move_toward(piece, nearest_base_piece.position, stop_distance=0)
+                self.board.move_piece(piece, nearest_base_piece.position)
                 # Optionally, call observation after each move
                 if hasattr(self, 'perform_observation'):
                     self.perform_observation()
@@ -529,7 +555,7 @@ class ComputerOpponent:
         """
         # If actionable is None, recompute it
         if actionable is None:
-            from flattop.game_engine import get_actionable_pieces
+            
             actionable = get_actionable_pieces(self.board, None)
         if not actionable:
             return
@@ -613,13 +639,9 @@ class ComputerOpponent:
                             hops = min(3, min_dist)
                             for _ in range(hops):
                                 if get_distance(piece.position, nearest_base) > 1:
-                                    self._move_toward(piece, nearest_base, stop_distance=1)
-                                    if hasattr(self, 'perform_observation'):
-                                        result = self.perform_observation()
-                                        if len(result) > 0:
-                                            logger.info(f"Observation result: {result}")
-                                            self._update_last_spotted_taskforce(result)
-                                            break #stop moving
+                                    result = self._move_toward(piece, nearest_base, stop_distance=1)
+                                    if len(result) > 0:
+                                        break #stop moving
                         else:
                             # Already close, loiter or move randomly within 2 hexes
                             logger.debug(f"Fighter/interceptor {piece.name} already close to base, loitering.")
@@ -1062,7 +1084,7 @@ class ComputerOpponent:
 
         return combat_results
 
-    def _create_search_airformation_for_base(self, base, base_piece):
+    def _create_search_airformation_for_base(self, base : Base, base_piece: Piece):
         MAX_PER_BASE = 4
         board = self.board
 
@@ -1108,11 +1130,11 @@ class ComputerOpponent:
                 logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
                 for ac in best:
                     af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
-                    af._is_search_formation = True
-                    af._origin_base = base
                     created_airformation.append(af)
                     if af:
                         logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  
+                        af._is_search_formation = True
+                        af._origin_base = base.name
                         af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                         board.add_piece(af_piece)
                         self._search_airformation_counts[base_id] += 1
@@ -1170,7 +1192,8 @@ class ComputerOpponent:
                 possible_hexes = [tile for tile in board.tiles if tile != piece.position and get_distance(piece.position, tile) <= max_move]
                 if possible_hexes:
                     dest = random.choice(possible_hexes)
-                    board.move_piece(piece, dest)
+                    logger.debug(f"Moving search air formation {piece.name} from {piece.position} to {dest}.")
+                    self._move_toward(piece, dest)
 
     def perform_observation(self):
         """
@@ -1184,12 +1207,12 @@ class ComputerOpponent:
         It is possible that some air formations have been destroyed or are no longer exist (ran out of fuel)
 
         """
-        search_bases = [p for p in self.board.pieces if p.side == self.side and isinstance(p.game_model, Base)]
+        search_bases = [p.game_model for p in self.board.pieces if p.side == self.side and isinstance(p.game_model, Base)]
         for base in search_bases:
             base_id = _get_base_id(base)
             self._search_airformation_counts[base_id] = sum(
                 1 for p in self.board.pieces if p.side == self.side 
                 and isinstance(p.game_model, AirFormation) 
-                and getattr(p.game_model, 'is_search_formation', False)
-                and getattr(p.game_model, '_origin_base', None) == base
+                and getattr(p.game_model, '_is_search_formation', False)
+                and getattr(p.game_model, '_origin_base', None) == base.name
             )

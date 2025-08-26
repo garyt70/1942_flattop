@@ -269,11 +269,10 @@ class Base:
         moved = 0
         if allowed <= 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
-
-        air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
-
+        
         # if aircraft is provided, use it and remove the appropriate aircraft from READY
         if aircraft:
+            air_formation = AirFormation(number, name=f"{self.name} Air Formation {number}", side=self.side)
             for ac in aircraft:
                 # Find all ready aircraft of the same type as ac
                 ready_same_type = [r for r in self.air_operations_tracker.ready if r.type == ac.type]
