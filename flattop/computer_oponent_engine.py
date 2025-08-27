@@ -356,7 +356,7 @@ class ComputerOpponent:
                                             ac.combat_data.level_bombing_low_ship_ap)
         attack_factor_torpedo = ac.combat_data.torpedo_bombing_ship
 
-        if target_type == "CV":
+        if target_type == "CV" and attack_factor_ap > 0 and attack_factor_torpedo > 0:
             return "AP" if attack_factor_ap > attack_factor_torpedo else "Torpedo"
         return "GP"
 
@@ -393,8 +393,7 @@ class ComputerOpponent:
                 if ready:
                     # Select up to the available number of launch factors for the attack formation
                     max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
-                    #TODO: fix this, should select count of aircraft and not from array
-                    attack_aircraft = ready[:max_launch] if max_launch > 0 else []
+                    attack_aircraft = self._select_best_ready_aircraft(ready, max_count=max_launch, purpose="attack_ship")
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                     if af:
                         logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
@@ -424,7 +423,7 @@ class ComputerOpponent:
                     if ready:
                         # Select up to the available number of launch factors for the attack formation
                         max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
-                        attack_aircraft = ready[:max_launch] if max_launch > 0 else []
+                        attack_aircraft = self._select_best_ready_aircraft(ready, max_count=max_launch, purpose="attack_ship")
                         af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                         if af:
                             logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
@@ -1098,32 +1097,40 @@ class ComputerOpponent:
 
         return combat_results
 
+    def _select_best_ready_aircraft(self, ready_list, max_count, purpose='search'):
+        sort_field = 'range'
+
+        match purpose:
+            case 'search':
+                sort_field = 'range'
+            case 'attack_ship':
+                sort_field = 'torpedo_bombing_ship'
+            case 'attack_base':
+                sort_field = 'level_bombing_high_base_gp'
+
+        sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, sort_field, 0), ac.count))
+        selected = []
+        total = 0
+        for ac in sorted_ready:
+            if total + ac.count > max_count:
+                ac_copy = ac.copy()
+                ac_copy.count = max_count - total
+                ac.count -= ac_copy.count
+                if ac.count <= 0:
+                    ready_list.remove(ac)
+                if ac_copy.count <= 0:
+                    continue
+                selected.append(ac_copy)
+                break
+            selected.append(ac)
+            total += ac.count
+            if total >= max_count:
+                break
+        return selected
+
     def _create_search_airformation_for_base(self, base : Base, base_piece: Piece):
         MAX_PER_BASE = 4
         board = self.board
-
-        
-
-        def select_best_ready_aircraft(ready_list, max_count):
-                sorted_ready = sorted(ready_list, key=lambda ac: (-getattr(ac, 'range', 0), ac.count))
-                selected = []
-                total = 0
-                for ac in sorted_ready:
-                    if total + ac.count > max_count:
-                        ac_copy = ac.copy()
-                        ac_copy.count = max_count - total
-                        ac.count -= ac_copy.count
-                        if ac.count <= 0:
-                            ready_list.remove(ac)
-                        if ac_copy.count <= 0:
-                            continue
-                        selected.append(ac_copy)
-                        break
-                    selected.append(ac)
-                    total += ac.count
-                    if total >= max_count:
-                        break
-                return selected
         
         ready_aircraft = list(base.air_operations_tracker.ready)
         launch_factors_left = base.available_launch_factor_max - base.used_launch_factor
@@ -1138,7 +1145,7 @@ class ComputerOpponent:
 
         if ready_aircraft and launch_factors_left > 0:
             for _ in range(random.randint(1, 2)):
-                best = select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
+                best = self._select_best_ready_aircraft(ready_aircraft, max_count=random.randint(1, 3))
                 if not best:
                     break
                 logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
@@ -1158,7 +1165,7 @@ class ComputerOpponent:
             # If no ready aircraft, but ready factors left, move aircraft from readying to ready, choose aircraft with best range
             readying_aircraft = list(base.air_operations_tracker.readying)
             if readying_aircraft:
-                best = select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
+                best = self._select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
                 if best:
                     for ac in best:
                         logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
