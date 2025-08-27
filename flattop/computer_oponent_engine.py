@@ -350,6 +350,16 @@ class ComputerOpponent:
             logger.error(f"Error during perform_turn: {e}", exc_info=True)
             raise e #quit the game otherwise the exception is being sunk
 
+    def _select_best_armament(self, ac: Aircraft, target_type="CV") -> str:
+        attack_factor_ap = max(ac.combat_data.dive_bombing_ship_ap,
+                                            ac.combat_data.level_bombing_high_base_ap,
+                                            ac.combat_data.level_bombing_low_ship_ap)
+        attack_factor_torpedo = ac.combat_data.torpedo_bombing_ship
+
+        if target_type == "CV":
+            return "AP" if attack_factor_ap > attack_factor_torpedo else "Torpedo"
+        return "GP"
+
     def _perform_air_operations_phase(self, board, observed_enemy_pieces):
         """
         AI logic for Air Operations phase:
@@ -374,15 +384,16 @@ class ComputerOpponent:
                     break
                 # Arm aircraft in readying with AP and move to ready if possible
                 for ac in readying:
-                    if getattr(ac, 'armament', None) != 'AP':
-                        logger.info(f"Taskforce observed. Arming aircraft {ac.type} with AP at base {base.name}.")
-                        ac.armament = 'AP'
-                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
+                    best_armament = self._select_best_armament(ac)
+                    logger.info(f"Taskforce observed. Arming aircraft {ac.type} with {best_armament} at base {base.name}.")
+                    ac.armament = best_armament
+                    base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
 
                 # If there are ready aircraft, create an air formation to attack the taskforce
                 if ready:
                     # Select up to the available number of launch factors for the attack formation
                     max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
+                    #TODO: fix this, should select count of aircraft and not from array
                     attack_aircraft = ready[:max_launch] if max_launch > 0 else []
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
                     if af:
@@ -402,11 +413,14 @@ class ComputerOpponent:
                         logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
                         break
 
+                    ac:Aircraft
                     for ac in readying:
-                        if getattr(ac, 'armament', None) != 'AP':
-                            ac.armament = 'AP'
-                            base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
-
+                        #choose the best armament to attack taskforce
+                        best_armament = self._select_best_armament(ac)
+                        logger.info(f"Taskforce observed. Arming aircraft {ac.type} with {best_armament} at carrier base {base.name}.")
+                        ac.armament = best_armament
+                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
+                        
                     if ready:
                         # Select up to the available number of launch factors for the attack formation
                         max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
@@ -1148,7 +1162,7 @@ class ComputerOpponent:
                 if best:
                     for ac in best:
                         logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
-                        ac.armament = 'AP' #default to AP as assuming searching for enemy ships
+                        ac.armament = self._select_best_armament(ac)  # default to AP as assuming searching for enemy ships
                         base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
                         if base.used_ready_factor >= base.available_ready_factor:
                             break
