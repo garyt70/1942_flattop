@@ -11,7 +11,7 @@ from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
 from flattop.ui.desktop.combat_results_ui import CombatResultsScreen
-from flattop.ui.desktop.desktop_popup import draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup
+from flattop.ui.desktop.desktop_popup import draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
@@ -426,7 +426,14 @@ class DesktopUI:
         draw_turn_info_popup(self)
 
     def render_popup(self, piece:Piece, pos):
-        draw_game_model_popup(self, piece, pos)
+        if self.computer_opponent.side == piece.side:
+            #draw observed status results
+            gm = piece.game_model
+            if gm and gm.observed_condition > 0:
+                gm = piece.game_model
+                show_observation_report_popup(self, gm.observation_result, pos)
+        else: #draw the details for own pieces
+            draw_game_model_popup(self, piece, pos)
 
     def pixel_to_hex_coord(self, x, y):
         # Convert pixel coordinates to hex grid coordinates and return a Hex object

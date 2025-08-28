@@ -429,7 +429,7 @@ def attempt_observation(observer, target, weather_manager : WeatherManager, hex_
         return None
     observer_result = report_observation(condition_number, target)
     if observer_result:
-        set_game_model_observed(target, condition_number)
+        set_game_model_observed(target, condition_number, observer_result)
         result.append(observer_result)
         print(f"{observer} observed {target} with Condition Number {condition_number}: {result}")
     #now check if the target can observe the observer
@@ -437,14 +437,14 @@ def attempt_observation(observer, target, weather_manager : WeatherManager, hex_
     if target_condition_number is not None:
         target_result = report_observation(target_condition_number, observer)
         if target_result:
-            set_game_model_observed(observer, target_condition_number)
+            set_game_model_observed(observer, target_condition_number, target_result)
             print(f"{target} observed {observer} with Condition Number {target_condition_number}: {target_result}")
             result.append(target_result)
     return result
 
 
 # --- Utility: Mark piece as observed/unobserved ---
-def set_game_model_observed(game_model, observation_condition:int):
+def set_game_model_observed(game_model, observation_condition:int, observation_result = None):
     # can't actually set piece observed condition. Needs to be done against the game model
     if not isinstance(game_model, (Piece, AirFormation, TaskForce, Base, Carrier)):
         pass  # Not a valid game model type, assume its weather or similar
@@ -455,6 +455,7 @@ def set_game_model_observed(game_model, observation_condition:int):
     
     if game_model is not None:
         game_model.observed_condition = observation_condition
+        game_model.observation_result = observation_result
 
 # --- Utility: Remove unobserved pieces from mapboard ---
 def remove_unobserved_pieces(pieces):

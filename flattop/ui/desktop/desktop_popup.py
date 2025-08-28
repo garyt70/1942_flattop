@@ -9,6 +9,81 @@ from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.weather_model import CloudMarker
 
+def show_observation_report_popup(desktop, report, pos=None):
+    """
+    Displays a popup window with the observation report result.
+    Args:
+        desktop: The desktop UI object (must have .screen attribute)
+        report: The dict returned by report_observation()
+        pos: Optional (x, y) tuple for popup position. Defaults to center.
+    """
+    screen = desktop.screen
+    win_width, win_height = screen.get_size()
+    margin = 16
+    font = pygame.font.SysFont(None, 24)
+
+    # Prepare lines for display
+    lines = []
+    if not report or not isinstance(report, dict):
+        lines = ["No observation data."]
+    else:
+        for key, value in report.items():
+            if isinstance(value, list):
+                lines.append(f"{key}:")
+                for item in value:
+                    if isinstance(item, (tuple, list)):
+                        lines.append("  - " + ", ".join(str(x) for x in item))
+                    else:
+                        lines.append(f"  - {item}")
+            else:
+                lines.append(f"{key}: {value}")
+
+    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+    popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
+    popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+
+    # Default to center if no pos
+    if pos is None:
+        popup_rect = pygame.Rect(
+            win_width // 2 - popup_width // 2,
+            win_height // 2 - popup_height // 2,
+            popup_width,
+            popup_height
+        )
+    else:
+        x, y = pos
+        popup_rect = pygame.Rect(
+            x,
+            y,
+            popup_width,
+            popup_height
+        )
+
+    # Draw popup background and border
+    pygame.draw.rect(screen, (50, 50, 50), popup_rect)
+    pygame.draw.rect(screen, (200, 200, 200), popup_rect, 2)
+
+    # Render each line of text
+    y = popup_rect.top + margin
+    for ts in text_surfaces:
+        text_rect = ts.get_rect()
+        text_rect.topleft = (popup_rect.left + margin, y)
+        screen.blit(ts, text_rect)
+        y += ts.get_height() + margin // 2
+
+    pygame.display.flip()
+
+    # Wait for user to click or press a key to close popup
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+
+
 
 def draw_turn_info_popup(desktop):
     # Draws the current day, hour, phase, and initiative in the bottom right corner
@@ -134,7 +209,6 @@ def draw_game_model_popup(desktop, piece, pos):
     elif isinstance(piece.game_model, AirFormation):
         # If the piece is an AirFormation, use the AircraftDisplay to render it
         # This allows for a more detailed and interactive display of the AirFormation piece
-
         airformation_ui = AirFormationUI(piece.game_model, desktop.screen)
         airformation_ui.draw()
         airformation_ui.handle_events()

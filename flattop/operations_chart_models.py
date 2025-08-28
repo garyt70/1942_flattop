@@ -235,6 +235,7 @@ class Base:
         self.can_observe = True  # Base can observe air units at high altitude
         self.has_radar = False  # Base has no radar capabilities by default
         self.attacked_this_turn = False  # Track if the base has been attacked this turn
+        self.observed_condition = 0
 
 
     """
