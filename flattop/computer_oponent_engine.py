@@ -27,14 +27,9 @@ ai = ComputerOpponent('Japanese')
 
 """
 TODO: Fixes for known issues:
-- Improve enemy detection logic to avoid false negatives
-- Optimize movement algorithms for better pathfinding
-- Enhance combat resolution to account for more variables
 
-- Air formations should not move into storm hexes
 - Task forces should prioritize attacking enemy ships over land targets
 - Combat must remove task forces from the board when they are destroyed (no ships left)
-- BUG: Aircraft for computer are being lost in the base when landing. Either they are not landing or something else is going on.
 
 """
 
@@ -356,7 +351,7 @@ class ComputerOpponent:
                                             ac.combat_data.level_bombing_low_ship_ap)
         attack_factor_torpedo = ac.combat_data.torpedo_bombing_ship
 
-        if target_type == "CV" and attack_factor_ap > 0 and attack_factor_torpedo > 0:
+        if target_type == "CV" and (attack_factor_ap > 0 or attack_factor_torpedo > 0):
             return "AP" if attack_factor_ap > attack_factor_torpedo else "Torpedo"
         return "GP"
 
@@ -880,6 +875,15 @@ class ComputerOpponent:
             night=at_night
         )
 
+        result_defender_a2a = resolve_air_to_air_combat(
+            interceptors=enemy_interceptors,
+            escorts=computer_escorts,
+            bombers=computer_bombers,
+            rf_expended=True,
+            clouds=in_clouds,
+            night=at_night
+        )
+
         # need to update the air operations chart for each side
         # remove aircraft from air formations that have 0 or less count
         # removed airformations that have no aircraft left
@@ -1063,6 +1067,7 @@ class ComputerOpponent:
 
         combat_results = {
             "result_attacker_a2a": result_computer_a2a,
+            "result_defender_a2a": result_defender_a2a,
             "result_tf_anti_aircraft": result_tf_anti_aircraft,
             "result_base_anti_aircraft": result_base_anti_aircraft,
             "result_attacker_ship_air_attack": result_computer_ship_air_attack,
