@@ -3,7 +3,7 @@ from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust imp
 from flattop.operations_chart_models import AlliedShipFactory, AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
 
 
-LAND_HEXES =  {
+LAND_HEXES_BOARD_ONE =  {
         (0, 9), (1, 9),  
         (0, 10), (1, 10), (2, 10), (3, 10), 
         (0, 11), (1, 11), (2, 11), (3, 11), 
@@ -60,7 +60,7 @@ def scenario_one_setup():
 
     ###########################################
     ## setup the land hexes for the scenario
-    hexboard_model = HexBoardModel(44, 50, LAND_HEXES)  # Example dimensions, adjust as needed   
+    hexboard_model = HexBoardModel(44, 50, LAND_HEXES_BOARD_ONE)  # Example dimensions, adjust as needed   
 
 
     ####################
@@ -185,6 +185,7 @@ def main():
     """
     boardModel = load_hexboard_model() # Create a board model with specified dimensions
     desktopUI = DesktopUI(boardModel)  # Initialize the DesktopUI with the board model
+    desktopUI.turn_manager.current_hour = 6  # Set the current hour to 6
     desktopUI.initialize()  # Set up the UI
     desktopUI.run()  # Start the UI event loop
 

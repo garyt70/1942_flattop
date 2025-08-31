@@ -331,7 +331,7 @@ class TurnManager:
         self.current_day = 1
         self.current_hour = 0  # 0 to 23
         self.turn_number = 1
-        self.current_phase_index = 0
+        self.current_phase_index = -1  # Initiatialise before the first phase
         self.side_with_initiative = None  # Player with initiative, can be set later
         self._decide_initiative("Allied", "Japanese")  # Default players, can be set later
         self.combat_results_history = []  # Store combat results for later reference
@@ -351,6 +351,8 @@ class TurnManager:
 
     @property
     def current_phase(self):
+        if self.current_phase_index == -1:
+            return "Setup Taskforce(s)"
         return self.PHASES[self.current_phase_index]
 
     def next_phase(self):

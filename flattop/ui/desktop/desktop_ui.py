@@ -258,23 +258,62 @@ class DesktopUI:
         self._last_mouse_pos = None
         self._moving_piece = None
         self._moving_piece_offset = (0, 0)
-        # Add turn manager reference
-        if turn_manager is None:
+        self.turn_manager = turn_manager
+        self.weather_manager = weather_manager  
+        if self.turn_manager is None:
             from flattop.hex_board_game_model import TurnManager
             self.turn_manager = TurnManager()
-        else:
-            self.turn_manager = turn_manager
-
-        if weather_manager is None:
+        if self.weather_manager is None:
             self.weather_manager = WeatherManager(self.board) 
-        else:
-            self.weather_manager = weather_manager
 
-        self.board.pieces.extend(self.weather_manager.get_weather_pieces())
+    def reposition_taskforces(self):
+        """
+        Allows the human user to reposition their own TaskForce pieces on the mapboard before the game starts.
+        User can click and drag their TaskForce pieces to any valid hex.
+        Press ESC or Enter to finish repositioning.
+        """
 
-        self.computer_opponent = ComputerOpponent("Japanese", self.board, self.weather_manager, self.turn_manager)  # Example initialization, can be set to "Allied" or "Japanese"
-        # Perform initial turn start actions
-        perform_observation_phase(self.board, self.weather_manager, self.turn_manager)
+        running = True
+        selected_piece : Piece = None
+        offset = (0, 0)
+        while running:
+            self.draw()
+            pygame.display.flip()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                        running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        pieces = self.get_pieces_at_pixel(event.pos)
+                        # Only allow repositioning for human side's TaskForce pieces
+                        for piece in pieces:
+                            if isinstance(piece.game_model, TaskForce) and piece.side != self.computer_opponent.side:
+                                selected_piece = piece
+                                center = self.hex_to_pixel(piece.position.q, piece.position.r)
+                                offset = (event.pos[0] - center[0], event.pos[1] - center[1])
+                                break
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1 and selected_piece:
+                        dest_hex = self.pixel_to_hex_coord(event.pos[0], event.pos[1])
+                        if dest_hex:
+                            selected_piece.position = dest_hex
+                            #self.board.move_piece(selected_piece, dest_hex)
+                        selected_piece = None
+                elif event.type == pygame.MOUSEMOTION and selected_piece:
+                    # Optionally, show the piece following the mouse
+                    self.draw()
+                    mouse_x, mouse_y = event.pos
+                    image = PieceImageFactory.taskforce_image(
+                        COLOR_JAPANESE_PIECE if selected_piece.side == "Japanese" else COLOR_ALLIED_PIECE,
+                        observed=selected_piece.observed_condition > 0
+                    )
+                    rect = image.get_rect(center=(mouse_x - offset[0], mouse_y - offset[1]))
+                    self.screen.blit(image, rect)
+                    pygame.display.flip()
 
     def initialize(self):
         pygame.init()
@@ -302,6 +341,13 @@ class DesktopUI:
         self.screen = pygame.display.set_mode((win_width, win_height), pygame.RESIZABLE)
 
         pygame.display.set_caption("Flattop 1942 - Hexagonal Board Game")
+
+        self.board.pieces.extend(self.weather_manager.get_weather_pieces())
+        self.computer_opponent = ComputerOpponent("Japanese", self.board, self.weather_manager, self.turn_manager)  # Example initialization, can be set to "Allied" or "Japanese"
+        self.reposition_taskforces()
+        self.turn_manager.current_phase_index = 0
+         # Perform initial turn start actions
+        perform_observation_phase(self.board, self.weather_manager, self.turn_manager)
         
         
 
