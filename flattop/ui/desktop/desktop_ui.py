@@ -21,6 +21,8 @@ from flattop.computer_oponent_engine import ComputerOpponent
 import flattop.ui.desktop.desktop_config as config
 from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
+FEATURE_FLAG_TESTING = True
+
 
 # Import color and size constants from config
 HEX_SIZE = config.HEX_SIZE
@@ -472,7 +474,7 @@ class DesktopUI:
         draw_turn_info_popup(self)
 
     def render_popup(self, piece:Piece, pos):
-        if self.computer_opponent.side == piece.side:
+        if self.computer_opponent.side == piece.side and not FEATURE_FLAG_TESTING: #draw limited details for opponent pieces
             #draw observed status results
             gm = piece.game_model
             if gm and gm.observed_condition > 0:
