@@ -860,29 +860,28 @@ class ComputerOpponent:
         # For simplicity, assume two sides: Allied and Japanese
         #and there are two airformations
 
-        # if no bombers on either side then convert interceptors to escorts 
+        # if no bombers on either side then convert interceptors to escorts
+        result_computer_a2a = None
         if not computer_bombers and not enemy_bombers:
             # Convert interceptors to escorts for one side so that we have interceptor to interceptor combat
             enemy_escorts.extend(enemy_interceptors)
             enemy_interceptors = []
-
-        result_computer_a2a = resolve_air_to_air_combat(
-            interceptors=computer_interceptors,
-            escorts=enemy_escorts,
-            bombers=enemy_bombers,
-            rf_expended=True,
-            clouds=in_clouds,
-            night=at_night
-        )
-
-        result_defender_a2a = resolve_air_to_air_combat(
-            interceptors=enemy_interceptors,
-            escorts=computer_escorts,
-            bombers=computer_bombers,
-            rf_expended=True,
-            clouds=in_clouds,
-            night=at_night
-        )
+        elif computer_interceptors and enemy_bombers:
+            result_computer_a2a = resolve_air_to_air_combat(
+                interceptors=computer_interceptors,
+                escorts=enemy_escorts,
+                bombers=enemy_bombers,
+                rf_expended=True,
+                clouds=in_clouds,
+                night=at_night)
+        elif enemy_interceptors and computer_bombers:
+            result_computer_a2a = resolve_air_to_air_combat(
+                interceptors=enemy_interceptors,
+                escorts=computer_escorts,
+                bombers=computer_bombers,
+                rf_expended=True,
+                clouds=in_clouds,
+                night=at_night)
 
         # need to update the air operations chart for each side
         # remove aircraft from air formations that have 0 or less count
@@ -1067,7 +1066,6 @@ class ComputerOpponent:
 
         combat_results = {
             "result_attacker_a2a": result_computer_a2a,
-            "result_defender_a2a": result_defender_a2a,
             "result_tf_anti_aircraft": result_tf_anti_aircraft,
             "result_base_anti_aircraft": result_base_anti_aircraft,
             "result_attacker_ship_air_attack": result_computer_ship_air_attack,

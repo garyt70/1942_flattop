@@ -1014,4 +1014,157 @@ class AircraftOperationsStatus(Enum):
         READYING = "readying"
         READY = "ready"
 
-   
+
+class JapaneseShipFactory:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def create(name):
+        ship: Ship = None
+        match name:
+            case "Yamato":
+                ship = Ship(name, "BB", "operational", 4, 2, 3, 5)
+            case "Musashi":
+                ship = Ship(name, "BB", "operational", 4, 2, 3, 5)
+            case "Shokaku":
+                ship = Carrier(name, "CV", "operational", 3, 2, 2, 4)
+            case "Zuikaku":
+                ship = Carrier(name, "CV", "operational", 3, 2, 2, 4)
+            case "Takao":
+                ship = Ship(name, "CA", "operational", 3, 2, 2, 4)
+            case "Mikuma":
+                ship = Ship(name, "CA", "operational", 3, 2, 2, 4)
+            case "Kuma":
+                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
+            case "Sendai":
+                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
+
+
+        if ship is None:
+            raise ValueError(f"Unknown Japanese ship name: {name}")
+        return ship
+
+class AlliedShipFactory:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def create(name):
+        ship: Ship = None
+        match name:
+            case "Lexington":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Lexington",
+                    description="Configuration for air operations on Lexington",
+                    maximum_capacity=30,
+                    launch_factor_min=3,
+                    launch_factor_normal=12,
+                    launch_factor_max=24,
+                    ready_factors=8,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Lexington", "CV", "operational", 1, 4, 2, 6)
+                ship.air_operations_config = air_ops_config
+            case "Yorktown":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Yorktown",
+                    description="Configuration for air operations on Yorktown",
+                    maximum_capacity=30,
+                    launch_factor_min=3,
+                    launch_factor_normal=11,
+                    launch_factor_max=22,
+                    ready_factors=9,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Yorktown", "CV", "operational", 1, 4, 2, 5)
+                ship.air_operations_config = air_ops_config
+            case "Enterprise":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Enterprise",
+                    description="Configuration for air operations on Enterprise",
+                    maximum_capacity=33,
+                    launch_factor_min=3,
+                    launch_factor_normal=11,
+                    launch_factor_max=22,
+                    ready_factors=9,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Enterprise", "CV", "operational", 1, 7, 2, 7)
+                ship.air_operations_config = air_ops_config
+            case "Hornet":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Hornet",
+                    description="Configuration for air operations on Hornet",
+                    maximum_capacity=33,
+                    launch_factor_min=3,
+                    launch_factor_normal=11,
+                    launch_factor_max=22,
+                    ready_factors=9,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Hornet", "CV", "operational", 1, 5, 2, 7)
+                ship.air_operations_config = air_ops_config
+            case "Saratoga":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Saratoga",
+                    description="Configuration for air operations on Saratoga",
+                    maximum_capacity=32,
+                    launch_factor_min=3,
+                    launch_factor_normal=12,
+                    launch_factor_max=24,
+                    ready_factors=8,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Saratoga", "CV", "operational", 1, 5, 2, 8)
+                ship.air_operations_config = air_ops_config
+
+            case "Wasp":
+                air_ops_config = AirOperationsConfiguration(
+                    name="Wasp",
+                    description="Configuration for air operations on Wasp",
+                    maximum_capacity=28,
+                    launch_factor_min=3,
+                    launch_factor_normal=10,
+                    launch_factor_max=20,
+                    ready_factors=7,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier("Wasp", "CV", "operational", 1, 5, 2, 6)
+                ship.air_operations_config = air_ops_config
+            case "Ranger":
+                ship = Ship("Ranger", "CVL", "operational", 1, 3, 2, 4)
+            case "N. Carolina" | "Washington":
+                ship = Ship(name, "BB", "operational", 25, 7, 2, 15)
+            case "S. Dakota":
+                ship = Ship("S. Dakota", "BB", "operational", 25, 9, 2, 15) 
+            case "Colorado" | "Idaho" | "Maryland" | "Mississippi" | "Tennessee" | "New Mexico":
+                ship = Ship(name, "BB", "operational", 20, 3, 1, 11)
+            case "Indiana":
+                ship = Ship(name, "BB", "operational", 25, 7, 2, 15)
+            case "Arizona" | "Nevada" | "Oklahoma" | "Pennsylvania":
+                ship = Ship(name, "BB", "operational", 18, 3, 1, 10)
+            case "W. Virgina":
+                ship = Ship(name, "BB", "operational", 22, 3, 1, 15)
+            case "Vincennes" | "Houston" | "Quincy" | "Louisville" | "Portland" | "Astoria" | "Chicago" | "Northampton" | "New Orleans" | "Chester" | "Nashville":
+                ship = Ship(name, "CA", "operational", 4, 2, 2, 5)
+            case "Pensacola" | "Indianapolis" | "Minneapolis" | "San Francisco":
+                ship = Ship(name, "CA", "operational", 3, 2, 2, 3)
+            case "Helena" | "Nashville" | "Honolulu" | "St. Louis":
+                ship = Ship(name, "CL", "operational", 4, 2, 2, 5)
+            case "Hobart":
+                ship = Ship(name, "CL", "operational", 3, 1, 2, 4)
+            case "San Diego" | "San Juan" | "Juneau" | "Atlanta":
+                ship = Ship(name, "CL", "operational", 2, 3, 2, 4)
+            case "Detroit" | "Raleigh":
+                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
+            case "Australia":
+                ship = Ship(name, "CA", "operational", 4, 1, 2, 5)
+            case "Salt Lake City":
+                ship = Ship(name, "CA", "operational", 5, 2, 2, 5)
+            
+        if ship is None:
+            raise ValueError(f"Unknown Allied ship name: {name}")
+
+        return ship
+

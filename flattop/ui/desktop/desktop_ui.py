@@ -745,51 +745,10 @@ class DesktopUI:
 
     def show_combat_results(self, results, pos):
 
-        """
-        Combat results array
-
-        Air to Air combat result return
-        result = {
-        "interceptor_hits_on_escorts": AirCombatResult(),
-        "escort_hits_on_interceptors": AirCombatResult(),
-        "interceptor_hits_on_bombers": AirCombatResult(),
-        "bomber_hits_on_interceptors": AirCombatResult(),
-        "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
-    }
-
-    Anti aircradt results
-    result = {"anti_aircraft": AirCombatResult(),
-            "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
-            }
-
-    Base combat results
-    results = {"bomber_hits": AirCombatResult(),
-           "eliminated": {"aircraft": []}
-            }
-    
-    Ship combat results
-    result = {"bomber_hits": AirCombatResult(),
-            "eliminated": {"ships": []}
-            }
-
-        """
-
         if results==None:
             return
         
-        """
-            "result_attacker_a2a": result_computer_a2a,
-            "result_tf_anti_aircraft": result_tf_anti_aircraft,
-            "result_base_anti_aircraft": result_base_anti_aircraft,
-            "result_attacker_ship_air_attack": result_computer_ship_air_attack,
-            "result_attacker_base_air_attack": result_computer_base_air_attack,
-            "pre_combat_count_attacker_interceptors": pre_combat_count_computer_interceptors,
-            "pre_combat_count_attacker_bombers": pre_combat_count_computer_bombers,
-            "pre_combat_count_attacker_escorts": pre_combat_count_computer_escorts,
-            "pre_combat_count_defender_interceptors": pre_combat_count_enemy_interceptors,
-            "pre_combat_count_defender_bombers": pre_combat_count_enemy_bombers,
-            "pre_combat_count_defender_escorts": pre_combat_count_enemy_escorts
-        """
+       
 
         a2a = results.get("result_attacker_a2a")
         aa = []
@@ -813,118 +772,7 @@ class DesktopUI:
                     sys.exit()
                 if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                     waiting = False
-    """
-    def _make_a2a_summary(self, a2a):
-        hits = []
-        for k in ["interceptor_hits_on_escorts", "escort_hits_on_interceptors", "interceptor_hits_on_bombers", "bomber_hits_on_interceptors"]:
-            v = a2a.get(k)
-            if v and hasattr(v, "hits") and v.hits:
-                hits.append(f"{k.replace('_', ' ').title()}: {sum(v.hits.values())}")
-        elim = a2a.get("eliminated", {})
-        lines.append(f"Player Escorts: {results['pre_combat_count_player_escorts']}")
-        lines.append(f"Player Bombers: {results['pre_combat_count_player_bombers']}")
     
-        lines.append(f"Computer Interceptors: {results['pre_combat_count_enemy_interceptors']}")
-        lines.append(f"Computer Escorts: {results['pre_combat_count_enemy_escorts']}")
-        lines.append(f"Computer Bombers: {results['pre_combat_count_enemy_bombers']}")
-        lines.append("-----------------------")
-        result_player_a2a = results.get("result_player_a2a")
-        result_computer_a2a = results.get("result_enemy_a2a")
-        result_player_anti_aircraft = results.get("result_player_anti_aircraft")
-        result_computer_anti_aircraft = results.get("result_enemy_anti_aircraft")
-        result_player_ship_air_attack = results.get("result_player_ship_air_attack")
-        result_computer_ship_air_attack = results.get("result_enemy_ship_air_attack")
-        result_player_base_air_attack = results.get("result_player_base_air_attack")
-        result_computer_base_air_attack = results.get("result_enemy_base_air_attack")
-        if result_player_a2a:
-
-            lines.append("Player Air 2 Air Combat Results:")
-            lines.append(f" {result_player_a2a['interceptor_hits_on_bombers']}")
-            lines.append(f" {result_player_a2a['interceptor_hits_on_escorts']}")
-            lines.append(f" {result_player_a2a['escort_hits_on_interceptors']}")
-            lines.append(f" {result_player_a2a['bomber_hits_on_interceptors']}")
-        if result_computer_a2a:
-            lines.append("Computer Air 2 Air Combat Results:")
-            lines.append(f" {result_computer_a2a['interceptor_hits_on_bombers']}")
-            lines.append(f" {result_computer_a2a['interceptor_hits_on_escorts']}")
-            lines.append(f" {result_computer_a2a['escort_hits_on_interceptors']}")
-            lines.append(f" {result_computer_a2a['bomber_hits_on_interceptors']}")
-
-
-        lines.append(f"\n")
-
-        ## anti-aircraft summary ##
-        if result_player_anti_aircraft:
-            # Show the combat results for Player anti aircraft combat
-            lines.append(f"Player Anti Aircraft Combat Results:")
-            lines.append(f" {result_player_anti_aircraft['anti_aircraft'].summary}")
-
-
-        if result_computer_anti_aircraft:
-            # Show the combat results for Computer anti aircraft combat
-            lines.append(f"Computer Anti Aircraft Combat Results:")
-            lines.append(f" {result_computer_anti_aircraft['anti_aircraft'].summary}")
-
-
-        ## air combat against ship
-        if result_player_ship_air_attack:
-            lines.append("Player Air Attack Results against Ship")
-            #loop through the results and add the summary for each ship
-            for result in result_player_ship_air_attack:
-                if result:
-                    lines.append(result["bomber_hits"].summary)
-
-        if result_computer_ship_air_attack:
-            lines.append("Computer Air Attack Results against Ship")
-            for result in result_computer_ship_air_attack:
-                if result:
-                    lines.append(result["bomber_hits"].summary)
-
-        if result_player_base_air_attack:
-            lines.append("Player Air Attack Results against Base")
-            lines.append(result_player_base_air_attack["bomber_hits"].summary)
-
-        if result_computer_base_air_attack:
-            lines.append("Computer Air Attack Results against Base")
-            lines.append(result_computer_base_air_attack["bomber_hits"].summary)
-
-
-        text = "\n".join(lines)
-
-        # Display a popup with the combat results
-        win_width, win_height = self.screen.get_size()
-        margin = 10
-        font = pygame.font.SysFont(None, 24)
-        lines = text.split('\n')
-        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
-        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
-        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
-        popup_rect = pygame.Rect(
-            pos[0] - popup_width // 2,
-            pos[1] - popup_height // 2,
-            popup_width,
-            popup_height
-        )
-        pygame.draw.rect(self.screen, (50, 50, 50), popup_rect)
-        pygame.draw.rect(self.screen, (200, 200, 200), popup_rect, 2)
-        y = popup_rect.top + margin
-        for ts in text_surfaces:
-            text_rect = ts.get_rect()
-            text_rect.topleft = (popup_rect.left + margin, y)
-            self.screen.blit(ts, text_rect)
-            y += ts.get_height() + margin // 2
-        pygame.display.flip()
-
-        # Wait for user to click or press a key to close popup
-        waiting = True
-        while waiting:
-            for popup_event in pygame.event.get():
-                if popup_event.type == pygame.MOUSEBUTTONDOWN or popup_event.type == pygame.KEYDOWN or popup_event.type == pygame.QUIT:
-                    waiting = False
-                    if popup_event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-"""
 
     def render_piece_selection_popup(self, pieces, pos):
         return draw_piece_selection_popup(self.screen, pieces, pos)

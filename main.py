@@ -1,23 +1,9 @@
 from flattop.ui.desktop.desktop_ui import DesktopUI # Import the DesktopUI class from the module
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
+from flattop.operations_chart_models import AlliedShipFactory, AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
 
 
-def scenario_one_setup():
-
-
-
-    """
-    Set up the first scenario for the hexagonal board game model.
-    This function initializes the game model with specific bases, air formations, and task forces for both Japanese and Allied sides.
-    Returns:
-        HexBoardModel: An instance of the HexBoardModel class with the scenario set up.
-    """
-    
-
-    ###########################################
-    ## setup the land hexes for the scenario
-    land_hexes =  {
+LAND_HEXES =  {
         (0, 9), (1, 9),  
         (0, 10), (1, 10), (2, 10), (3, 10), 
         (0, 11), (1, 11), (2, 11), (3, 11), 
@@ -60,8 +46,21 @@ def scenario_one_setup():
                     (35,14), (36,14), (37,14),
     }  # Example land hexes; adjust as needed
 
+def scenario_one_setup():
 
-    hexboard_model = HexBoardModel(44, 50, land_hexes)  # Example dimensions, adjust as needed   
+
+
+    """
+    Set up the first scenario for the hexagonal board game model.
+    This function initializes the game model with specific bases, air formations, and task forces for both Japanese and Allied sides.
+    Returns:
+        HexBoardModel: An instance of the HexBoardModel class with the scenario set up.
+    """
+    
+
+    ###########################################
+    ## setup the land hexes for the scenario
+    hexboard_model = HexBoardModel(44, 50, LAND_HEXES)  # Example dimensions, adjust as needed   
 
 
     ####################
@@ -131,19 +130,7 @@ def scenario_one_setup():
     hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
 
     taskForce = TaskForce(1, "Allied Task Force 1", "Allied")
-    lexington_air_ops_config = AirOperationsConfiguration(
-        name="Lexington",
-        description="Configuration for air operations on Lexington",
-        maximum_capacity=20,
-        launch_factor_min=6,
-        launch_factor_normal=12,
-        launch_factor_max=24,
-        ready_factors=6,
-        plane_handling_type="SP"
-    )
-    carrierLexington = Carrier("Lexington", "CV", "operational", 1, 4, 2, 4)
-    carrierLexington.air_operations_config = lexington_air_ops_config
-
+    carrierLexington : Carrier = AlliedShipFactory.create("Lexington")
     carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=8),AircraftOperationsStatus.READY)
     ac = AircraftFactory.create(AircraftType.DAUNTLESS, count=12)
     ac.armament = "GP"
@@ -153,15 +140,15 @@ def scenario_one_setup():
     carrierLexington.air_operations.set_operations_status(ac,AircraftOperationsStatus.READY)
 
     # Add ships to the task force with damage values based on Avalon Hill's Flattop boardgame
-    # CA (Heavy Cruiser): damage_factor = 3
+    # CL (Light Cruiser): damage_factor = 3 (as per AlliedShipFactory implementation)
     # CV (Carrier): damage_factor = 4
     # DD (Destroyer): damage_factor = 1
 
     taskForce.add_ship(carrierLexington)  # CV Lexington, damage_factor=4 (already set above)
-    taskForce.add_ship(Ship("Pensecola", "CA", "operational", 3, 2, 2,3))      # CA Pensecola, damage_factor=3
-    taskForce.add_ship(Ship("Minneapolis", "CA", "operational", 3, 2, 2,3))    # CA Minneapolis, damage_factor=3
-    taskForce.add_ship(Ship("San Francisco", "CA", "operational", 3, 2, 2,3))  # CA San Francisco, damage_factor=3
-    taskForce.add_ship(Ship("Indianapolis", "CA", "operational", 3, 2, 2, 3))   # CA Indianapolis, damage_factor=3
+    taskForce.add_ship(AlliedShipFactory.create("Pensacola"))      # CL Pensacola, damage_factor=3
+    taskForce.add_ship(AlliedShipFactory.create("Minneapolis"))    # CL Minneapolis, damage_factor=3
+    taskForce.add_ship(AlliedShipFactory.create("San Francisco"))  # CL San Francisco, damage_factor=3
+    taskForce.add_ship(AlliedShipFactory.create("Indianapolis"))   # CL Indianapolis, damage_factor=3
     for i in range(10):
         taskForce.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
     
