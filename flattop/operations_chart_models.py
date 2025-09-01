@@ -231,7 +231,6 @@ class Base:
         #self.used_launch_factor = 0
         #TODO: consider refactor Base to become Runway and then Base and Carrier have a runway. A Base can then have damage and anti-aircraft
         self.damage = 0
-        self.anti_aircraft_factor = 4 #making this the default.
         self.can_observe = True  # Base can observe air units at high altitude
         self.has_radar = False  # Base has no radar capabilities by default
         self.attacked_this_turn = False  # Track if the base has been attacked this turn
@@ -329,6 +328,12 @@ class Base:
     def air_operations_config(self):
         return self._air_operations_config
 
+    @property
+    def anti_aircraft_factor(self):
+        if self.air_operations_config.aaf > 0:
+            return self.air_operations_config.aaf
+        return 4 #default value
+
     @air_operations_config.setter
     def air_operations_config(self, value):
         self.air_operations_tracker.air_op_config = value
@@ -397,7 +402,8 @@ class AirOperationsConfiguration:
         launch_factor_normal=1,
         launch_factor_max=1,
         ready_factors=1,
-        plane_handling_type="CV"  # e.g., "CV", "AV", "Base", "SP", "LP"
+        plane_handling_type="CV",  # e.g., "CV", "AV", "Base", "SP", "LP"
+        aaf=5,
     ):
         self.name = name or "Air Operations Configuration"
         self.description = description or ""
@@ -407,6 +413,7 @@ class AirOperationsConfiguration:
         self.launch_factor_max = launch_factor_max
         self.ready_factors = ready_factors
         self.plane_handling_type = plane_handling_type
+        self.aaf = aaf  # Anti-Aircraft Factor
 
     def __repr__(self):
         return (f"{self.name} Air Operations Configuration, "
@@ -1023,23 +1030,85 @@ class JapaneseShipFactory:
     def create(name):
         ship: Ship = None
         match name:
-            case "Yamato":
-                ship = Ship(name, "BB", "operational", 4, 2, 3, 5)
-            case "Musashi":
-                ship = Ship(name, "BB", "operational", 4, 2, 3, 5)
+            
+            case "Akagi" | "Kaga":
+                ship = Carrier(name, "CV", "operational", 1, 4, 2, 6)
+            case "Soryu" | "Hiryu":
+                ship = Carrier(name, "CV", "operational", 1, 4, 2, 5)
             case "Shokaku":
-                ship = Carrier(name, "CV", "operational", 3, 2, 2, 4)
-            case "Zuikaku":
-                ship = Carrier(name, "CV", "operational", 3, 2, 2, 4)
-            case "Takao":
-                ship = Ship(name, "CA", "operational", 3, 2, 2, 4)
-            case "Mikuma":
-                ship = Ship(name, "CA", "operational", 3, 2, 2, 4)
-            case "Kuma":
-                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
-            case "Sendai":
-                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
+                ship = Carrier(name, "CV", "operational", 1, 3, 2, 4)
+            case "Zuikaku" | "Shokaku":
 
+                air_ops_config = AirOperationsConfiguration(
+                    name=name,
+                    description=f"Configuration for air operations on {name}",
+                    maximum_capacity=28,
+                    launch_factor_min=3,
+                    launch_factor_normal=10,
+                    launch_factor_max=20,
+                    ready_factors=8,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier(name, "CV", "operational", 1, 4, 1, 5)   
+                ship.air_operations_config = air_ops_config
+                ship = Carrier(name, "CV", "operational", 1, 5, 2, 6)
+            case "Hiyo" | "Junyo":
+                air_ops_config = AirOperationsConfiguration(
+                    name=name,
+                    description=f"Configuration for air operations on {name}",
+                    maximum_capacity=18,
+                    launch_factor_min=3,
+                    launch_factor_normal=7,
+                    launch_factor_max=14,
+                    ready_factors=6,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier(name, "CV", "operational", 1, 4, 1, 5)   
+                ship.air_operations_config = air_ops_config
+            case "Ryujo" | "Zuiho":
+                air_ops_config = AirOperationsConfiguration(
+                    name=name,
+                    description=f"Configuration for air operations on {name}",
+                    maximum_capacity=16,
+                    launch_factor_min=2,
+                    launch_factor_normal=5,
+                    launch_factor_max=10,
+                    ready_factors=4,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier(name, "CV", "operational", 1, 3, 2, 4)   
+                ship.air_operations_config = air_ops_config
+            case "Shoho" | "Hosho":
+                air_ops_config = AirOperationsConfiguration(
+                    name=name,
+                    description=f"Configuration for air operations on {name}",
+                    maximum_capacity=10,
+                    launch_factor_min=2,
+                    launch_factor_normal=4,
+                    launch_factor_max=8,
+                    ready_factors=4,
+                    plane_handling_type="CV"
+                )
+                ship = Carrier(name, "CV", "operational", 1, 2, 2, 3)
+                ship.air_operations_config = air_ops_config
+            case "Yamato" | "Musashi":
+                ship = Ship(name, "BB", "operational", 28, 4, 2, 18)
+            case "Kirishima" | "Hiei" | "Haruna" | "Kongo" | "Fuso":
+                ship = Ship(name, "BB", "operational", 12, 3, 2, 10)
+            case  "Hyuga" | "Ise" | "Fuso" | "Yamashiro":
+                ship = Ship(name, "BB", "operational", 15, 3, 1, 11)
+            case "Nagato" | "Mutsu":
+                ship = Ship(name, "BB", "operational", 18, 3, 1, 12)
+            case "Yuru" | "Isuzu" | "Jintsu" | "Nagura" | "Sendai" | "Abukuma" | "Tama":
+                ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
+            case "Takao" | "Atago" | "Maya" | "Chokai" | "Haguro" | "Kumano" | "Suzuya" | "Nachi" | "Myoko":
+                ship = Ship(name, "CA", "operational", 6, 2, 2, 6)
+            case "Kinugasa" | "Furutaka" | "Aoba" | "Kako" | "Ashigara" | "Mikuma" | "Aoba":
+                ship = Ship(name, "CA", "operational", 4, 2, 2, 5)
+            case "Chikuma" | "Tatsuta" | "Tone":
+                ship = Ship(name, "CAV", "operational", 3, 2, 2, 6)
+            case "Kamikawa" | "Chitose":
+                ship = Ship(name, "AV", "operational", 1, 2, 2, 3)
 
         if ship is None:
             raise ValueError(f"Unknown Japanese ship name: {name}")

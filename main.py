@@ -68,33 +68,78 @@ def scenario_one_setup():
     chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
     
     #setup Japanese base at Rabul
-    
-    
-    air_operations_config = AirOperationsConfiguration(
-        name="Rabul",
-        description="Configuration for air operations at Rabul",
+
+
+    air_operations_config_rabaul = AirOperationsConfiguration(
+        name="Rabaul",
+        description="Configuration for air operations at Rabaul",
         maximum_capacity=9999,
         launch_factor_min=6,
         launch_factor_normal=12,
         launch_factor_max=24,
         ready_factors=7,
-        plane_handling_type="Base"
+        plane_handling_type="LP",
+        aaf=8
     )
-    baseRahulJapanese = Base("Rabul",side="Japanese", air_operations_config=air_operations_config)  # Create a base for the Japanese side
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=10),AircraftOperationsStatus.READY)
+    baseRabaulJapanese = Base("Rabaul",side="Japanese", air_operations_config=air_operations_config_rabaul)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4, "land"), gameModel=baseRabaulJapanese))  # Add a piece for Japanese base
+
+    air_operations_config_gasmata = AirOperationsConfiguration(
+        name="Gasmata",
+        description="Configuration for air operations at Gasmata",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseGasmataJapanese = Base("Gasmata",side="Japanese", air_operations_config=air_operations_config_gasmata)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Gasmata Base", side="Japanese", position=Hex(14, 10, "land"), gameModel=baseGasmataJapanese))  # Add a piece for Japanese base
+
+    air_operations_config_kavieng = AirOperationsConfiguration(
+        name="Kavieng",
+        description="Configuration for air operations at Kavieng",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseKaviengJapanese = Base("Kavieng",side="Japanese", air_operations_config=air_operations_config_kavieng)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Kavieng Base", side="Japanese", position=Hex(12, 0, "land"), gameModel=baseKaviengJapanese))  # Add a piece for Japanese base
+
+    air_operations_config_truk = AirOperationsConfiguration(
+        name="Truk",
+        description="Configuration for air operations at Truk",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseTrukJapanese = Base("Truk",side="Japanese", air_operations_config=air_operations_config_truk)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Truk Base", side="Japanese", position=Hex(17, 0, "land"), gameModel=baseTrukJapanese))  # Add a piece for Japanese base
+
+
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=10),AircraftOperationsStatus.READY)
     ac = AircraftFactory.create(AircraftType.VAL, count=8)
     ac.armament = "AP"
     ac.height = "Low"
-    baseRahulJapanese.air_operations_tracker.set_operations_status(ac,AircraftOperationsStatus.READY)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READYING)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=8),AircraftOperationsStatus.READYING)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READYING)
-    baseRahulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=12),AircraftOperationsStatus.READYING)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(ac,AircraftOperationsStatus.READY)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=10),AircraftOperationsStatus.READYING)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=8),AircraftOperationsStatus.READYING)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READYING)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=12),AircraftOperationsStatus.READYING)
 
-    chartJapanase.bases[baseRahulJapanese.name] = baseRahulJapanese  # Add the base to the Japanese chart
+    chartJapanase.bases[baseRabaulJapanese.name] = baseRabaulJapanese  # Add the base to the Japanese chart
     
-    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4, "land"), gameModel=baseRahulJapanese))  # Add a piece for Japanese base
-
+    
     #add a test AirFormation to the Japanese chart
     airFormationOneJapanese = AirFormation("Japanese Air Formation 1", "Japanese")
     airFormationOneJapanese.add_aircraft(AircraftFactory.create(AircraftType.ZERO, count=6))
