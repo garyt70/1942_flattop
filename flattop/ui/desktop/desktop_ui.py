@@ -808,18 +808,8 @@ class DesktopUI:
 
         results = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
         ui = CombatResultsScreen(results, self.screen)
-
         ui.draw_results()
-        pygame.display.flip()
-        # Wait for user to click or press a key to close
-        waiting = True
-        while waiting:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                    waiting = False
+        ui.run()
     
 
     def render_piece_selection_popup(self, pieces, pos):
