@@ -267,7 +267,7 @@ class Base:
         # Determine how many aircraft can be launched this turn
         allowed = self.available_launch_factor_max - self.used_launch_factor
         moved = 0
-        if allowed <= 0 or not self.air_operations_tracker.ready:
+        if allowed < 0 or not self.air_operations_tracker.ready:
             return None  # Cannot launch any more aircraft this turn
         
         # if aircraft is provided, use it and remove the appropriate aircraft from READY

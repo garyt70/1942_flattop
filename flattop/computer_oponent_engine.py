@@ -379,14 +379,17 @@ class ComputerOpponent:
                     break
                 # Arm aircraft in readying with AP and move to ready if possible
                 for ac in readying:
+                    max_launch = min(ac.count, base.available_ready_factor - base.used_ready_factor)
+                    if max_launch <= 0:
+                        break
                     best_armament = self._select_best_armament(ac)
+                    to_aircraft : Aircraft = ac.copy()
+                    to_aircraft.armament = best_armament
+                    to_aircraft.count = max_launch
                     logger.info(f"Taskforce observed. Arming aircraft {ac.type} with {best_armament} at base {base.name}.")
-                    ac.armament = best_armament
-                    base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
-
-                # If there are ready aircraft, create an air formation to attack the taskforce
+                    base.air_operations_tracker.set_operations_status(to_aircraft, 'ready', ac)
                 if ready:
-                    # Select up to the available number of launch factors for the attack formation
+                    # If there are ready aircraft, create an air formation to attack
                     max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
                     attack_aircraft = self._select_best_ready_aircraft(ready, max_count=max_launch, purpose="attack_ship")
                     af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
@@ -411,10 +414,15 @@ class ComputerOpponent:
                     for ac in readying:
                         #choose the best armament to attack taskforce
                         best_armament = self._select_best_armament(ac)
+                        max_launch = min(ac.count, base.available_ready_factor - base.used_ready_factor)
+                        if max_launch <= 0:
+                            break
+                        best_armament = self._select_best_armament(ac)
+                        to_aircraft : Aircraft = ac.copy()
+                        to_aircraft.armament = best_armament
+                        to_aircraft.count = max_launch
                         logger.info(f"Taskforce observed. Arming aircraft {ac.type} with {best_armament} at carrier base {base.name}.")
-                        ac.armament = best_armament
-                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
-                        
+                        base.air_operations_tracker.set_operations_status(to_aircraft, 'ready', ac)
                     if ready:
                         # Select up to the available number of launch factors for the attack formation
                         max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
@@ -468,9 +476,13 @@ class ComputerOpponent:
                 continue
             just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
             for ac in just_landed:
-                if base.used_ready_factor >= base.available_ready_factor:
+                max_launch = min(ac.count, base.available_ready_factor - base.used_ready_factor)
+                if max_launch <= 0:
                     break
-                to_aircraft:Aircraft = ac.copy()
+                best_armament = self._select_best_armament(ac)
+                to_aircraft : Aircraft = ac.copy()
+                to_aircraft.armament = best_armament
+                to_aircraft.count = max_launch
                 base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
                 logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type} to readying at base {base.name}.")
         for tf_piece in taskforces:
@@ -486,7 +498,9 @@ class ComputerOpponent:
                 for ac in just_landed:
                     if base.used_ready_factor >= base.available_ready_factor:
                         break
-                    to_aircraft:Aircraft = ac.copy()
+                    to_aircraft : Aircraft = ac.copy()
+                    to_aircraft.armament = best_armament
+                    to_aircraft.count = min(ac.count, base.available_ready_factor - base.used_ready_factor)
                     base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
                     logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type} to readying at base {base.name}.")
 
@@ -1172,8 +1186,11 @@ class ComputerOpponent:
                 if best:
                     for ac in best:
                         logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
-                        ac.armament = self._select_best_armament(ac)  # default to AP as assuming searching for enemy ships
-                        base.air_operations_tracker.set_operations_status(ac.copy(), 'ready', ac)
+                        to_aircraft : Aircraft = ac.copy()
+                        best_armament = self._select_best_armament(ac)  # default to AP as assuming searching for enemy ships
+                        to_aircraft.armament = best_armament
+                        to_aircraft.count = min(ac.count, base.available_ready_factor - base.used_ready_factor)
+                        base.air_operations_tracker.set_operations_status(to_aircraft, 'ready', ac)
                         if base.used_ready_factor >= base.available_ready_factor:
                             break
         return created_airformation      
