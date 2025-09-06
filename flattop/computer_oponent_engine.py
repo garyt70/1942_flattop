@@ -339,7 +339,7 @@ class ComputerOpponent:
                     for k, v in result.items():
                         if v is not None:
                             logger.info(f"Adding combat result for {k}: {v}")
-                            self.turn_manager.add_combat_result(v)
+                            self.turn_manager.add_combat_result(k, v)
 
         except Exception as e:
             logger.error(f"Error during perform_turn: {e}", exc_info=True)
@@ -1105,10 +1105,11 @@ class ComputerOpponent:
         for piece in pieces:
             if not piece.can_attack:
                continue
-        #    # Check if the piece is in a hex with observed enemy pieces
-            combat_results[piece.name] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
-        
-            
+            # Check if the piece is in a hex with observed enemy pieces
+            combat_result_id = f"{piece.name}_{self.turn_manager.turn_number}"
+            combat_results[combat_result_id] = self._perform_combat_phase_for_piece_in_hex(piece, observed_enemy_pieces)
+
+
         # TaskForce attacks (surface combat not implemented)
         # Could add surface combat logic here
 

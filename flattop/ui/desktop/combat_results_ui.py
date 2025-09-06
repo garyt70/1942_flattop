@@ -44,6 +44,158 @@ import sys
 
 from flattop.aircombat_engine import AirCombatResult
 
+class CombatResultsList:
+    """Displays a scrollable list of combat results that can be clicked to show details"""
+    
+    BG_COLOR = (30, 30, 30)
+    TEXT_COLOR = (230, 230, 230)
+    HOVER_COLOR = (60, 60, 80)
+    SELECTED_COLOR = (80, 80, 100)
+    PADDING = 12
+    ITEM_HEIGHT = 40
+    FONT_SIZE = 22
+    FONT_NAME = None
+    CLOSE_BUTTON_SIZE = (80, 30)
+
+    def __init__(self, turn_results, screen=None, width=900, height=700):
+        """
+        Args:
+            turn_results: List of combat results from TurnManager
+            screen: Existing pygame screen or None to create new one
+            width: Screen width
+            height: Screen height
+        """
+        self.external_screen = screen is not None
+        if screen is None:
+            pygame.init()
+            self.screen = pygame.display.set_mode((width, height))
+            pygame.display.set_caption("Combat Results List")
+        else:
+            self.screen = screen
+
+        self.font = pygame.font.Font(self.FONT_NAME, self.FONT_SIZE)
+        self.turn_results = turn_results
+        self.width = width
+        self.height = height
+        self.scroll_y = 0
+        self.max_scroll = max(0, len(turn_results) * self.ITEM_HEIGHT - height)
+        self.content_surface = pygame.Surface((width, max(height, len(turn_results) * self.ITEM_HEIGHT)))
+        self.close_button = pygame.Rect(
+            width - self.CLOSE_BUTTON_SIZE[0] - self.PADDING,
+            self.PADDING,
+            self.CLOSE_BUTTON_SIZE[0],
+            self.CLOSE_BUTTON_SIZE[1]
+        )
+        self.hover_index = -1
+
+    def draw_text(self, text, x, y, color=None, surface=None):
+        color = color or self.TEXT_COLOR
+        text_surface = self.font.render(text, True, color)
+        if surface is None:
+            surface = self.content_surface
+        surface.blit(text_surface, (x, y))
+
+    def draw_close_button(self):
+        mouse_pos = pygame.mouse.get_pos()
+        button_color = self.HOVER_COLOR if self.close_button.collidepoint(mouse_pos) else self.BG_COLOR
+        pygame.draw.rect(self.screen, button_color, self.close_button)
+        close_text = self.font.render("Close", True, self.TEXT_COLOR)
+        text_rect = close_text.get_rect(center=self.close_button.center)
+        self.screen.blit(close_text, text_rect)
+
+    def draw_list(self):
+        self.content_surface.fill(self.BG_COLOR)
+        
+        # Draw each combat result as a list item
+        for i, result in enumerate(self.turn_results):
+            item_rect = pygame.Rect(0, i * self.ITEM_HEIGHT, self.width, self.ITEM_HEIGHT)
+            
+            # Highlight if mouse is hovering
+            if i == self.hover_index:
+                pygame.draw.rect(self.content_surface, self.HOVER_COLOR, item_rect)
+            else:
+                pygame.draw.rect(self.content_surface, self.BG_COLOR, item_rect)
+                
+            # Draw border
+            pygame.draw.rect(self.content_surface, self.TEXT_COLOR, item_rect, 1)
+            
+            # Create summary text
+            summary = f"Combat #{i+1}"
+            if "air_to_air" in result:
+                summary += " - Air Combat"
+            if "anti_aircraft" in result:
+                summary += " - AA Combat"
+            if "base" in result:
+                summary += " - Base Combat"
+            if "ship" in result:
+                summary += " - Ship Combat"
+                
+            self.draw_text(summary, self.PADDING, i * self.ITEM_HEIGHT + 10)
+
+        # Draw the visible portion to the screen
+        self.screen.fill(self.BG_COLOR)
+        visible_region = pygame.Rect(0, self.scroll_y, self.width, self.height)
+        self.screen.blit(self.content_surface, (0, 0), visible_region)
+        
+        # Draw close button on top
+        self.draw_close_button()
+
+    def handle_scroll(self, event):
+        if event.type == pygame.MOUSEWHEEL:
+            self.scroll_y = max(0, min(self.scroll_y - event.y * 20, self.max_scroll))
+
+    def get_clicked_index(self, mouse_pos):
+        """Convert mouse position to list item index"""
+        y = mouse_pos[1] + self.scroll_y
+        index = y // self.ITEM_HEIGHT
+        if 0 <= index < len(self.turn_results):
+            return index
+        return -1
+
+    def update_hover(self, mouse_pos):
+        """Update hover highlighting based on mouse position"""
+        self.hover_index = self.get_clicked_index(mouse_pos)
+
+    def run(self):
+        clock = pygame.time.Clock()
+        running = True
+        
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left click
+                        if self.close_button.collidepoint(event.pos):
+                            running = False
+                        else:
+                            clicked_index = self.get_clicked_index(event.pos)
+                            if clicked_index >= 0:
+                                # Show detailed view for clicked combat result
+                                detail_view = CombatResultsScreen(
+                                    self.turn_results[clicked_index],
+                                    self.screen,
+                                    self.width,
+                                    self.height
+                                )
+                                detail_view.run()
+                                
+                self.handle_scroll(event)
+                
+            # Update hover state
+            mouse_pos = pygame.mouse.get_pos()
+            self.update_hover(mouse_pos)
+            
+            self.draw_list()
+            pygame.display.flip()
+            clock.tick(30)
+
+        if not self.external_screen:
+            pygame.quit()
+            sys.exit()
+
+# Keep existing CombatResultsScreen class
 class CombatResultsScreen:
         BG_COLOR = (30, 30, 30)
         TEXT_COLOR = (230, 230, 230)

@@ -334,11 +334,11 @@ class TurnManager:
         self.current_phase_index = -1  # Initiatialise before the first phase
         self.side_with_initiative = None  # Player with initiative, can be set later
         self._decide_initiative("Allied", "Japanese")  # Default players, can be set later
-        self.combat_results_history = []  # Store combat results for later reference
+        self.combat_results_history = {}  # Store combat results for later reference
         self._last_combat_result = None
 
-    def add_combat_result(self, combat_result):
-        self.combat_results_history.append(combat_result)
+    def add_combat_result(self, key, combat_result):
+        self.combat_results_history[key] = combat_result
         self._last_combat_result = combat_result
 
     @property    
