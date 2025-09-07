@@ -463,22 +463,22 @@ def resolve_air_to_air_combat(
     if interceptors and escorts:
         for ic in interceptors:
             hits = determine_hits([ic], "escorts")
-            story_text = f"Interceptor {ic.type} attacking escorts. Hits resolved: {hits}"
+            story_text = f"Interceptor {ic.type.value} attacking escorts. Hits resolved: {hits}"
             logger.info(story_text)
             result["interceptor_hits_on_escorts"].story_line.append(story_text)
             if hits > 0:
-                result["interceptor_hits_on_escorts"].add_hit(str(ic.type), hits)
+                result["interceptor_hits_on_escorts"].add_hit(ic.type.value, hits)
             hits_on_escorts += hits
         if hits_on_escorts > 0:
             result["interceptor_hits_on_escorts"].summary = f"Interceptors attacked escorts. ({hits_on_escorts} hits total)"
 
         for ec in escorts:
             hits = determine_hits([ec], "interceptors")
-            story_text = f"Escort {ec.type} attacking interceptors. Hits resolved: {hits}"
+            story_text = f"Escort {ec.type.value} attacking interceptors. Hits resolved: {hits}"
             logger.info(story_text)
             result["escort_hits_on_interceptors"].story_line.append(story_text)
             if hits > 0:
-                result["escort_hits_on_interceptors"].add_hit(str(ec.type), hits)
+                result["escort_hits_on_interceptors"].add_hit(ec.type.value, hits)
             hits_on_interceptors += hits
         if hits_on_interceptors > 0:
             result["escort_hits_on_interceptors"].summary = f"Escorts attacked interceptors. ({hits_on_interceptors} hits total)"
@@ -492,22 +492,22 @@ def resolve_air_to_air_combat(
     if bombers and (interceptor_advantage or not escorts):
         for ic in interceptors:
             hits = determine_hits([ic], "bombers")
-            story_text = f"Interceptor {ic.type} attacking bombers. Hits resolved: {hits}"
+            story_text = f"Interceptor {ic.type.value} attacking bombers. Hits resolved: {hits}"
             logger.info(story_text)
             result["interceptor_hits_on_bombers"].story_line.append(story_text)
             if hits > 0:
-                result["interceptor_hits_on_bombers"].add_hit(str(ic.type), hits)
+                result["interceptor_hits_on_bombers"].add_hit(ic.type.value, hits)
             hits_on_bombers += hits
         if hits_on_bombers > 0:
             result["interceptor_hits_on_bombers"].summary = f"Interceptors attacked bombers. ({hits_on_bombers} hits total)"
         # Bombers can return fire if allowed by scenario/rules (not typical, but for completeness)
         for bc in bombers:
             hits = determine_hits([bc], "interceptors")
-            story_text = f"Bomber {bc.type} attacking interceptors. Hits resolved: {hits}"
+            story_text = f"Bomber {bc.type.value} attacking interceptors. Hits resolved: {hits}"
             logger.info(story_text)
             result["bomber_hits_on_interceptors"].story_line.append(story_text)
             if hits > 0:
-                result["bomber_hits_on_interceptors"].add_hit(str(bc.type), hits)
+                result["bomber_hits_on_interceptors"].add_hit(bc.type.value, hits)
             hits_on_interceptors += hits
         if hits_on_interceptors > 0:
             result["bomber_hits_on_interceptors"].summary = f"Bombers attacked interceptors. ({hits_on_interceptors} hits total)"   
@@ -527,20 +527,20 @@ def resolve_air_to_air_combat(
             hits_to_remove = min(ac.count, hits)
             # Determine which category to add to eliminated
             if ac in interceptors:
-                result["eliminated"]["interceptors"].append((ac.type, hits_to_remove))
+                result["eliminated"]["interceptors"].append((ac.type.value, hits_to_remove))
             elif ac in escorts:
-                result["eliminated"]["escorts"].append((ac.type, hits_to_remove))
+                result["eliminated"]["escorts"].append((ac.type.value, hits_to_remove))
             else:
-                result["eliminated"]["bombers"].append((ac.type, hits_to_remove))
+                result["eliminated"]["bombers"].append((ac.type.value, hits_to_remove))
             hits -= hits_to_remove
             ac.count -= hits_to_remove
             if rf_expended:
                 ac.range_remaining -= 1
             if ac.count > 0:
                 aircraft_list.append(ac)
-            story_text = f"{ac.type} lost {hits_to_remove} Air Factors."
+            story_text = f"{ac.type.value} lost {hits_to_remove} Air Factors."
             logger.info(story_text)
-            result["eliminated"]["bombers"].append((ac.type, hits_to_remove))
+            result["eliminated"]["bombers"].append((ac.type.value, hits_to_remove))
 
     remove_hits(interceptors, hits_on_interceptors, rf_expended)
     remove_hits(escorts, hits_on_escorts, rf_expended)  
@@ -596,10 +596,10 @@ def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modi
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            story_text = f"Bomber {ac.type} lost {lost} Air Factors."
+            story_text = f"Bomber {ac.type.value} lost {lost} Air Factors."
             logger.info(story_text)
             result["anti_aircraft"].story_line.append(story_text)
-            result["eliminated"]["bombers"].append((ac.type, lost))
+            result["eliminated"]["bombers"].append((ac.type.value, lost))
 
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{taskforce.name} anti-aircraft fire destoryed {bombers_lost} bombers"
@@ -651,10 +651,10 @@ def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
             lost = min(ac.count, total_hits - bombers_lost)
             ac.count -= lost
             bombers_lost += lost
-            story_text = f"Bomber {ac.type} lost {lost} Air Factors."
+            story_text = f"Bomber {ac.type.value} lost {lost} Air Factors."
             logger.info(story_text)
             result["anti_aircraft"].story_line.append(story_text)
-            result["eliminated"]["bombers"].append((ac.type, lost))
+            result["eliminated"]["bombers"].append((ac.type.value, lost))
 
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{base.name} anti-aircraft fire destoryed {bombers_lost} bombers"
@@ -707,9 +707,9 @@ def _resolve_base_aircraft_hits(base:Base, total_hits:int, results:dict):
             hits_to_apply = min(hit_tracker, ac.count)
             ac.count -= hits_to_apply
             hit_tracker -= hits_to_apply
-            story_text = f"Eliminated {hits_to_apply} from {ac.type}"
+            story_text = f"Eliminated {hits_to_apply} from {ac.type.value}"
             logger.info(story_text)
-            results["eliminated"]["aircraft"].append((ac.type, hits_to_apply))
+            results["eliminated"]["aircraft"].append((ac.type.value, hits_to_apply))
             if ac.count <= 0:
                 for lst in [base.air_operations_tracker.ready, base.air_operations_tracker.just_landed, base.air_operations_tracker.readying]:
                     if ac in lst:
@@ -787,11 +787,11 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         hits = determine_hits(ac, ship, attack_type, clouds, night )
         ship.damage += hits
         total_hits += hits
-        story_text = f"Bomber {ac.type} hits {hits} against ship {ship.name}."
+        story_text = f"Bomber {ac.type.value} hits {hits} against ship {ship.name}."
         logger.info(story_text)
         results["bomber_hits"].story_line.append(story_text)
-        results["bomber_hits"].add_hit(ac.type, hits)
-        
+        results["bomber_hits"].add_hit(ac.type.value, hits)
+
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors
         if not (attack_type == "Level" and ac.height == "High"):
@@ -811,8 +811,8 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, attack_type = 
         carrier:Carrier = ship
         if carrier.status == "Sunk":
             for ac in carrier.air_operations.ready + carrier.air_operations.just_landed + carrier.air_operations.readying:
-                results["eliminated"]["aircraft"].append((ac.type, ac.count))
-                story_text = f"Removing {ac.count} {ac.type} from sunk ship {carrier.name}."
+                results["eliminated"]["aircraft"].append((ac.type.value, ac.count))
+                story_text = f"Removing {ac.count} {ac.type.value} from sunk ship {carrier.name}."
                 logger.info(story_text)
                 results["bomber_hits"].story_line.append(story_text)
                 ac.count = 0
@@ -872,8 +872,8 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
             hit_table_result = COMBAT_RESULTS_TABLE[hit_table - 1][idx]
             die = roll_die()
             hits = resolve_die_roll(hit_table_result, die)
-            logger.info(f"{ac.type} attacking {base.name} with BHT {bht}, die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
-            
+            logger.info(f"{ac.type.value} attacking {base.name} with BHT {bht}, die {die}, attack factor {attack_factor}, hit table {hit_table}, hit table result {hit_table_result}, hits {hits}")
+
         return hits
 
     #resolve attack on the ship
@@ -893,9 +893,9 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, attack_type = 
         base.damage += hits
         base.attacked_this_turn = True
         total_hits += hits
-        story_text = f"Bomber {ac.type} hits {hits} against base {base.name}."
+        story_text = f"Bomber {ac.type.value} hits {hits} against base {base.name}."
         logger.info(story_text)
-        results["bomber_hits"].add_hit(ac.type, hits)
+        results["bomber_hits"].add_hit(ac.type.value, hits)
         results["bomber_hits"].story_line.append(story_text)
         #resolve impact on range of aircraft
         #all attacks other than high level bombing expend range factors

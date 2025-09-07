@@ -267,7 +267,7 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos:Hex):
         # Filter out CloudMarker pieces
         filtered_pieces = [piece for piece in pieces if not isinstance(piece, CloudMarker)]
         lines = [
-            f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
+            f"{i+1}: {getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
             for i, piece in enumerate(filtered_pieces)
         ]
         pieces = filtered_pieces  # Update pieces to match lines for selection logic below

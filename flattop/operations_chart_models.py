@@ -208,6 +208,16 @@ Text from rule book
         return False
 
     def __repr__(self):
+        str_value = f"TaskForce : "
+        if not self.ships:
+            str_value += "(No ships assigned)"
+            return str_value
+        str_value += "\n".join(f" |{ship.name}" for ship in self.ships)
+        if len(str_value) > 60:
+            str_value = str_value[:57] + "..."
+        return str_value
+
+    def summary_str(self):
         header = f"Task Force {self.number}: {self.name}\n"
         if not self.ships:
             return header + "(No ships assigned)"
@@ -377,6 +387,9 @@ class Base:
         self.attacked_this_turn = False
 
     def __repr__(self):
+        return f"Base({self.name}, side={self.side})"
+
+    def summary_str(self):
         return f"Base(name={self.name}, side={self.side} \n {self.air_operations_tracker}, \n {self._air_operations_config})"
     
 
@@ -508,6 +521,14 @@ class AirFormation:
         self.observed_condition = 0
 
     def __repr__(self):
+        str_value = "AirFormation : "
+        if not self.aircraft:
+            return str_value + "(No aircraft assigned)"
+        for ac in self.aircraft:
+            str_value += f" |{ac.type.value}({ac.count})"
+        return str_value
+    
+    def summary_str(self):
         header = f"Air Formation {self.number}: {self.name}\n"
         if not self.aircraft:
             return header + "(No aircraft assigned)"
@@ -603,7 +624,7 @@ class Aircraft:
 
 
     def __repr__(self):
-        return f"Aircraft(type={self.type}, count={self.count}, move_factor={self.move_factor})"
+        return f"Aircraft(type={self.type.value}, count={self.count}, move_factor={self.move_factor})"
     
     def copy(self):
         ac = Aircraft(self.type, self.count, self.move_factor, self.range_factor, self.combat_data)
