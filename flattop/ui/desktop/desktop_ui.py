@@ -4,13 +4,13 @@ import pygame
 import sys
 import math
 
-from flattop.game_engine import perform_land_piece_action, perform_observation_phase, perform_turn_start_actions
+from flattop.game_engine import perform_land_piece_action, perform_observation_for_piece, perform_observation_phase, perform_turn_start_actions
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, TurnManager, get_distance  # Adjust import as needed
 from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
-from flattop.ui.desktop.combat_results_ui import CombatResultsScreen
+from flattop.ui.desktop.combat_results_ui import CombatResultsList, CombatResultsScreen
 from flattop.ui.desktop.desktop_popup import draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
@@ -766,12 +766,11 @@ class DesktopUI:
                 # Perform combat action for the AirFormation
                 # This will involve selecting taskforces and performing air combat
                 results = perform_air_combat_ui(self.screen, piece, self.board.pieces, self.board, self.weather_manager, self.turn_manager)
-                # Optionally, show a popup with results
-
                 ## air-to-air summary
-                
                 self.show_combat_results(results, pos)
                 
+                combat_result_id = f"{piece.name}_{self.turn_manager.turn_number}"
+                self.turn_manager.add_combat_result(combat_result_id, results)
                 return
                 
 
@@ -807,6 +806,7 @@ class DesktopUI:
 
 
         results = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
+        self.turn_manager.combat_results_history.append(results)
         ui = CombatResultsScreen(results, self.screen)
         ui.draw_results()
         ui.run()
@@ -827,10 +827,10 @@ class DesktopUI:
         Perform observation for a single piece using game_engine logic.
         """
         from flattop.game_engine import perform_observation_for_piece
+    
         perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
     
         
-
     def show_turn_change_popup(self):
         # Display a scrollable popup listing all pieces that can move but have not moved yet,
         # and allow the user to advance the phase or turn only if all phases are complete.
@@ -862,10 +862,14 @@ class DesktopUI:
             next_phase_text = f"Advance Phase ({phase_list[phase_idx+1]})"
         next_phase_surf = header_font.render(next_phase_text, True, (0, 255, 0))
 
-        popup_width = max([header_surf.get_width(), next_phase_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+        # Add Combat Results button
+        combat_results_text = "Combat Results"
+        combat_results_surf = header_font.render(combat_results_text, True, (0, 180, 255))
+
+        popup_width = max([header_surf.get_width(), next_phase_surf.get_width(), combat_results_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
         visible_lines = min(10, len(text_surfaces))
         line_height = font.get_height() + 4
-        popup_height = header_surf.get_height() + next_phase_surf.get_height() + visible_lines * line_height + 5 * margin
+        popup_height = header_surf.get_height() + next_phase_surf.get_height() + combat_results_surf.get_height() + visible_lines * line_height + 6 * margin
         popup_rect = pygame.Rect(
             win_width // 2 - popup_width // 2,
             win_height // 2 - popup_height // 2,
@@ -895,6 +899,12 @@ class DesktopUI:
                     pygame.draw.rect(self.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
                     self.screen.blit(next_phase_surf, next_phase_rect.topleft)
                 y += next_phase_rect.height + margin // 2
+
+                # Draw Combat Results button
+                combat_results_rect = combat_results_surf.get_rect(topleft=(popup_rect.left + margin, y))
+                pygame.draw.rect(self.screen, (30, 30, 120), combat_results_rect.inflate(12, 8))
+                self.screen.blit(combat_results_surf, combat_results_rect.topleft)
+                y += combat_results_rect.height + margin // 2
 
                 # Draw visible lines with scrolling
                 for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
@@ -933,6 +943,10 @@ class DesktopUI:
                     if 0 <= idx < len(unmoved):
                         self.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
                         return
+                elif event.key == pygame.K_c:
+                    # Keyboard shortcut for Combat Results
+                    self._show_combat_results_list()
+                    needs_redraw = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = event.pos
                 # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
@@ -949,24 +963,25 @@ class DesktopUI:
                             print("Air Operations Phase")
                         case 1:
                             print("Task Force Movement Phase")
-                            # no action this phase, just a placeholder. Menus change to Task Force Movement
                             self.computer_opponent.perform_turn()
                         case 2:
                             print("Plane Movement Phase")
-                            # no action this phase, just a placeholder. Menus change to Plane Movement
                             self.computer_opponent.perform_turn()
                         case 3:
                             print("Combat Phase")
-                            # no action this phase, just a placeholder. Menus change to Combat
                             self.turn_manager.last_combat_result = None
                             self.computer_opponent.perform_turn()
                             self.show_combat_results(self.turn_manager.last_combat_result, event.pos)
-
                     return
+                # Check if click is on Combat Results button
+                if combat_results_rect.collidepoint(mx, my):
+                    self._show_combat_results_list()
+                    needs_redraw = True
+                    continue
                 # Check if click is on a piece line
                 for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
                     ts = text_surfaces[i]
-                    text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+                    text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + combat_results_rect.height + margin // 2 + (i - scroll_offset) * line_height))
                     if text_rect.collidepoint(mx, my) and len(unmoved) > 1:
                         self.show_piece_menu(unmoved[i], event.pos)
                         return
@@ -981,6 +996,15 @@ class DesktopUI:
                     if down_arrow_rect.collidepoint(mx, my):
                         scroll_offset += 1
                         needs_redraw = True
+
+    from flattop.ui.desktop.combat_results_ui import CombatResultsList
+    def _show_combat_results_list(self):
+        # Show the CombatResultsList popup (if available)
+        try:
+            ui = CombatResultsList(self.turn_manager.combat_results_history, self.screen)
+            ui.run()
+        except Exception as e:
+            print("CombatResultsList not available or error:", e)
 
     def run(self):
         """
