@@ -328,8 +328,8 @@ def show_turn_change_popup(desktop_ui):
     # Filter pieces that can move and have not moved (for this phase, if applicable)
     unmoved = desktop_ui._get_pieces_for_turn_change()
     lines = [
-    f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
-    for i, piece in enumerate(unmoved)
+        f"{i+1}: {getattr(piece, 'name', str(piece))} | {piece.game_model.__class__.__name__} | {getattr(piece, 'side', '')}"
+        for i, piece in enumerate(unmoved)
     ]
     if not lines:
         lines = ["No pieces can act this phase."]
@@ -343,19 +343,15 @@ def show_turn_change_popup(desktop_ui):
         next_phase_text = f"Advance Phase ({phase_list[phase_idx+1]})"
     next_phase_surf = header_font.render(next_phase_text, True, (0, 255, 0))
 
-    # Add Combat Results button
-    combat_results_text = "Combat Results"
-    combat_results_surf = header_font.render(combat_results_text, True, (0, 180, 255))
-
-    popup_width = max([header_surf.get_width(), next_phase_surf.get_width(), combat_results_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+    popup_width = max([header_surf.get_width(), next_phase_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
     visible_lines = min(10, len(text_surfaces))
     line_height = font.get_height() + 4
-    popup_height = header_surf.get_height() + next_phase_surf.get_height() + combat_results_surf.get_height() + visible_lines * line_height + 6 * margin
+    popup_height = header_surf.get_height() + next_phase_surf.get_height() + visible_lines * line_height + 5 * margin
     popup_rect = pygame.Rect(
-    win_width // 2 - popup_width // 2,
-    win_height // 2 - popup_height // 2,
-    popup_width,
-    popup_height
+        win_width // 2 - popup_width // 2,
+        win_height // 2 - popup_height // 2,
+        popup_width,
+        popup_height
     )
     scroll_offset = 0
 
@@ -380,12 +376,6 @@ def show_turn_change_popup(desktop_ui):
                 pygame.draw.rect(desktop_ui.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
                 desktop_ui.screen.blit(next_phase_surf, next_phase_rect.topleft)
             y += next_phase_rect.height + margin // 2
-
-            # Draw Combat Results button
-            combat_results_rect = combat_results_surf.get_rect(topleft=(popup_rect.left + margin, y))
-            pygame.draw.rect(desktop_ui.screen, (30, 30, 120), combat_results_rect.inflate(12, 8))
-            desktop_ui.screen.blit(combat_results_surf, combat_results_rect.topleft)
-            y += combat_results_rect.height + margin // 2
 
             # Draw visible lines with scrolling
             for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
@@ -424,10 +414,6 @@ def show_turn_change_popup(desktop_ui):
                 if 0 <= idx < len(unmoved):
                     desktop_ui.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
                     return
-            elif event.key == pygame.K_c:
-                # Keyboard shortcut for Combat Results
-                show_combat_results_list(desktop_ui=desktop_ui)
-                needs_redraw = True
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
             # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
@@ -454,15 +440,10 @@ def show_turn_change_popup(desktop_ui):
                         desktop_ui.computer_opponent.perform_turn()
                         desktop_ui.show_combat_results(desktop_ui.turn_manager.last_combat_result, event.pos)
                 return
-            # Check if click is on Combat Results button
-            if combat_results_rect.collidepoint(mx, my):
-                show_combat_results_list(desktop_ui=desktop_ui)
-                needs_redraw = True
-                continue
             # Check if click is on a piece line
             for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
                 ts = text_surfaces[i]
-                text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + combat_results_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+                text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
                 if text_rect.collidepoint(mx, my) and len(unmoved) > 1:
                     desktop_ui.show_piece_menu(unmoved[i], event.pos)
                     return
@@ -499,64 +480,109 @@ Implementation notes:
     - Piece Selection
     - Phase/Turn change - button to access phase change details
 """
-def draw_dashboard(desktop):
-    """
-    Draws the dashboard at the bottom of the screen, split into sections:
-    - Turn Information
-    - Observation Report
-    - Combat Results
-    - Piece Selection
-    - Phase/Turn Change
-    """
-    screen = desktop.screen
-    win_width, win_height = screen.get_size()
-    dashboard_height = max(80, win_height // 8)
-    dashboard_rect = pygame.Rect(0, win_height - dashboard_height, win_width, dashboard_height)
-    pygame.draw.rect(screen, (40, 40, 60), dashboard_rect)
-    pygame.draw.rect(screen, (200, 200, 200), dashboard_rect, 2)
-
-    sections = [
+class Dashboard:
+    SECTIONS = [
         "Turn Information",
         "Observation Report",
         "Combat Results",
         "Phase/Turn Change"
     ]
-    section_width = win_width // len(sections)
-    font = pygame.font.SysFont(None, 20)
 
-    for i, title in enumerate(sections):
-        x = i * section_width
-        section_rect = pygame.Rect(x, win_height - dashboard_height, section_width, dashboard_height)
-        pygame.draw.rect(screen, (60, 60, 90), section_rect, 1)
-        text_surf = font.render(title, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=(x + section_width // 2, win_height - dashboard_height + 20))
-        screen.blit(text_surf, text_rect)
+    def __init__(self, desktop):
+        self.desktop = desktop
+        self.section_rects = []
+        self.dashboard_rect = None
 
-        # Draw Turn Information details in the first section
-        if i == 0:
-            # Use logic from draw_turn_info_popup
-            info_font = pygame.font.SysFont(None, 18)
-            day = desktop.turn_manager.current_day
-            hour = desktop.turn_manager.current_hour
-            phase = desktop.turn_manager.current_phase if hasattr(desktop.turn_manager, "current_phase") else ""
-            initiative = getattr(desktop.turn_manager, "side_with_initiative", None)
-            initiative_text = f"Initiative: {initiative}" if initiative else ""
-            text = f"Day: {day}  Hour: {hour:02d}:00"
-            phase_text = f"Phase: {phase}"
+    def draw(self):
+        screen = self.desktop.screen
+        win_width, win_height = screen.get_size()
+        dashboard_height = max(80, win_height // 8)
+        self.dashboard_rect = pygame.Rect(0, win_height - dashboard_height, win_width, dashboard_height)
+        pygame.draw.rect(screen, (40, 40, 60), self.dashboard_rect)
+        pygame.draw.rect(screen, (200, 200, 200), self.dashboard_rect, 2)
 
-            text_surf = info_font.render(text, True, (255, 255, 255))
-            phase_surf = info_font.render(phase_text, True, (255, 255, 0))
-            initiative_surf = info_font.render(initiative_text, True, (0, 255, 255)) if initiative_text else None
+        section_width = win_width // len(self.SECTIONS)
+        font = pygame.font.SysFont(None, 20)
+        self.section_rects = []
 
-            y_offset = win_height - dashboard_height + 40
-            screen.blit(text_surf, (x + 12, y_offset))
-            y_offset += text_surf.get_height() + 4
-            screen.blit(phase_surf, (x + 12, y_offset))
-            y_offset += phase_surf.get_height() + 4
-            if initiative_surf:
-                screen.blit(initiative_surf, (x + 12, y_offset))
+        for i, title in enumerate(self.SECTIONS):
+            x = i * section_width
+            section_rect = pygame.Rect(x, win_height - dashboard_height, section_width, dashboard_height)
+            self.section_rects.append(section_rect)
+            pygame.draw.rect(screen, (60, 60, 90), section_rect, 1)
+            text_surf = font.render(title, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=(x + section_width // 2, win_height - dashboard_height + 20))
+            screen.blit(text_surf, text_rect)
 
-    pygame.display.update(dashboard_rect)
+            # Draw Turn Information details in the first section
+            if i == 0:
+                info_font = pygame.font.SysFont(None, 18)
+                day = self.desktop.turn_manager.current_day
+                hour = self.desktop.turn_manager.current_hour
+                phase = self.desktop.turn_manager.current_phase if hasattr(self.desktop.turn_manager, "current_phase") else ""
+                initiative = getattr(self.desktop.turn_manager, "side_with_initiative", None)
+                initiative_text = f"Initiative: {initiative}" if initiative else ""
+                text = f"Day: {day}  Hour: {hour:02d}:00"
+                phase_text = f"Phase: {phase}"
+
+                text_surf = info_font.render(text, True, (255, 255, 255))
+                phase_surf = info_font.render(phase_text, True, (255, 255, 0))
+                initiative_surf = info_font.render(initiative_text, True, (0, 255, 255)) if initiative_text else None
+
+                y_offset = win_height - dashboard_height + 40
+                screen.blit(text_surf, (x + 12, y_offset))
+                y_offset += text_surf.get_height() + 4
+                screen.blit(phase_surf, (x + 12, y_offset))
+                y_offset += phase_surf.get_height() + 4
+                if initiative_surf:
+                    screen.blit(initiative_surf, (x + 12, y_offset))
+
+        pygame.display.update(self.dashboard_rect)
+
+    def get_section_at_point(self, pos):
+        """
+        Returns the index of the section at the given (x, y) position, or None.
+        """
+        for idx, rect in enumerate(self.section_rects):
+            if rect.collidepoint(pos):
+                return idx
+        return None
+
+    def handle_click(self, pos):
+        """
+        Call this from your event loop when the dashboard is clicked.
+        """
+        section_idx = self.get_section_at_point(pos)
+        if section_idx is not None:
+            section_name = self.SECTIONS[section_idx]
+            # Add your logic here for each section
+            if section_name == "Turn Information":
+                # Example: Show turn info popup or details
+                pass
+            elif section_name == "Observation Report":
+                # Example: Show observation report
+                pass
+            elif section_name == "Combat Results":
+                # Example: Show combat results
+                show_combat_results_list(self.desktop)
+                pass
+            elif section_name == "Phase/Turn Change":
+                show_turn_change_popup(self.desktop)
+            return section_name
+        return None
+
+# Usage example in your main loop:
+# dashboard = Dashboard(desktop)
+# dashboard.draw()
+# if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+#     pos = pygame.mouse.get_pos()
+#     dashboard.handle_click(pos)
+
+def draw_dashboard(desktop) -> Dashboard:
+    if desktop.dashboard is None:
+        desktop.dashboard = Dashboard(desktop)
+    desktop.dashboard.draw()
+    return desktop.dashboard
 
 from flattop.ui.desktop.combat_results_ui import CombatResultsList
 def show_combat_results_list(desktop_ui):

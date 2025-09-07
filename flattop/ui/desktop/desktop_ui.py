@@ -11,7 +11,7 @@ from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
 from flattop.ui.desktop.combat_results_ui import CombatResultsList, CombatResultsScreen
-from flattop.ui.desktop.desktop_popup import draw_dashboard, draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
+from flattop.ui.desktop.desktop_popup import Dashboard, draw_dashboard, draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
@@ -255,6 +255,7 @@ class DesktopUI:
     def __init__(self, board=HexBoardModel(10, 10), turn_manager=None, weather_manager=None):
         self.board = board
         self.screen = None
+        self.dashboard: Dashboard = None
         self.origin = (HEX_WIDTH // 2 + HEX_SPACING, HEX_HEIGHT // 2 + HEX_SPACING)
         self._dragging = False
         self._last_mouse_pos = None
@@ -562,9 +563,9 @@ class DesktopUI:
             self._handle_move_piece(event)
             return
 
-        # Check if click is on the turn info display
-        if hasattr(self, "_turn_info_rect") and self._turn_info_rect.collidepoint(event.pos):
-            show_turn_change_popup(self)
+        # Check if click is on the dashboard
+        if self.dashboard.dashboard_rect.collidepoint(event.pos):
+            self.dashboard.handle_click(event.pos)
             return
 
         original_button = event.button
