@@ -172,9 +172,19 @@ class CombatResultsList:
                         else:
                             clicked_index = self.get_clicked_index(event.pos)
                             if clicked_index >= 0:
-                                # Show detailed view for clicked combat result
+                                # Show detailed view for clicked combat result.  Combat result history is a list of tuples.
+                                combat_result = self.turn_results[clicked_index][1]
+                                
+                                a2a = combat_result.get("result_attacker_a2a")
+                                aa = []
+                                aa.append(combat_result.get("result_tf_anti_aircraft"))
+                                aa.append(combat_result.get("result_base_anti_aircraft"))
+                                ship = combat_result.get("result_attacker_ship_air_attack")
+                                base = combat_result.get("result_attacker_base_air_attack")
+
+                                result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
                                 detail_view = CombatResultsScreen(
-                                    self.turn_results[clicked_index],
+                                    result_data,
                                     self.screen,
                                     self.width,
                                     self.height

@@ -1,4 +1,3 @@
-
 import sys
 import pygame
 
@@ -83,8 +82,6 @@ def show_observation_report_popup(desktop, report, pos=None):
                 sys.exit()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 waiting = False
-
-
 
 def draw_turn_info_popup(desktop):
     # Draws the current day, hour, phase, and initiative in the bottom right corner
@@ -429,7 +426,7 @@ def show_turn_change_popup(desktop_ui):
                     return
             elif event.key == pygame.K_c:
                 # Keyboard shortcut for Combat Results
-                desktop_ui._show_combat_results_list()
+                show_combat_results_list(desktop_ui=desktop_ui)
                 needs_redraw = True
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
@@ -459,7 +456,7 @@ def show_turn_change_popup(desktop_ui):
                 return
             # Check if click is on Combat Results button
             if combat_results_rect.collidepoint(mx, my):
-                desktop_ui._show_combat_results_list()
+                show_combat_results_list(desktop_ui=desktop_ui)
                 needs_redraw = True
                 continue
             # Check if click is on a piece line
@@ -481,11 +478,88 @@ def show_turn_change_popup(desktop_ui):
                     scroll_offset += 1
                     needs_redraw = True
 
+"""
+Desktop UI dashboard
+    - Turn Information
+    - Observation Report
+    - Combat Results
+    - Piece Selection
+
+The dashboard provides an overview of the current game state and allows players to access various game functions quickly.
+
+Implementation notes:
+- The dashboard should be easily accessible from the main game screen.
+- Each section (Turn Information, Observation Report, etc.) should be clearly defined and visually distinct.
+- the dahsboard should be responsive to different screen sizes and resolutions.
+- the dashboard is at the bottom of the screen. It is shown as a rectangle covering the whole width of the desktop.screen.
+- the dashboard is split into sections
+    - Turn Information - summary of day and time and phase
+    - Observation Report - button to access observation details
+    - Combat Results
+    - Piece Selection
+    - Phase/Turn change - button to access phase change details
+"""
+def draw_dashboard(desktop):
+    """
+    Draws the dashboard at the bottom of the screen, split into sections:
+    - Turn Information
+    - Observation Report
+    - Combat Results
+    - Piece Selection
+    - Phase/Turn Change
+    """
+    screen = desktop.screen
+    win_width, win_height = screen.get_size()
+    dashboard_height = max(80, win_height // 8)
+    dashboard_rect = pygame.Rect(0, win_height - dashboard_height, win_width, dashboard_height)
+    pygame.draw.rect(screen, (40, 40, 60), dashboard_rect)
+    pygame.draw.rect(screen, (200, 200, 200), dashboard_rect, 2)
+
+    sections = [
+        "Turn Information",
+        "Observation Report",
+        "Combat Results",
+        "Phase/Turn Change"
+    ]
+    section_width = win_width // len(sections)
+    font = pygame.font.SysFont(None, 20)
+
+    for i, title in enumerate(sections):
+        x = i * section_width
+        section_rect = pygame.Rect(x, win_height - dashboard_height, section_width, dashboard_height)
+        pygame.draw.rect(screen, (60, 60, 90), section_rect, 1)
+        text_surf = font.render(title, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(center=(x + section_width // 2, win_height - dashboard_height + 20))
+        screen.blit(text_surf, text_rect)
+
+        # Draw Turn Information details in the first section
+        if i == 0:
+            # Use logic from draw_turn_info_popup
+            info_font = pygame.font.SysFont(None, 18)
+            day = desktop.turn_manager.current_day
+            hour = desktop.turn_manager.current_hour
+            phase = desktop.turn_manager.current_phase if hasattr(desktop.turn_manager, "current_phase") else ""
+            initiative = getattr(desktop.turn_manager, "side_with_initiative", None)
+            initiative_text = f"Initiative: {initiative}" if initiative else ""
+            text = f"Day: {day}  Hour: {hour:02d}:00"
+            phase_text = f"Phase: {phase}"
+
+            text_surf = info_font.render(text, True, (255, 255, 255))
+            phase_surf = info_font.render(phase_text, True, (255, 255, 0))
+            initiative_surf = info_font.render(initiative_text, True, (0, 255, 255)) if initiative_text else None
+
+            y_offset = win_height - dashboard_height + 40
+            screen.blit(text_surf, (x + 12, y_offset))
+            y_offset += text_surf.get_height() + 4
+            screen.blit(phase_surf, (x + 12, y_offset))
+            y_offset += phase_surf.get_height() + 4
+            if initiative_surf:
+                screen.blit(initiative_surf, (x + 12, y_offset))
+
+    pygame.display.update(dashboard_rect)
+
 from flattop.ui.desktop.combat_results_ui import CombatResultsList
-def _show_combat_results_list(desktop_ui):
+def show_combat_results_list(desktop_ui):
     # Show the CombatResultsList popup (if available)
-    try:
-        ui = CombatResultsList(desktop_ui.turn_manager.combat_results_history, desktop_ui.screen)
-        ui.run()
-    except Exception as e:
-        print("CombatResultsList not available or error:", e)
+    ui = CombatResultsList(desktop_ui.turn_manager.combat_results_history, desktop_ui.screen)
+    ui.run()

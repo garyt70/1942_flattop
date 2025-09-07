@@ -11,7 +11,7 @@ from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
 from flattop.ui.desktop.combat_results_ui import CombatResultsList, CombatResultsScreen
-from flattop.ui.desktop.desktop_popup import draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
+from flattop.ui.desktop.desktop_popup import draw_dashboard, draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
@@ -472,6 +472,7 @@ class DesktopUI:
     
     def _draw_turn_info(self):
         draw_turn_info_popup(self)
+        draw_dashboard(self)
 
     def render_popup(self, piece:Piece, pos):
         if self.computer_opponent.side == piece.side and not FEATURE_FLAG_TESTING: #draw limited details for opponent pieces
@@ -795,8 +796,6 @@ class DesktopUI:
         if results==None:
             return
         
-       
-
         a2a = results.get("result_attacker_a2a")
         aa = []
         aa.append(results.get("result_tf_anti_aircraft"))
@@ -805,9 +804,8 @@ class DesktopUI:
         base = results.get("result_attacker_base_air_attack")
 
 
-        results = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
-        self.turn_manager.combat_results_history.append(results)
-        ui = CombatResultsScreen(results, self.screen)
+        result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
+        ui = CombatResultsScreen(result_data, self.screen)
         ui.draw_results()
         ui.run()
     
