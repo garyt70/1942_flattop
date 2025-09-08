@@ -273,12 +273,16 @@ class DesktopUI:
         """
         Allows the human user to reposition their own TaskForce pieces on the mapboard before the game starts.
         User can click and drag their TaskForce pieces to any valid hex.
+        User can also pan the map by clicking and dragging on any hex that does not contain a human TaskForce.
         Press ESC or Enter to finish repositioning.
         """
 
         running = True
-        selected_piece : Piece = None
+        selected_piece: Piece = None
         offset = (0, 0)
+        dragging_map = False
+        last_mouse_pos = None
+
         while running:
             self.draw()
             pygame.display.flip()
@@ -293,30 +297,46 @@ class DesktopUI:
                     if event.button == 1:
                         pieces = self.get_pieces_at_pixel(event.pos)
                         # Only allow repositioning for human side's TaskForce pieces
+                        found_human_taskforce = False
                         for piece in pieces:
                             if isinstance(piece.game_model, TaskForce) and piece.side != self.computer_opponent.side:
                                 selected_piece = piece
                                 center = self.hex_to_pixel(piece.position.q, piece.position.r)
                                 offset = (event.pos[0] - center[0], event.pos[1] - center[1])
+                                found_human_taskforce = True
                                 break
+                        if not found_human_taskforce:
+                            # Start dragging map if no human TaskForce is present
+                            dragging_map = True
+                            last_mouse_pos = event.pos
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1 and selected_piece:
                         dest_hex = self.pixel_to_hex_coord(event.pos[0], event.pos[1])
                         if dest_hex:
                             selected_piece.position = dest_hex
-                            #self.board.move_piece(selected_piece, dest_hex)
                         selected_piece = None
-                elif event.type == pygame.MOUSEMOTION and selected_piece:
-                    # Optionally, show the piece following the mouse
-                    self.draw()
-                    mouse_x, mouse_y = event.pos
-                    image = PieceImageFactory.taskforce_image(
-                        COLOR_JAPANESE_PIECE if selected_piece.side == "Japanese" else COLOR_ALLIED_PIECE,
-                        observed=selected_piece.observed_condition > 0
-                    )
-                    rect = image.get_rect(center=(mouse_x - offset[0], mouse_y - offset[1]))
-                    self.screen.blit(image, rect)
-                    pygame.display.flip()
+                    if event.button == 1 and dragging_map:
+                        dragging_map = False
+                        last_mouse_pos = None
+                elif event.type == pygame.MOUSEMOTION:
+                    if selected_piece:
+                        # Optionally, show the piece following the mouse
+                        self.draw()
+                        mouse_x, mouse_y = event.pos
+                        image = PieceImageFactory.taskforce_image(
+                            COLOR_JAPANESE_PIECE if selected_piece.side == "Japanese" else COLOR_ALLIED_PIECE,
+                            observed=selected_piece.observed_condition > 0
+                        )
+                        rect = image.get_rect(center=(mouse_x - offset[0], mouse_y - offset[1]))
+                        self.screen.blit(image, rect)
+                        pygame.display.flip()
+                    elif dragging_map and last_mouse_pos:
+                        mouse_x, mouse_y = event.pos
+                        last_x, last_y = last_mouse_pos
+                        dx = mouse_x - last_x
+                        dy = mouse_y - last_y
+                        self.origin = (self.origin[0] + dx, self.origin[1] + dy)
+                        last_mouse_pos = event.pos
 
     def initialize(self):
         pygame.init()
