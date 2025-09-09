@@ -536,6 +536,60 @@ class Dashboard:
                 y_offset += phase_surf.get_height() + 4
                 if initiative_surf:
                     screen.blit(initiative_surf, (x + 12, y_offset))
+            elif i == 3:
+                #the buttons should be the same size. black text and grey background with a black border
+                button_font = pygame.font.SysFont(None, 18)
+                button_width = 260
+                button_height = 25
+                button_gap = 2
+
+                if self.desktop.turn_manager.current_phase_index == len(self.desktop.turn_manager.PHASES) - 1:
+                    button_text = "Advance Turn"
+                else:
+                    next_phase = self.desktop.turn_manager.PHASES[self.desktop.turn_manager.current_phase_index + 1]
+                    button_text = f"Advance Phase ({next_phase})"
+
+                button_y = win_height - dashboard_height + 18
+                button_surf = button_font.render(button_text, True, (0, 0, 0))
+                button_rect = pygame.Rect(
+                    x + section_width // 2 - button_width // 2,
+                    button_y,
+                    button_width,
+                    button_height
+                )
+                pygame.draw.rect(screen, (180, 180, 180), button_rect)  # grey background
+                pygame.draw.rect(screen, (0, 0, 0), button_rect, 2)    # black border
+                screen.blit(button_surf, button_surf.get_rect(center=button_rect.center))
+
+                # Draw a save game button
+                button_y += button_height + button_gap
+                save_button_font = pygame.font.SysFont(None, 18)
+                save_button_text = "Save Game"
+                save_button_surf = save_button_font.render(save_button_text, True, (0, 0, 0))
+                save_button_rect = pygame.Rect(
+                    x + section_width // 2 - button_width // 2,
+                    button_y,
+                    button_width,
+                    button_height
+                )
+                pygame.draw.rect(screen, (180, 180, 180), save_button_rect)  # grey background
+                pygame.draw.rect(screen, (0, 0, 0), save_button_rect, 2)     # black border
+                screen.blit(save_button_surf, save_button_surf.get_rect(center=save_button_rect.center))
+
+                # Draw a load game button
+                button_y += button_height + button_gap
+                load_button_font = pygame.font.SysFont(None, 18)
+                load_button_text = "Load Game"
+                load_button_surf = load_button_font.render(load_button_text, True, (0, 0, 0))
+                load_button_rect = pygame.Rect(
+                    x + section_width // 2 - button_width // 2,
+                    button_y,
+                    button_width,
+                    button_height
+                )
+                pygame.draw.rect(screen, (180, 180, 180), load_button_rect)  # grey background
+                pygame.draw.rect(screen, (0, 0, 0), load_button_rect, 2)     # black border
+                screen.blit(load_button_surf, load_button_surf.get_rect(center=load_button_rect.center))
 
         pygame.display.update(self.dashboard_rect)
 

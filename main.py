@@ -44,7 +44,22 @@ LAND_HEXES_BOARD_ONE =  {
             (34,12), (35,12), (36,12), 
                      (35,13), (36,13), (37,13), 
                     (35,14), (36,14), (37,14),
-    }  # Example land hexes; adjust as needed
+    }  
+
+LAND_HEXES_BOARD_TWO =  {
+        (40, 14), (41, 14),(42, 15),
+(38, 16), (39, 16), 
+
+                                                                  (47,16),
+                                                                    (47,17),
+                         (44,16),                                (48,18),  #Tulagi - 44,16
+                                                                    (49,18),
+       (41,16), (42,17), (43,17), (44,18), (45,18),                (49,19),  # Henderson - 43,17
+        (41,17), (42,18), (43,18), (44,19), (45,19),
+
+                  (47,21), (48, 22), (48,23), (49,23),                        (78, 35), (79, 35), # Indeni
+                                                                               (78,36),  
+}
 
 def scenario_one_setup():
 
@@ -210,6 +225,20 @@ def scenario_one_setup():
 
     return hexboard_model  # Return the hexagonal board model with the scenario set up
 
+def scenario_two_setup():
+     ###########################################
+    ## setup the land hexes for the scenario
+    hexes = LAND_HEXES_BOARD_ONE.union(LAND_HEXES_BOARD_TWO)
+    hexboard_model = HexBoardModel(80, 50, hexes)  # Example dimensions, adjust as needed
+    return hexboard_model
+
+    ####################
+    ## setup Japanese base at Rabul and Japanese Air Formation
+    chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
+    
+
+
+
 def load_hexboard_model():
     """
     Load the hexagonal board game model.
@@ -217,9 +246,9 @@ def load_hexboard_model():
     Returns:
         HexBoardModel: An instance of the HexBoardModel class.
     """ 
-    model = scenario_one_setup()  # Set up the scenario on the board model
-
-    return model 
+    #model = scenario_one_setup()  # Set up the scenario on the board model
+    model = scenario_two_setup()  # Set up the scenario on the board model
+    return model
 
 
 
