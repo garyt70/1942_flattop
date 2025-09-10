@@ -60,15 +60,17 @@ class WeatherManager:
                     for _ in range(die):
                         cloud.move(die, self.board)
                     self.cloud_markers.append(cloud)
-                    #from this cloud marker create cloud coverage up to two hexes from the cloud marker
-                    # Create cloud markers one hex out in all 6 directions
-                    for direction in range(1, 7):
-                        one_hex_out = self.move_hex(cloud.position, direction, 1)
-                        self.cloud_markers.append(CloudMarker(sector, one_hex_out, "scattered"))
-                    # Create cloud markers two hexes out in all 6 directions
-                    for direction in range(1, 7):
-                        two_hex_out = self.move_hex(cloud.position, direction, 2)
-                        self.cloud_markers.append(CloudMarker(sector, two_hex_out, "scattered"))
+                    # Fill all hexes within radius 2 from the cloud marker
+                    center = cloud.position
+                    for dq in range(-2, 3):
+                        for dr in range(-2, 3):
+                            q = center.q + dq
+                            r = center.r + dr
+                            # Hex distance formula for axial coordinates
+                            if abs(dq) + abs(dr) + abs(-dq-dr) <= 4:
+                                hex_out = Hex(q, r)
+                                if hex_out != center:  # skip the center, already added
+                                    self.cloud_markers.append(CloudMarker(sector, hex_out, "scattered"))
                     
         elif self.scenario_cloud_type == "front":
             for sector in range(1, 9):
@@ -81,15 +83,18 @@ class WeatherManager:
                 for cloud in [cloud_center, cloud_ne, cloud_sw]:
                     for _ in range(die):
                         cloud.move(die, self.board)
-                        #from this cloud marker create cloud coverage up to two hexes from the cloud marker
-                        # Create cloud markers one hex out in all 6 directions
-                        for direction in range(1, 7):
-                            one_hex_out = self.move_hex(cloud.position, direction, 1)
-                            self.cloud_markers.append(CloudMarker(sector, one_hex_out, "scattered"))
-                        # Create cloud markers two hexes out in all 6 directions
-                        for direction in range(1, 7):
-                            two_hex_out = self.move_hex(cloud.position, direction, 2)
-                            self.cloud_markers.append(CloudMarker(sector, two_hex_out, "scattered"))
+                        # Fill all hexes within radius 2 from the cloud marker
+                        center = cloud.position
+                        for dq in range(-2, 3):
+                            for dr in range(-2, 3):
+                                q = center.q + dq
+                                r = center.r + dr
+                                # Hex distance formula for axial coordinates
+                                if abs(dq) + abs(dr) + abs(-dq-dr) <= 4:
+                                    hex_out = Hex(q, r)
+                                    if hex_out != center:  # skip the center, already added
+                                        self.cloud_markers.append(CloudMarker(sector, hex_out, "scattered"))
+
         self.update_storms()
 
     def get_directional_hex(self, sector):
