@@ -230,13 +230,206 @@ def scenario_two_setup():
     ## setup the land hexes for the scenario
     hexes = LAND_HEXES_BOARD_ONE.union(LAND_HEXES_BOARD_TWO)
     hexboard_model = HexBoardModel(80, 50, hexes)  # Example dimensions, adjust as needed
-    return hexboard_model
 
     ####################
     ## setup Japanese base at Rabul and Japanese Air Formation
-    chartJapanase = AirOperationsChart(name="Japanese", description="Japanese Rings around Rabul", side="Japanese") 
-    
+    chartJapanese = AirOperationsChart(name="Japanese", description="Coral Sea", side="Japanese")
 
+    air_operations_config_rabaul = AirOperationsConfiguration(
+        name="Rabaul",
+        description="Configuration for air operations at Rabaul",
+        maximum_capacity=9999,
+        launch_factor_min=6,
+        launch_factor_normal=12,
+        launch_factor_max=24,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=8
+    )
+    baseRabaulJapanese = Base("Rabaul",side="Japanese", air_operations_config=air_operations_config_rabaul)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4, "land"), gameModel=baseRabaulJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseRabaulJapanese.name] = baseRabaulJapanese  # Add the base to the Japanese chart
+
+    air_operations_config_gasmata = AirOperationsConfiguration(
+        name="Gasmata",
+        description="Configuration for air operations at Gasmata",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseGasmataJapanese = Base("Gasmata",side="Japanese", air_operations_config=air_operations_config_gasmata)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Gasmata Base", side="Japanese", position=Hex(14, 10, "land"), gameModel=baseGasmataJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseGasmataJapanese.name] = baseGasmataJapanese  # Add the base to the Japanese chart
+
+    air_operations_config_kavieng = AirOperationsConfiguration(
+        name="Kavieng",
+        description="Configuration for air operations at Kavieng",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseKaviengJapanese = Base("Kavieng",side="Japanese", air_operations_config=air_operations_config_kavieng)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Kavieng Base", side="Japanese", position=Hex(12, 0, "land"), gameModel=baseKaviengJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseKaviengJapanese.name] = baseKaviengJapanese  # Add the base to the Japanese chart
+
+    air_operations_config_truk = AirOperationsConfiguration(
+        name="Truk",
+        description="Configuration for air operations at Truk",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseTrukJapanese = Base("Truk",side="Japanese", air_operations_config=air_operations_config_truk)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Truk Base", side="Japanese", position=Hex(17, 0, "land"), gameModel=baseTrukJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseTrukJapanese.name] = baseTrukJapanese  # Add the base to the Japanese chart
+
+    air_operations_config_lae = AirOperationsConfiguration(
+        name="Lae",
+        description="Configuration for air operations at Lae",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseLaeJapanese = Base("Lae",side="Japanese", air_operations_config=air_operations_config_lae)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Lae Base", side="Japanese", position=Hex(2, 13, "land"), gameModel=baseLaeJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseLaeJapanese.name] = baseLaeJapanese  # Add the base to the Japanese chart
+
+    air_operations_config_shortland = AirOperationsConfiguration(
+        name="Shortland",
+        description="Configuration for air operations at Shortland",
+        maximum_capacity=9999,
+        launch_factor_min=4,
+        launch_factor_normal=8,
+        launch_factor_max=16,
+        ready_factors=7,
+        plane_handling_type="LP",
+        aaf=5
+    )
+    baseShortlandJapanese = Base("Shortland",side="Japanese", air_operations_config=air_operations_config_shortland)  # Create a base for the Japanese side
+    hexboard_model.add_piece(Piece("Japanese Shortland Base", side="Japanese", position=Hex(38, 16, "land"), gameModel=baseShortlandJapanese))  # Add a piece for Japanese base
+    chartJapanese.bases[baseShortlandJapanese.name] = baseShortlandJapanese  # Add the base to the Japanese chart
+
+    #setup Japanese Task Force
+
+
+
+
+     ###########################################
+    ## setup Allied base at Port Moresby and Allied Task Force
+    chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
+    
+    air_operations_config = AirOperationsConfiguration(
+        name="Port Moresby",
+        description="Configuration for air operations at Port Moresby",
+        maximum_capacity=9999,
+        launch_factor_min=10,
+        launch_factor_normal=20,
+        launch_factor_max=40,
+        ready_factors=8,
+        plane_handling_type="LP"
+    )
+    basePortMoresbyAllied = Base("Port Moresby",side="Allied" ,air_operations_config = air_operations_config)  # Create a base for the Allied side
+    hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
+    chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
+
+    air_operations_config_australia = AirOperationsConfiguration(
+        name="Australia",
+        description="Configuration for air operations at Australia",
+        maximum_capacity=9999,
+        launch_factor_min=10,
+        launch_factor_normal=20,
+        launch_factor_max=40,
+        ready_factors=8,
+        plane_handling_type="LP"
+    )
+    baseAustraliaAllied = Base("Australia",side="Allied" ,air_operations_config = air_operations_config_australia)  # Create a base for the Allied side
+    hexboard_model.add_piece(Piece("Allied Australia", "Allied", Hex(0, 49), gameModel=baseAustraliaAllied))  # Add a piece for Allied base
+    chartAllied.bases[baseAustraliaAllied.name] = baseAustraliaAllied  # Add the base to the Allied chart
+
+    air_operations_config_new_cal = AirOperationsConfiguration(
+        name="New Caledonia",
+        description="Configuration for air operations at New Caledonia",
+        maximum_capacity=9999,
+        launch_factor_min=10,
+        launch_factor_normal=20,
+        launch_factor_max=40,
+        ready_factors=8,
+        plane_handling_type="LP"
+    )
+    baseNewCaledoniaAllied = Base("New Caledonia",side="Allied" ,air_operations_config = air_operations_config_new_cal)  # Create a base for the Allied side
+    hexboard_model.add_piece(Piece("Allied New Caledonia", "Allied", Hex(70, 49), gameModel=baseNewCaledoniaAllied))  # Add a piece for Allied base
+    chartAllied.bases[baseNewCaledoniaAllied.name] = baseNewCaledoniaAllied  # Add the base to the Allied chart
+
+    taskForce1 = TaskForce(1, "Lexington Task Force", "Allied")
+    carrierLexington : Carrier = AlliedShipFactory.create("Lexington")
+    carrierLexington.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=7),AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.DAUNTLESS, count=12)
+    ac.armament = None
+    carrierLexington.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+    ac = AircraftFactory.create(AircraftType.DEVASTATOR, count=4)
+    ac.armament = None
+    carrierLexington.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+
+    taskForce1.add_ship(carrierLexington)  # CV Lexington, damage_factor=4 (already set above)
+    taskForce1.add_ship(AlliedShipFactory.create("Chester"))      
+    taskForce1.add_ship(AlliedShipFactory.create("New Orleans"))    
+    taskForce1.add_ship(AlliedShipFactory.create("Astoria"))  
+    taskForce1.add_ship(AlliedShipFactory.create("Portland"))   
+    for i in range(7):
+        taskForce1.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+
+    for i in range(2):
+        taskForce1.add_ship(Ship(f"Tanker {i+1}", "AO", "operational",1,1,1,1))
+
+    chartAllied.task_forces[1] = taskForce1
+    hexboard_model.add_piece(Piece(name="Lexington Taskforce", side="Allied", position=Hex(35, 45), gameModel=taskForce1))  # Add a piece for Allied Task Force
+
+    taskForce2 = TaskForce(2, "Yorktown Task Force", "Allied")
+    carrierYorktown : Carrier = AlliedShipFactory.create("Yorktown")
+    carrierYorktown.air_operations.set_operations_status(AircraftFactory.create(AircraftType.WILDCAT, count=7),AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.DAUNTLESS, count=12)
+    ac.armament = None
+    carrierYorktown.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+    ac = AircraftFactory.create(AircraftType.DEVASTATOR, count=4)
+    ac.armament = None
+    carrierYorktown.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+
+    taskForce2.add_ship(carrierYorktown)  # CV Yorktown, damage_factor=4 (already set above)
+    taskForce2.add_ship(AlliedShipFactory.create("Minneapolis"))      
+    taskForce2.add_ship(AlliedShipFactory.create("Australia"))    
+    taskForce2.add_ship(AlliedShipFactory.create("Chicago"))  
+    taskForce2.add_ship(AlliedShipFactory.create("Hobart"))   
+    for i in range(7):
+        taskForce2.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+
+    chartAllied.task_forces[2] = taskForce2
+    hexboard_model.add_piece(Piece(name="Yorktown Taskforce", side="Allied", position=Hex(40, 35), gameModel=taskForce2))  # Add a piece for Allied Task Force
+
+
+    hexboard_model.players[chartAllied.side] = chartAllied
+    hexboard_model.players[chartJapanese.side] = chartJapanese
+
+    return hexboard_model
+
+    
+    
+    
 
 
 def load_hexboard_model():
