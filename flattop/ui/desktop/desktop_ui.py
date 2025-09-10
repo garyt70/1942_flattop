@@ -269,6 +269,13 @@ class DesktopUI:
         if self.weather_manager is None:
             self.weather_manager = WeatherManager(self.board) 
 
+        self.minimap_rect = None
+        self.minimap_scale = 0.25  # 25% of screen
+        self.minimap_dragging = False
+        self.minimap_resize_start = None
+        self.minimap_min_size = 100
+        self.minimap_max_size = 600
+
     def reposition_taskforces(self):
         """
         Allows the human user to reposition their own TaskForce pieces on the mapboard before the game starts.
@@ -283,9 +290,11 @@ class DesktopUI:
         dragging_map = False
         last_mouse_pos = None
 
+        clock = pygame.time.Clock()
+        
         while running:
+            clock.tick(30)  # Limit to 30 FPS
             self.draw()
-            pygame.display.flip()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -318,6 +327,7 @@ class DesktopUI:
                     if event.button == 1 and dragging_map:
                         dragging_map = False
                         last_mouse_pos = None
+                        self.draw()
                 elif event.type == pygame.MOUSEMOTION:
                     if selected_piece:
                         # Optionally, show the piece following the mouse
@@ -337,7 +347,8 @@ class DesktopUI:
                         dy = mouse_y - last_y
                         self.origin = (self.origin[0] + dx, self.origin[1] + dy)
                         last_mouse_pos = event.pos
-
+                        self.draw_minimap()
+                        
     def initialize(self):
         pygame.init()
         cols, rows = self.board.width, self.board.height
@@ -403,6 +414,93 @@ class DesktopUI:
                 return piece
         return None
     
+    def draw_minimap(self):
+        # Calculate minimap size and position
+        screen_w, screen_h = self.screen.get_size()
+        size = int(min(screen_w, screen_h) * self.minimap_scale)
+        if not self.minimap_rect:
+            self.minimap_rect = pygame.Rect(screen_w - size - 10, 10, size, size)
+        else:
+            self.minimap_rect.width = size
+            self.minimap_rect.height = size
+            self.minimap_rect.x = screen_w - size - 10
+            self.minimap_rect.y = 10
+        # Draw minimap background as sea color
+        SEA_COLOR = (80, 160, 220)
+        pygame.draw.rect(self.screen, SEA_COLOR, self.minimap_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), self.minimap_rect, 2)
+        # Draw hex grid with terrain and weather (skip sea hexes)
+        cols, rows = self.board.width, self.board.height
+        grid_w, grid_h = cols, rows
+        dot_radius = max(2, size // (max(cols, rows) * 4))
+        for q in range(cols):
+            for r in range(rows):
+                hex_obj = self.board.get_hex(q, r)
+                # Only draw non-sea terrain and weather overlays
+                if hasattr(hex_obj, "terrain") and hex_obj.terrain != "sea":
+                    x = self.minimap_rect.x + int((q + 0.5) * size / grid_w)
+                    y = self.minimap_rect.y + int((r + 0.5) * size / grid_h)
+                    if hex_obj.terrain == "land":
+                        color = (34, 139, 34)  # Green
+                    elif hex_obj.terrain == "mountain":
+                        color = (139, 137, 137)  # Gray
+                    elif hex_obj.terrain == "base":
+                        color = (255, 215, 0)  # Gold
+                    else:
+                        color = (120, 120, 120)
+                    # Weather overlay
+                    weather_piece = next((p for p in self.board.pieces if p.position.q == q and p.position.r == r and isinstance(p, CloudMarker)), None)
+                    if weather_piece:
+                        if weather_piece.is_storm:
+                            color = (180, 0, 180)  # Storm: purple
+                        else:
+                            color = (200, 200, 200)  # Cloud: light gray
+                    pygame.draw.circle(self.screen, color, (x, y), dot_radius)
+                else:
+                    # Draw weather overlays on sea hexes only if present
+                    weather_piece = next((p for p in self.board.pieces if p.position.q == q and p.position.r == r and isinstance(p, CloudMarker)), None)
+                    if weather_piece:
+                        x = self.minimap_rect.x + int((q + 0.5) * size / grid_w)
+                        y = self.minimap_rect.y + int((r + 0.5) * size / grid_h)
+                        if weather_piece.is_storm:
+                            color = (180, 0, 180)  # Storm: purple
+                        else:
+                            color = (200, 200, 200)  # Cloud: light gray
+                        pygame.draw.circle(self.screen, color, (x, y), dot_radius)
+        # Draw TaskForce and AirFormation dots
+        for piece in self.board.pieces:
+            if isinstance(piece.game_model, TaskForce):
+                color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
+                x = self.minimap_rect.x + int((piece.position.q + 0.5) * size / grid_w)
+                y = self.minimap_rect.y + int((piece.position.r + 0.5) * size / grid_h)
+                pygame.draw.circle(self.screen, color, (x, y), dot_radius + 2)
+            elif isinstance(piece.game_model, AirFormation):
+                color = (255, 255, 0) if piece.side == "Japanese" else (0, 255, 0)
+                x = self.minimap_rect.x + int((piece.position.q + 0.5) * size / grid_w)
+                y = self.minimap_rect.y + int((piece.position.r + 0.5) * size / grid_h)
+                pygame.draw.circle(self.screen, color, (x, y), dot_radius + 1)
+        # Draw visible region box
+        # Calculate visible hex region
+        # Calculate the visible hex region based on the current origin offset
+        left = max(0, int(-((self.origin[0] - HEX_WIDTH // 2) / (HEX_WIDTH * .75))))
+        top = max(0, int(-((self.origin[1] - HEX_HEIGHT // 2) / (HEX_HEIGHT * 1.1))))
+        vis_cols = int(self.screen.get_width() / (HEX_WIDTH * .75))
+        vis_rows = int(self.screen.get_height() / (HEX_HEIGHT * 1.1))
+        box_x = self.minimap_rect.x + int(left * size / grid_w)
+        box_y = self.minimap_rect.y + int(top * size / grid_h)
+        box_w = int(vis_cols * size / grid_w)
+        box_h = int(vis_rows * size / grid_h)
+        pygame.draw.rect(self.screen, (255, 255, 255), (box_x, box_y, box_w, box_h), 2)
+        # Draw resize handle (bottom right corner)
+        handle_size = 12
+        handle_rect = pygame.Rect(
+            self.minimap_rect.right - handle_size,
+            self.minimap_rect.bottom - handle_size,
+            handle_size, handle_size)
+        pygame.draw.rect(self.screen, (180, 180, 180), handle_rect)
+        pygame.draw.rect(self.screen, (100, 100, 100), handle_rect, 2)
+        self.minimap_handle_rect = handle_rect
+
     def draw(self):
         self.screen.fill(BG_COLOR)
 
@@ -485,6 +583,7 @@ class DesktopUI:
 
         # Draw the turn info in the bottom right corner
         self._draw_turn_info()
+        self.draw_minimap()
 
         # If a piece is being moved, draw it at the mouse position
         if self._moving_piece:
@@ -547,6 +646,7 @@ class DesktopUI:
     def run_with_click_return(self):
         running = True
         self.computer_opponent.perform_turn()
+        clock = pygame.time.Clock()
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -561,10 +661,10 @@ class DesktopUI:
                 elif event.type == pygame.MOUSEBUTTONUP:
                     #assume dragging is done when mouse button is released
                     self._dragging = False
-
-            #self.screen.fill(BG_COLOR)
+                    self.minimap_dragging = False
+                    self.minimap_resize_start = None
             self.draw()
-            pygame.display.flip()
+            clock.tick(30)
 
         pygame.quit()
         sys.exit()
@@ -614,7 +714,12 @@ class DesktopUI:
         elif original_button == 3 and piece:
             #piece = self.get_piece_at_pixel(event.pos)
             self.render_popup(piece, event.pos)
-       
+        # Minimap resize logic
+        if hasattr(self, 'minimap_handle_rect') and self.minimap_handle_rect.collidepoint(event.pos):
+            self.minimap_dragging = True
+            self.minimap_resize_start = event.pos
+            self.minimap_start_scale = self.minimap_scale
+            return
 
     def _handle_move_piece(self, event):
         # Handles moving a piece when the mouse button is released.
@@ -672,6 +777,16 @@ class DesktopUI:
             dy = mouse_y - last_y
             self.origin = (self.origin[0] + dx, self.origin[1] + dy)
             self._last_mouse_pos = event.pos
+        # Minimap resizing
+        if self.minimap_dragging and self.minimap_resize_start:
+            mx, my = event.pos
+            sx, sy = self.minimap_resize_start
+            delta = max(mx - sx, my - sy)
+            screen_w, screen_h = self.screen.get_size()
+            base_size = int(min(screen_w, screen_h) * self.minimap_start_scale)
+            new_size = max(self.minimap_min_size, min(self.minimap_max_size, base_size + delta))
+            self.minimap_scale = new_size / min(screen_w, screen_h)
+            return
         # Save state for run loop
         #if not hasattr(self, '_dragging'):
         #    self._dragging = dragging

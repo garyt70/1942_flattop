@@ -549,7 +549,7 @@ class Dashboard:
                     next_phase = self.desktop.turn_manager.PHASES[self.desktop.turn_manager.current_phase_index + 1]
                     button_text = f"Advance Phase ({next_phase})"
 
-                button_y = win_height - dashboard_height + 18
+                button_y = win_height - dashboard_height + dashboard_height // 2 - button_height // 2
                 button_surf = button_font.render(button_text, True, (0, 0, 0))
                 button_rect = pygame.Rect(
                     x + section_width // 2 - button_width // 2,
