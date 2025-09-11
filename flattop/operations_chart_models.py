@@ -1120,7 +1120,7 @@ class JapaneseShipFactory:
                 ship = Ship(name, "BB", "operational", 15, 3, 1, 11)
             case "Nagato" | "Mutsu":
                 ship = Ship(name, "BB", "operational", 18, 3, 1, 12)
-            case "Yuru" | "Isuzu" | "Jintsu" | "Nagura" | "Sendai" | "Abukuma" | "Tama":
+            case "Yuru" | "Isuzu" | "Jintsu" | "Nagura" | "Sendai" | "Abukuma" | "Tama" | "Yubari" | "Tenryu":
                 ship = Ship(name, "CL", "operational", 2, 1, 2, 4)
             case "Takao" | "Atago" | "Maya" | "Chokai" | "Haguro" | "Kumano" | "Suzuya" | "Nachi" | "Myoko":
                 ship = Ship(name, "CA", "operational", 6, 2, 2, 6)

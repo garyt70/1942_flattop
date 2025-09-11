@@ -1,6 +1,6 @@
 from flattop.ui.desktop.desktop_ui import DesktopUI # Import the DesktopUI class from the module
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece  # Adjust import as needed
-from flattop.operations_chart_models import AlliedShipFactory, AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
+from flattop.operations_chart_models import AlliedShipFactory, AirOperationsChart, Base, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, JapaneseShipFactory, TaskForce, Carrier, Ship, AirFormation, AircraftFactory, AircraftType
 
 
 LAND_HEXES_BOARD_ONE =  {
@@ -326,10 +326,104 @@ def scenario_two_setup():
     chartJapanese.bases[baseShortlandJapanese.name] = baseShortlandJapanese  # Add the base to the Japanese chart
 
     #setup Japanese Task Force
+    taskForce1 = TaskForce(1, "Shokaku Task Force", "Japanese")
+    carrierShokaku : Carrier = JapaneseShipFactory.create("Shokaku")
+    ac = AircraftFactory.create(AircraftType.ZERO, count=8)
+    ac.armament = None
+    carrierShokaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.VAL, count=7)
+    ac.armament = None
+    carrierShokaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+    ac = AircraftFactory.create(AircraftType.KATE, count=7)
+    ac.armament = None
+    carrierShokaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+
+    taskForce1.add_ship(carrierShokaku)  # CV Shokaku, damage_factor=4 (already set above)
+    taskForce1.add_ship(JapaneseShipFactory.create("Myoko"))      # CA Myoko, damage_factor=3
+    taskForce1.add_ship(JapaneseShipFactory.create("Haguro"))    # CA Haguro, damage_factor=3
+    taskForce1.add_ship(JapaneseShipFactory.create("Aoba"))  # CA Aoba, damage_factor=3
+    taskForce1.add_ship(JapaneseShipFactory.create("Kako"))   # CA Kako, damage_factor=3
+    for i in range(4):
+        taskForce1.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+
+    hexboard_model.add_piece(Piece(name="Shokaku Taskforce", side="Japanese", position=Hex(30, 10), gameModel=taskForce1))  # Add
+
+    taskForce2 = TaskForce(1, "Zuikaku Task Force", "Japanese")
+    carrierZuikaku : Carrier = JapaneseShipFactory.create("Zuikaku")
+    ac = AircraftFactory.create(AircraftType.ZERO, count=8)
+    ac.armament = None
+    carrierZuikaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READY)
+    ac = AircraftFactory.create(AircraftType.VAL, count=7)
+    ac.armament = None
+    carrierZuikaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+    ac = AircraftFactory.create(AircraftType.KATE, count=7)
+    ac.armament = None
+    carrierZuikaku.air_operations.set_operations_status(ac,AircraftOperationsStatus.READYING)
+
+    taskForce2.add_ship(carrierZuikaku)  # CV Zuikaku, damage_factor=4 (already set above)
+    taskForce2.add_ship(JapaneseShipFactory.create("Kinugasa"))      # CA Kinugasa, damage_factor=3
+    taskForce2.add_ship(JapaneseShipFactory.create("Furutaka"))    # CA Furutaka, damage_factor=3
+    taskForce2.add_ship(JapaneseShipFactory.create("Yubari"))  # CA Yubari, damage_factor=3
+    taskForce2.add_ship(JapaneseShipFactory.create("Tenryu"))   # CA Tenryu, damage_factor=3
+
+    for i in range(4):
+        taskForce2.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+
+    hexboard_model.add_piece(Piece(name="Zuikaku Taskforce", side="Japanese", position=Hex(32, 10), gameModel=taskForce2))  # Add a piece for Japanese Task Force
+
+    taskForce3 = TaskForce(3, "Shoho Task Force", "Japanese")
+    carrierShoho : Carrier = JapaneseShipFactory.create("Shoho")
+    carrierShoho.air_operations.set_operations_status(AircraftFactory.create(AircraftType.KATE, count=3),AircraftOperationsStatus.READYING)
+    carrierShoho.air_operations.set_operations_status(AircraftFactory.create(AircraftType.DAVE, count=3),AircraftOperationsStatus.READYING)
+    carrierShoho.air_operations.set_operations_status(AircraftFactory.create(AircraftType.PETE, count=4),AircraftOperationsStatus.READYING)
+
+    taskForce3.add_ship(carrierShoho)  # CV Shoho
+    taskForce3.add_ship(JapaneseShipFactory.create("Kamikawa"))      # AV Kamikawa
+    for i in range(6):
+        taskForce3.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+
+    hexboard_model.add_piece(Piece(name="Shoho Taskforce", side="Japanese", position=Hex(28, 10), gameModel=taskForce3))  # Add a piece for Japanese Task Force
+
+    taskForce4 = TaskForce(4, "Landing Force 1a", "Japanese")
+    for i in range(6):
+        taskForce4.add_ship(Ship(f"Transport {i+1}", "AP", "operational",0,0,1,1))
+    for i in range(2):
+        taskForce4.add_ship(Ship(f"Gunboat {i+1}", "PG", "operational",1,0,2,1))
+    for i in range(1):
+        taskForce4.add_ship(Ship(f"Oiler {i+1}", "AO", "operational",1,1,2,1))
+    for i in range(1):
+        taskForce4.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 10), gameModel=taskForce4))  # Add a piece for Japanese Task Force
+
+    taskForce4b = TaskForce(5, "Landing Force 1b", "Japanese")
+    for i in range(6):
+        taskForce4b.add_ship(Ship(f"Transport {i+1}", "AP", "operational",0,0,1,1))
+    for i in range(2):
+        taskForce4b.add_ship(Ship(f"Gunboat {i+1}", "PG", "operational",1,0,2,1))
+    for i in range(1):
+        taskForce4b.add_ship(Ship(f"Oiler {i+1}", "AO", "operational",1,1,2,1))
+    for i in range(1):
+        taskForce4b.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 10), gameModel=taskForce4b))  # Add a piece for Japanese Task Force
 
 
+    taskForce5 = TaskForce(6, "Landing Force 2", "Japanese")
+    taskForce5.add_ship(JapaneseShipFactory.create("Tatsuta"))    # CL Tatsuta
+    taskForce5.add_ship(Ship(f"Transport", "AP", "operational",0,0,1,1))
+    for i in range(3):
+        taskForce5.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
+    for i in range(4):
+        taskForce5.add_ship(Ship(f"Gunboat {i+1}", "PG", "operational",1,0,2,1))
 
-
+    hexboard_model.add_piece(Piece(name="Landing Force 2", side="Japanese", position=Hex(27, 10), gameModel=taskForce5))  # Add a
+    
+    chartJapanese.task_forces[1] = taskForce1
+    chartJapanese.task_forces[2] = taskForce2
+    chartJapanese.task_forces[3] = taskForce3
+    chartJapanese.task_forces[4] = taskForce4
+    chartJapanese.task_forces[5] = taskForce5
+    chartJapanese.task_forces[6] = taskForce4b
+    
      ###########################################
     ## setup Allied base at Port Moresby and Allied Task Force
     chartAllied = AirOperationsChart(name="Allied", description="Allied Rings around Rabul", side="Allied")
@@ -395,7 +489,7 @@ def scenario_two_setup():
         taskForce1.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
 
     for i in range(2):
-        taskForce1.add_ship(Ship(f"Tanker {i+1}", "AO", "operational",1,1,1,1))
+        taskForce1.add_ship(Ship(f"Tanker {i+1}", "AO", "operational",0,0,2,1))
 
     chartAllied.task_forces[1] = taskForce1
     hexboard_model.add_piece(Piece(name="Lexington Taskforce", side="Allied", position=Hex(35, 45), gameModel=taskForce1))  # Add a piece for Allied Task Force

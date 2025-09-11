@@ -1219,7 +1219,7 @@ class ComputerOpponent:
                 base = getattr(carrier, 'base', None)
                 if not base:
                     continue
-                self._create_search_airformation_for_base(base)
+                self._create_search_airformation_for_base(base, tf_piece)
 
     def _move_search_airformations(self, board):
         logger.debug("Moving search air formations.")
