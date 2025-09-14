@@ -393,7 +393,7 @@ def scenario_two_setup():
         taskForce4.add_ship(Ship(f"Oiler {i+1}", "AO", "operational",1,1,2,1))
     for i in range(1):
         taskForce4.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
-    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 10), gameModel=taskForce4))  # Add a piece for Japanese Task Force
+    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 5), gameModel=taskForce4))  # Add a piece for Japanese Task Force
 
     taskForce4b = TaskForce(5, "Landing Force 1b", "Japanese")
     for i in range(6):
@@ -404,7 +404,7 @@ def scenario_two_setup():
         taskForce4b.add_ship(Ship(f"Oiler {i+1}", "AO", "operational",1,1,2,1))
     for i in range(1):
         taskForce4b.add_ship(Ship(f"Destroyer {i+1}", "DD", "operational",1,1,2,1))
-    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 10), gameModel=taskForce4b))  # Add a piece for Japanese Task Force
+    hexboard_model.add_piece(Piece(name="Landing Force", side="Japanese", position=Hex(26, 5), gameModel=taskForce4b))  # Add a piece for Japanese Task Force
 
 
     taskForce5 = TaskForce(6, "Landing Force 2", "Japanese")
