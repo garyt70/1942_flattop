@@ -33,6 +33,7 @@ TODO: Fixes for known issues:
 
 """
 
+from collections import deque
 import random
 import logging
 from flattop.hex_board_game_model import HexBoardModel, Piece, TurnManager, get_distance
@@ -101,6 +102,52 @@ class ComputerOpponent:
             return []
         return [tile for tile in self.board.tiles if 0 < get_distance(center_hex, tile) <= radius]
     
+    def _move_taskforce_toward(self, piece:Piece, target_hex):
+        logger.debug(f"_move_taskforce_toward: Moving {piece.name} toward {target_hex}")
+        """
+        Rules for moving a taskforce toward a target hex:
+        - Move only over sea hexes
+        - Plot the shortest sea-only path to the target hex, avoiding land hexes.
+        - For each move, perform observation.
+        """
+
+
+        def find_shortest_sea_path(start_hex, end_hex):
+            """
+            BFS to find shortest path over sea hexes from start_hex to end_hex.
+            Returns a list of hexes (including start and end) or None if no path.
+            """
+            visited = set()
+            queue = deque([(start_hex, [start_hex])])
+            while queue:
+                current, path = queue.popleft()
+                if current == end_hex:
+                    return path
+                visited.add(current)
+            neighbors = [
+                tile for tile in self.board.tiles
+                if get_distance(current, tile) == 1 and self.board.get_terrain(tile) == 'sea'
+            ]
+            for neighbor in neighbors:
+                if neighbor not in visited:
+                    queue.append((neighbor, path + [neighbor]))
+            return None
+
+        current_hex = piece.position
+        max_steps = 2  # Taskforces typically move 2 hexes per turn
+
+        path = find_shortest_sea_path(current_hex, target_hex)
+        if path and len(path) > 1:
+            # Move up to max_steps along the path
+            steps = min(max_steps, len(path) - 1)
+            for i in range(1, steps + 1):
+                next_hex = path[i]
+                self.board.move_piece(piece, next_hex)
+                current_hex = next_hex
+                 # Perform observation after each move
+                observed_enemy_pieces = perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
+                self._update_last_spotted_taskforce(observed_enemy_pieces)
+
     
     def _move_toward(self, piece : Piece, target_hex, stop_distance=0):
         logger.debug(f"_move_toward: Moving {piece.name} toward {target_hex} with stop_distance={stop_distance}")
@@ -154,7 +201,11 @@ class ComputerOpponent:
 
             for _ in range(steps):
                 # Find the next hex 1 step closer to best_hex
-                neighbors = [tile for tile in self.board.tiles if get_distance(current_hex, tile) == 1]
+                if is_plane:
+                    neighbors = [tile for tile in self.board.tiles if get_distance(current_hex, tile) == 1]
+                else:
+                    # For taskforces, only consider sea hexes as neighbors
+                    neighbors = [tile for tile in self.board.tiles if get_distance(current_hex, tile) == 1 and self.board.get_terrain(tile) == 'sea']
                 if not neighbors:
                     break
                 # Choose the neighbor closest to best_hex
@@ -669,7 +720,70 @@ class ComputerOpponent:
                             logger.debug(f"Fighter/interceptor {piece.name} already close to base, loitering.")
                             self._move_random_within_range(piece, max_range=4)
                 elif isinstance(gm, TaskForce):
-                    # Task forces: do not move if no observed enemies (could add patrol logic here)
+                    """
+                    task force movement rules
+                    
+                    - Avoid moving into storm hexes
+                    - Move toward last known enemy task force location if available
+                    - Move toward nearest enemy base 
+                    - Taskforce with carriers should keep their distance from enemy task forces (at least 10-20 hexes)
+                    - Otherwise, move randomly but avoid clustering with other friendly task forces (maintain at least 2-3 hexes apart)
+                    """
+                    # Avoid moving into storm hexes
+                    current_hex = piece.position
+                    if self.weather_manager.is_storm_hex(current_hex):
+                        # Move to nearest non-storm sea hex
+                        candidates = [tile for tile in self.board.tiles
+                                      if self.board.get_terrain(tile) == 'sea'
+                                      and not self.weather_manager.is_storm_hex(tile)
+                                      and get_distance(current_hex, tile) <= 3]
+                        if candidates:
+                            dest = random.choice(candidates)
+                            self.board.move_piece(piece, dest)
+                        continue
+
+                    # Move toward last known enemy task force location if available
+                    last_spotted_hex = self._get_last_spotted_taskforce_hex()
+                    if last_spotted_hex:
+                        # If carriers present, keep distance (10-20 hexes)
+                        tf = piece.game_model
+                        has_carrier = hasattr(tf, 'get_carriers') and tf.get_carriers()
+                        dist_to_enemy_tf = get_distance(current_hex, last_spotted_hex)
+                        if has_carrier and dist_to_enemy_tf < 10:
+                            # Move away from enemy task force
+                            candidates = [tile for tile in self.board.tiles
+                                          if self.board.get_terrain(tile) == 'sea'
+                                          and get_distance(tile, last_spotted_hex) > 10
+                                          and get_distance(current_hex, tile) <= 3]
+                            if candidates:
+                                dest = random.choice(candidates)
+                                self.board.move_piece(piece, dest)
+                        else:
+                            # Move toward enemy task force
+                            self._move_toward(piece, last_spotted_hex, stop_distance=0)
+                        continue
+
+                    # Move toward nearest enemy base
+                    enemy_base_pieces = [p for p in self.board.pieces if p.side != self.side and isinstance(p.game_model, Base)]
+                    if enemy_base_pieces:
+                        nearest_base = min(enemy_base_pieces, key=lambda b: get_distance(current_hex, b.position))
+                        self._move_toward(piece, nearest_base.position, stop_distance=0)
+                        continue
+
+                    # Otherwise, move randomly but avoid clustering with other friendly task forces
+                    friendly_taskforces = [p for p in self.board.pieces if p.side == self.side and isinstance(p.game_model, TaskForce) and p != piece]
+                    avoid_hexes = {p.position for p in friendly_taskforces}
+                    candidates = [tile for tile in self.board.tiles
+                                  if self.board.get_terrain(tile) == 'sea'
+                                  and all(get_distance(tile, hex) >= 3 for hex in avoid_hexes)
+                                  and get_distance(current_hex, tile) <= 3]
+                    if candidates:
+                        dest = random.choice(candidates)
+                        self.board.move_piece(piece, dest)
+                    else:
+                        # If no good candidates, stay in place
+                        pass
+
                     continue
             else:
                 logger.info(f"Observed enemies present. Moving piece {piece.name} toward nearest enemy.")
