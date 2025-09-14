@@ -1070,9 +1070,9 @@ class JapaneseShipFactory:
                     ready_factors=8,
                     plane_handling_type="CV"
                 )
-                ship = Carrier(name, "CV", "operational", 1, 4, 1, 5)   
-                ship.air_operations_config = air_ops_config
                 ship = Carrier(name, "CV", "operational", 1, 5, 2, 6)
+                ship.air_operations_config = air_ops_config
+                
             case "Hiyo" | "Junyo":
                 air_ops_config = AirOperationsConfiguration(
                     name=name,
