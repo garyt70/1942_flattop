@@ -114,40 +114,134 @@ class ComputerOpponent:
 
         def find_shortest_sea_path(start_hex, end_hex):
             """
-            BFS to find shortest path over sea hexes from start_hex to end_hex.
+            Find shortest sea-only path from start_hex to end_hex using a modified postman algorithm.
+            The algorithm prefers moving directly toward the destination, but if blocked by land, it tries up to 5 alternative paths around obstacles.
             Returns a list of hexes (including start and end) or None if no path.
             """
-            visited = set()
-            queue = deque([(start_hex, [start_hex])])
-            while queue:
-                current, path = queue.popleft()
-                if current == end_hex:
-                    return path
-                visited.add(current)
-            neighbors = [
-                tile for tile in self.board.tiles
-                if get_distance(current, tile) == 1 and self.board.get_terrain(tile) == 'sea'
-            ]
-            for neighbor in neighbors:
-                if neighbor not in visited:
-                    queue.append((neighbor, path + [neighbor]))
-            return None
+
+            def neighbors(hex):
+                return self.board.get_neighbors(hex)
+
+            # Improved shortest sea path algorithm:
+            # 1. Try direct route (straight line) from start to end. If all hexes are sea, return that path.
+            # 2. If blocked by land, try "left" and "right" detours around the obstacle.
+            # 3. If both detours succeed, choose the shortest. If neither, return None.
+
+            def straight_line_path(start_hex, end_hex):
+                # Returns a list of hexes from start to end in a straight line (using axial coordinates)
+                path = [start_hex]
+                q1, r1 = start_hex.q, start_hex.r
+                q2, r2 = end_hex.q, end_hex.r
+                steps = max(abs(q2 - q1), abs(r2 - r1))
+                for i in range(1, steps + 1):
+                    t = i / steps
+                    q = round(q1 + (q2 - q1) * t)
+                    r = round(r1 + (r2 - r1) * t)
+                    hex = self.board.get_hex(q, r)
+                    if hex:
+                        path.append(hex)
+                return path
+
+            def is_sea_path(path):
+                return all(self.board.get_terrain(hex) == 'sea' for hex in path)
+
+            def detour_path(start_hex, end_hex, direction):
+                # direction: 'left' or 'right'
+                
+                # Modified: Find a path that traces the boundary of land to reach the destination hex.
+                # This uses BFS but prefers moves that keep land on one side (i.e., "hug" the coast).
+
+                def trace_land_boundary_path(start_hex, end_hex):
+                    visited = set()
+                    queue = deque()
+                    queue.append((start_hex, [start_hex]))
+                    while queue:
+                        current, path = queue.popleft()
+                        # If current is the end_hex, return path
+                        if current == end_hex:
+                            return path
+                        # If any neighbor is the end_hex and it is land, return path + [end_hex]
+                        for neighbor in neighbors(current):
+                            if neighbor == end_hex and neighbor.terrain == 'land':
+                                return path + [end_hex]
+                        visited.add(current)
+                        # Find neighbors that are sea hexes adjacent to at least one land hex
+                        boundary_neighbors = []
+                        current_neighbors = neighbors(current)
+                        for neighbor in current_neighbors:
+                            # Check if neighbor is a sea hex and adjacent to land
+                            if neighbor.terrain == 'sea':
+                                # Check if any of neighbor's neighbors are land
+                                land_adjacent = any(n.terrain == 'land' for n in neighbors(neighbor))
+                                if land_adjacent:
+                                    boundary_neighbors.append(neighbor)
+                        # Sort neighbors to favor direction
+                        if direction == 'left':
+                            boundary_neighbors.sort(key=lambda n: (n.q - current.q, n.r - current.r))
+                        else:
+                            boundary_neighbors = sorted(boundary_neighbors, key=lambda n: get_distance(n, end_hex))
+                        for neighbor in boundary_neighbors:
+                            if neighbor not in visited:
+                                queue.append((neighbor, path + [neighbor]))
+                    return None
+
+                # Use the land boundary tracing pathfinder
+                boundary_path = trace_land_boundary_path(start_hex, end_hex)
+                if boundary_path:
+                    return boundary_path
+            # 1. Try direct route
+            direct_path = straight_line_path(start_hex, end_hex)
+            if is_sea_path(direct_path):
+                return direct_path
+            else:
+                logger.debug(f"Direct path from {start_hex} to {end_hex} blocked by land.")
+                # identify the first land hex in the direct path and use that as a waypoint
+                waypoint = None
+                for hex in direct_path:
+                    if hex.terrain == 'land':
+                        waypoint = hex #record the last sea hex before land
+                        break
+                
+                #reset the straight line path to contain only sea hexes up to the first land hex
+                direct_sea_path = [hex for hex in direct_path if hex.terrain == 'sea']
+
+
+
+            # 2. Try left detour
+            left_path = detour_path(waypoint, end_hex, 'left')
+            # 3. Try right detour
+            right_path = detour_path(waypoint, end_hex, 'right')
+
+            # 4. Choose shortest valid path
+            valid_paths = [p for p in [left_path, right_path] if p is not None]
+
+            if not valid_paths:
+                return None
+
+            detour_path = min(valid_paths, key=len)
+            detour_sea_path = [hex for hex in detour_path if hex.terrain == 'sea']
+            # Combine direct_sea_path and detour_sea_path, skipping duplicates
+            # Start with direct_sea_path, then add detour_sea_path skipping any hex already in direct_sea_path
+            sea_path = direct_sea_path + [hex for hex in detour_sea_path[1:] if hex not in direct_sea_path]
+            return sea_path
+
 
         current_hex = piece.position
-        max_steps = 2  # Taskforces typically move 2 hexes per turn
-
+        max_steps = piece.movement_factor 
+        observed_enemy_pieces = []
         path = find_shortest_sea_path(current_hex, target_hex)
         if path and len(path) > 1:
             # Move up to max_steps along the path
             steps = min(max_steps, len(path) - 1)
             for i in range(1, steps + 1):
                 next_hex = path[i]
+                logger.debug(f"Moving {piece.name} from {current_hex} to {next_hex} distance {get_distance(current_hex, next_hex)}")
                 self.board.move_piece(piece, next_hex)
                 current_hex = next_hex
                  # Perform observation after each move
                 observed_enemy_pieces = perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
                 self._update_last_spotted_taskforce(observed_enemy_pieces)
-
+        return observed_enemy_pieces
     
     def _move_toward(self, piece : Piece, target_hex, stop_distance=0):
         logger.debug(f"_move_toward: Moving {piece.name} toward {target_hex} with stop_distance={stop_distance}")
@@ -166,6 +260,7 @@ class ComputerOpponent:
             max_move = getattr(piece, 'movement_factor', 1) * getattr(piece.game_model, 'range_remaining', 1)
         elif isinstance(gm, TaskForce):
             max_move = 999 # taskforce has unlimited range for the game
+            return self._move_taskforce_toward(piece, target_hex)
 
         # If already within stop_distance, do not move
         from flattop.hex_board_game_model import get_distance
@@ -227,8 +322,7 @@ class ComputerOpponent:
         logger.debug(f"_move_random_within_range: Moving {piece.name} randomly within range {max_range}")
         """
         Move the piece to a random valid hex within max_range, avoiding land for air formations and task forces. Planes do not move into storm hexes.
-        """
-        from flattop.hex_board_game_model import get_distance
+        """    
         current = piece.position
         gm = getattr(piece, 'game_model', None)
         is_plane = isinstance(gm, AirFormation)

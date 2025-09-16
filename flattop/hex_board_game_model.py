@@ -193,6 +193,17 @@ class HexBoardModel:
                 return tile
         return None
 
+    def get_neighbors(self, hex):
+        """
+        Returns a list of neighboring hexes for the given hex.
+        """
+        neighbors = []
+        for dq, dr in [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]:
+            neighbor = self.get_hex(hex.q + dq, hex.r + dr)
+            if neighbor:
+                neighbors.append(neighbor)
+        return neighbors
+
     def is_valid_tile(self, hex_coord):
         return any(tile.q == hex_coord.q and tile.r == hex_coord.r for tile in self.tiles)
 
