@@ -469,6 +469,13 @@ class DesktopUI:
                         pygame.draw.circle(self.screen, color, (x, y), dot_radius)
         # Draw TaskForce and AirFormation dots
         for piece in self.board.pieces:
+            if FEATURE_FLAG_TESTING:
+                can_display = True
+            else:
+                can_display = (isinstance(piece.game_model, (TaskForce, AirFormation))) and piece.observed_condition > 0
+            if piece.side == self.computer_opponent.side and not can_display:
+                continue
+
             if isinstance(piece.game_model, TaskForce):
                 color = (255, 0, 0) if piece.side == "Japanese" else (0, 0, 255)
                 x = self.minimap_rect.x + int((piece.position.q + 0.5) * size / grid_w)
@@ -564,6 +571,13 @@ class DesktopUI:
 
             if len(pieces) == 1:
                 piece:Piece = pieces[0]
+                if FEATURE_FLAG_TESTING:
+                    can_display = True
+                else:
+                    can_display = ((isinstance(piece.game_model, (TaskForce, AirFormation))) and piece.observed_condition > 0) or isinstance(piece.game_model, (Base))
+                #skip rendering opponent pieces that have not been observed
+                if piece.side == self.computer_opponent.side and not can_display:
+                    continue
                 color = COLOR_JAPANESE_PIECE if piece.side == "Japanese" else COLOR_ALLIED_PIECE
                 if isinstance(piece.game_model, AirFormation):
                     image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0)
@@ -575,6 +589,13 @@ class DesktopUI:
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
             else:
+                #skip rendering opponent pieces that have not been observed
+                if FEATURE_FLAG_TESTING:
+                    can_display = True
+                else:
+                    can_display = isinstance(piece.game_model, (Base)) or any((isinstance(p.game_model, (Base, TaskForce, AirFormation)) and p.observed_condition > 0) for p in pieces)
+                if any(p.side == self.computer_opponent.side and not can_display for p in pieces):
+                    continue
                 # Render stack image for multiple pieces
                 #identify if any pieces have been observed
                 image = PieceImageFactory.stack_image(pieces, observed=any(p.observed_condition > 0 for p in pieces))
