@@ -247,6 +247,10 @@ def scenario_two_setup():
         aaf=8
     )
     baseRabaulJapanese = Base("Rabaul",side="Japanese", air_operations_config=air_operations_config_rabaul)  # Create a base for the Japanese side
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=7),AircraftOperationsStatus.READY)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.BETTY, count=5),AircraftOperationsStatus.READY) 
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=8),AircraftOperationsStatus.READYING)
+    baseRabaulJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.MAVIS, count=5),AircraftOperationsStatus.READYING)
     hexboard_model.add_piece(Piece("Japanese Rabul Base", side="Japanese", position=Hex(23, 4, "land"), gameModel=baseRabaulJapanese))  # Add a piece for Japanese base
     chartJapanese.bases[baseRabaulJapanese.name] = baseRabaulJapanese  # Add the base to the Japanese chart
 
@@ -262,6 +266,9 @@ def scenario_two_setup():
         aaf=5
     )
     baseGasmataJapanese = Base("Gasmata",side="Japanese", air_operations_config=air_operations_config_gasmata)  # Create a base for the Japanese side
+    baseGasmataJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.RUFE, count=1),AircraftOperationsStatus.READYING)
+    baseGasmataJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=7),AircraftOperationsStatus.READYING)
+    baseGasmataJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.NELL, count=8),AircraftOperationsStatus.READYING)
     hexboard_model.add_piece(Piece("Japanese Gasmata Base", side="Japanese", position=Hex(14, 10, "land"), gameModel=baseGasmataJapanese))  # Add a piece for Japanese base
     chartJapanese.bases[baseGasmataJapanese.name] = baseGasmataJapanese  # Add the base to the Japanese chart
 
@@ -307,6 +314,9 @@ def scenario_two_setup():
         aaf=5
     )
     baseLaeJapanese = Base("Lae",side="Japanese", air_operations_config=air_operations_config_lae)  # Create a base for the Japanese side
+    baseLaeJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.ZERO, count=7),AircraftOperationsStatus.READY)
+    baseLaeJapanese.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.BETTY, count=7),AircraftOperationsStatus.READY) 
+    baseLaeJapanese
     hexboard_model.add_piece(Piece("Japanese Lae Base", side="Japanese", position=Hex(2, 13, "land"), gameModel=baseLaeJapanese))  # Add a piece for Japanese base
     chartJapanese.bases[baseLaeJapanese.name] = baseLaeJapanese  # Add the base to the Japanese chart
 
@@ -416,7 +426,7 @@ def scenario_two_setup():
         taskForce5.add_ship(Ship(f"Gunboat {i+1}", "PG", "operational",1,0,2,1))
 
     hexboard_model.add_piece(Piece(name="Landing Force 2", side="Japanese", position=Hex(27, 10), gameModel=taskForce5))  # Add a
-    
+
     chartJapanese.task_forces[1] = taskForce1
     chartJapanese.task_forces[2] = taskForce2
     chartJapanese.task_forces[3] = taskForce3
@@ -439,6 +449,12 @@ def scenario_two_setup():
         plane_handling_type="LP"
     )
     basePortMoresbyAllied = Base("Port Moresby",side="Allied" ,air_operations_config = air_operations_config)  # Create a base for the Allied side
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.P40, count=2),AircraftOperationsStatus.READY)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.P39, count=12),AircraftOperationsStatus.READYING)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.HUDESON, count=2),AircraftOperationsStatus.READYING)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.DAUNTLESS, count=3),AircraftOperationsStatus.READYING)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.B26, count=12),AircraftOperationsStatus.READYING)
+    basePortMoresbyAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.B25, count=5),AircraftOperationsStatus.READYING)
     hexboard_model.add_piece(Piece("Allied Port Morseby", "Allied", Hex(3, 23), gameModel=basePortMoresbyAllied))  # Add a piece for Allied base
     chartAllied.bases[basePortMoresbyAllied.name] = basePortMoresbyAllied  # Add the base to the Allied chart
 
@@ -453,6 +469,7 @@ def scenario_two_setup():
         plane_handling_type="LP"
     )
     baseAustraliaAllied = Base("Australia",side="Allied" ,air_operations_config = air_operations_config_australia)  # Create a base for the Allied side
+    baseAustraliaAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.B17, count=5),AircraftOperationsStatus.READYING)
     hexboard_model.add_piece(Piece("Allied Australia", "Allied", Hex(0, 49), gameModel=baseAustraliaAllied))  # Add a piece for Allied base
     chartAllied.bases[baseAustraliaAllied.name] = baseAustraliaAllied  # Add the base to the Allied chart
 
@@ -467,6 +484,7 @@ def scenario_two_setup():
         plane_handling_type="LP"
     )
     baseNewCaledoniaAllied = Base("New Caledonia",side="Allied" ,air_operations_config = air_operations_config_new_cal)  # Create a base for the Allied side
+    baseNewCaledoniaAllied.air_operations_tracker.set_operations_status(AircraftFactory.create(AircraftType.CATALINA, count=4),AircraftOperationsStatus.READY)
     hexboard_model.add_piece(Piece("Allied New Caledonia", "Allied", Hex(70, 49), gameModel=baseNewCaledoniaAllied))  # Add a piece for Allied base
     chartAllied.bases[baseNewCaledoniaAllied.name] = baseNewCaledoniaAllied  # Add the base to the Allied chart
 
