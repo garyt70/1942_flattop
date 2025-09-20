@@ -509,14 +509,19 @@ class ComputerOpponent:
         - Move aircraft in just landed to readying, using ready_factor limits.
         """
         own_pieces = [p for p in board.pieces if p.side == self.side]
-        bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
-        taskforces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
+        base_pieces = [p for p in own_pieces if isinstance(p.game_model, Base)]
+        taskforce_pieces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
+        bases = [p.game_model for p in base_pieces if isinstance(p.game_model, Base)]
+        carrier_bases = []
+        for p in taskforce_pieces:
+            carrier_bases.extend(p.game_model.get_carriers())
 
+        bases.extend([c.base for c in carrier_bases if hasattr(c, 'base') and c.base is not None])  
         # 1. Arm aircraft with AP if TaskForce is observed
         taskforce_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, TaskForce)]
         if taskforce_targets:
-            for base_piece in bases:
-                base: Base = base_piece.game_model
+            base:Base
+            for base in bases:
                 readying = list(base.air_operations_tracker.readying)
                 ready = list(base.air_operations_tracker.ready)
                 if base.used_ready_factor >= base.available_ready_factor:
@@ -543,46 +548,12 @@ class ComputerOpponent:
                         af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                         board.add_piece(af_piece)
 
-            for tf_piece in taskforces:
-                tf = tf_piece.game_model
-                for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
-                    base = getattr(carrier, 'base', None)
-                    if not base:
-                        continue
-                    readying = list(base.air_operations_tracker.readying)
-                    ready = list(base.air_operations_tracker.ready)
-                    if base.used_ready_factor >= base.available_ready_factor:
-                        logger.debug(f"Base {base.name} has no ready factors left, skipping arming aircraft.")
-                        break
-
-                    ac:Aircraft
-                    for ac in readying:
-                        #choose the best armament to attack taskforce
-                        best_armament = self._select_best_armament(ac)
-                        max_launch = min(ac.count, base.available_ready_factor - base.used_ready_factor)
-                        if max_launch <= 0:
-                            break
-                        best_armament = self._select_best_armament(ac)
-                        to_aircraft : Aircraft = ac.copy()
-                        to_aircraft.armament = best_armament
-                        to_aircraft.count = max_launch
-                        logger.info(f"Taskforce observed. Arming aircraft {ac.type} with {best_armament} at carrier base {base.name}.")
-                        base.air_operations_tracker.set_operations_status(to_aircraft, 'ready', ac)
-                    if ready:
-                        # Select up to the available number of launch factors for the attack formation
-                        max_launch = min(sum(ac.count for ac in ready), base.available_launch_factor_max - base.used_launch_factor)
-                        attack_aircraft = self._select_best_ready_aircraft(ready, max_count=max_launch, purpose="attack_ship")
-                        af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
-                        if af:
-                            logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
-                            af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
-                            board.add_piece(af_piece)
         
         # 2. If enemy AirFormation observed within 10 hexes, create interceptor air formation if possible
         air_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, AirFormation)]
         if air_targets and len(air_targets) > 0:
             logger.info(f"Observed enemy air targets, creating interceptors")
-            for base_piece in bases:
+            for base_piece in base_pieces:
                 base = base_piece.game_model
                 for air_target in air_targets:
                     dist = get_distance(base_piece.position, air_target.position)
@@ -595,8 +566,8 @@ class ComputerOpponent:
                                 af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
                                 board.add_piece(af_piece)
                             break
-            for tf_piece in taskforces:
-                tf = tf_piece.game_model
+            for tf_piece in taskforce_pieces:
+                tf:TaskForce  = tf_piece.game_model
                 for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
                     base = getattr(carrier, 'base', None)
                     if not base:
@@ -614,8 +585,8 @@ class ComputerOpponent:
                             break
         
         # Move aircraft in just landed to readying, using ready_factor limits
-        for base_piece in bases:
-            base: Base = base_piece.game_model
+
+        for base in bases:
             if base.used_ready_factor >= base.available_ready_factor:
                 logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
                 continue
@@ -630,24 +601,6 @@ class ComputerOpponent:
                 to_aircraft.count = max_launch
                 base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
                 logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type} to readying at base {base.name}.")
-        for tf_piece in taskforces:
-            tf = tf_piece.game_model
-            for carrier in tf.get_carriers() if hasattr(tf, 'get_carriers') else []:
-                base = getattr(carrier, 'base', None)
-                if not base:
-                    continue
-                if base.used_ready_factor >= base.available_ready_factor:
-                    logger.debug(f"Base {base.name} has no ready factors left, skipping moving just landed aircraft.")
-                    continue
-                just_landed = list(getattr(base.air_operations_tracker, "just_landed", []))
-                for ac in just_landed:
-                    if base.used_ready_factor >= base.available_ready_factor:
-                        break
-                    to_aircraft : Aircraft = ac.copy()
-                    to_aircraft.armament = best_armament
-                    to_aircraft.count = min(ac.count, base.available_ready_factor - base.used_ready_factor)
-                    base.air_operations_tracker.set_operations_status(to_aircraft, "readying", ac)
-                    logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type} to readying at base {base.name}.")
 
 
         # 3. If no observed enemies, create search air formations (using best ready aircraft, 1-3 per formation, and only if ready/launch factors allow)
