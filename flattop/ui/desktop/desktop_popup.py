@@ -487,10 +487,16 @@ class Dashboard:
         "Combat Results",
         "Phase/Turn Change"
     ]
+    BUTTONS = [
+        "Advance Phase/Turn",
+        "Save Game",
+        "Load Game"
+    ]
 
     def __init__(self, desktop):
         self.desktop = desktop
         self.section_rects = []
+        self.button_rects = []
         self.dashboard_rect = None
 
     def draw(self):
@@ -560,6 +566,7 @@ class Dashboard:
                 pygame.draw.rect(screen, (180, 180, 180), button_rect)  # grey background
                 pygame.draw.rect(screen, (0, 0, 0), button_rect, 2)    # black border
                 screen.blit(button_surf, button_surf.get_rect(center=button_rect.center))
+                self.button_rects.append(button_rect)
 
                 # Draw a save game button
                 button_y += button_height + button_gap
@@ -575,6 +582,7 @@ class Dashboard:
                 pygame.draw.rect(screen, (180, 180, 180), save_button_rect)  # grey background
                 pygame.draw.rect(screen, (0, 0, 0), save_button_rect, 2)     # black border
                 screen.blit(save_button_surf, save_button_surf.get_rect(center=save_button_rect.center))
+                self.button_rects.append(save_button_rect)
 
                 # Draw a load game button
                 button_y += button_height + button_gap
@@ -590,6 +598,7 @@ class Dashboard:
                 pygame.draw.rect(screen, (180, 180, 180), load_button_rect)  # grey background
                 pygame.draw.rect(screen, (0, 0, 0), load_button_rect, 2)     # black border
                 screen.blit(load_button_surf, load_button_surf.get_rect(center=load_button_rect.center))
+                self.button_rects.append(load_button_rect)
 
         pygame.display.update(self.dashboard_rect)
 
@@ -621,8 +630,26 @@ class Dashboard:
                 show_combat_results_list(self.desktop)
                 pass
             elif section_name == "Phase/Turn Change":
-                show_turn_change_popup(self.desktop)
+                self.handle_button_click(pos)
+                pass
             return section_name
+        return None
+    
+    def handle_button_click(self, pos):
+        """
+        Call this from your event loop when the dashboard is clicked.
+        """
+        for idx, rect in enumerate(self.button_rects):
+            if rect.collidepoint(pos):
+                button_name = self.BUTTONS[idx]
+                # Add your logic here for each button
+                if button_name == "Advance Phase/Turn":
+                    show_turn_change_popup(self.desktop)
+                elif button_name == "Save Game":
+                    self.desktop.save_game()
+                elif button_name == "Load Game":
+                    self.desktop.load_game()
+                return button_name
         return None
 
 # Usage example in your main loop:

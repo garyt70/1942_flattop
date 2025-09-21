@@ -985,7 +985,17 @@ class DesktopUI:
     
         perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
     
-        
+    
+
+    def save_game(self):
+        from flattop.save_load_game import save_game_state
+        save_game_state(self.board, self.turn_manager, self.weather_manager)
+
+    def load_game(self):
+        from flattop.save_load_game import load_game_state
+        load_game_state(filename="SAVED_GAME.json")
+
+
     def run(self):
         """
         Start the UI event loop.
