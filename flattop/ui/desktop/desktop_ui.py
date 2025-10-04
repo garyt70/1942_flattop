@@ -992,9 +992,61 @@ class DesktopUI:
         save_game_state(self.board, self.turn_manager, self.weather_manager)
 
     def load_game(self):
+        import os
+        import pygame
         from flattop.save_load_game import load_game_state
-        load_game_state(filename="SAVED_GAME.json")
+        home_dir = os.path.expanduser("~")
+        save_dir = os.path.join(home_dir, "flattop_1942")
+        if not os.path.exists(save_dir):
+            print("No save directory found.")
+            return
+        files = [f for f in os.listdir(save_dir) if f.endswith(".json")]
+        if not files:
+            print("No save files found.")
+            return
+        selected = self._show_file_selection_popup(files)
+        if not selected:
+            return
+        board, turn_manager, weather_pieces = load_game_state(filename=selected)
+        self.board = board
+        self.turn_manager = turn_manager
+        self.weather_manager = self.weather_manager.__class__(self.board)
+        self.board.pieces.extend(weather_pieces)
+        self.draw()
 
+    def _show_file_selection_popup(self, files):
+        # Simple pygame popup for file selection
+        font = pygame.font.SysFont(None, 28)
+        margin = 10
+        option_height = font.get_height() + margin
+        menu_width = max(font.size(f)[0] for f in files) + 2 * margin
+        menu_height = option_height * len(files) + margin
+        screen = self.screen
+        screen_w, screen_h = screen.get_size()
+        menu_rect = pygame.Rect((screen_w - menu_width) // 2, (screen_h - menu_height) // 2, menu_width, menu_height)
+        pygame.draw.rect(screen, (60, 60, 60), menu_rect)
+        pygame.draw.rect(screen, (200, 200, 200), menu_rect, 2)
+        for i, fname in enumerate(files):
+            surf = font.render(fname, True, (255, 255, 255))
+            screen.blit(surf, (menu_rect.left + margin, menu_rect.top + margin + i * option_height))
+        pygame.display.flip()
+        selected = None
+        while selected is None:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = event.pos
+                    if menu_rect.collidepoint(mx, my):
+                        idx = (my - menu_rect.top - margin) // option_height
+                        if 0 <= idx < len(files):
+                            selected = files[idx]
+                            break
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return None
+        return selected
 
     def run(self):
         """
