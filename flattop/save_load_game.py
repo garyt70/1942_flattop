@@ -207,7 +207,7 @@ def load_game_state(filename):
 
     import json
     from flattop.hex_board_game_model import Hex, Piece, HexBoardModel, TurnManager
-    from flattop.operations_chart_models import AirFormation, TaskForce, Base, Aircraft, AircraftType, AirOperationsConfiguration
+    from flattop.operations_chart_models import AirFormation, TaskForce, Base, Aircraft, AircraftType, AirOperationsConfiguration, AircraftFactory
     # Read JSON
     with open(load_path, "r") as f:
         data = json.load(f)
@@ -255,7 +255,10 @@ def load_game_state(filename):
                 break
         if atype is None:
             atype = t  # fallback to string
-        aircraft = Aircraft(atype, ac.get("count", 1), ac.get("move_factor", 5), ac.get("range_factor", 5))
+            print(f"Warning: Unknown aircraft type '{t}' encountered.")
+        
+        aircraft = AircraftFactory.create(atype)
+        aircraft.count = ac.get("count", 1)
         aircraft.range_remaining = ac.get("range_remaining", aircraft.range_factor)
         aircraft.armament = ac.get("armament", None)
         aircraft.height = ac.get("height", "Low")
@@ -380,13 +383,16 @@ def load_game_state(filename):
         board.players[side] = aoc
 
     # --- Pieces ---
-    board.pieces = [deserialize_piece(pd) for pd in data.get("pieces", [])]
+    all_pieces = [deserialize_piece(pd) for pd in data.get("pieces", [])]
+    # Remove pieces where the owner is "weather"
+    all_pieces = [p for p in all_pieces if getattr(p, "side", None) != "Weather"]
+    board.pieces = all_pieces
 
     # --- Weather ---
     weather_data = data.get("weather", [])
     weather_pieces = []
     if weather_data:
-        from flattop.weather_model import CloudMarker, WindDirection
+        from flattop.weather_model import CloudMarker, WindDirection, WeatherManager
         for wd in weather_data:
             t = wd.get("type")
             if t == "CloudMarker":
@@ -408,5 +414,10 @@ def load_game_state(filename):
                 direction = wd.get("direction", 1)
                 wind = WindDirection(sector, direction)
                 weather_pieces.append(wind)
+        weather_manager = WeatherManager(board)
+        weather_manager.cloud_markers = [p for p in weather_pieces if isinstance(p, CloudMarker)]
+        weather_manager.wind_directions = [p for p in weather_pieces if isinstance(p, WindDirection)]
 
-    return board, turn_manager, weather_pieces
+        board.pieces.extend(weather_pieces)  # Add weather pieces to board
+
+    return board, turn_manager, weather_manager

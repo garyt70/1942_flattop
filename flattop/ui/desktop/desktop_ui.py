@@ -1007,11 +1007,10 @@ class DesktopUI:
         selected = self._show_file_selection_popup(files)
         if not selected:
             return
-        board, turn_manager, weather_pieces = load_game_state(filename=selected)
+        board, turn_manager, weather_manager = load_game_state(filename=selected)
         self.board = board
         self.turn_manager = turn_manager
-        self.weather_manager = self.weather_manager.__class__(self.board)
-        self.board.pieces.extend(weather_pieces)
+        self.weather_manager = weather_manager
         self.draw()
 
     def _show_file_selection_popup(self, files):
