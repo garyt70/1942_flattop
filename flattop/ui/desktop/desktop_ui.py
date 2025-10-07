@@ -993,7 +993,6 @@ class DesktopUI:
 
     def load_game(self):
         import os
-        import pygame
         from flattop.save_load_game import load_game_state
         home_dir = os.path.expanduser("~")
         save_dir = os.path.join(home_dir, "flattop_1942")
@@ -1011,6 +1010,8 @@ class DesktopUI:
         self.board = board
         self.turn_manager = turn_manager
         self.weather_manager = weather_manager
+        computerPlayerSide = self.computer_opponent.side
+        self.computer_opponent = ComputerOpponent(computerPlayerSide, self.board, self.weather_manager, self.turn_manager)  # Reinitialize computer opponent
         self.draw()
 
     def _show_file_selection_popup(self, files):

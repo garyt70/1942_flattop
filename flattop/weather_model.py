@@ -2,9 +2,21 @@ import random
 from flattop.hex_board_game_model import Hex, Piece
 
 class WindDirection:
+
     def __init__(self, sector, direction=None):
         self.sector = sector  # 1-8
         self.direction = direction if direction is not None else random.randint(1, 6) # 1-6 (hex direction, see Flat Top rules)
+
+    def to_dict(self):
+        return {
+            "type": "WindDirection",
+            "sector": self.sector,
+            "direction": self.direction
+        }
+
+    @staticmethod
+    def from_dict(d):
+        return WindDirection(sector=d.get("sector", 1), direction=d.get("direction", 1))
 
     def change_direction(self, new_direction):
         self.direction = new_direction
@@ -152,8 +164,9 @@ class WeatherManager:
         # Return all cloud markers as Piece objects (for display)
         return self.cloud_markers
 
+
     def get_wind_pieces(self):
-        # Return wind markers as dicts for display
+        # Return wind markers as dicts for display (for UI, not for save)
         pieces = []
         for wind in self.wind_directions:
             piece = Piece("Wind", "Weather", position=self.get_directional_hex(wind.sector), gameModel=wind)

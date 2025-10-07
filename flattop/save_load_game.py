@@ -152,20 +152,29 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
     def serialize_weather(weather_manager):
         if weather_manager is None:
             return None
-        weather_pieces = getattr(weather_manager, "get_weather_pieces", lambda: [])()
+        # Save both cloud markers and wind directions explicitly
         result = []
-        for piece in weather_pieces:
+        # Save clouds
+        for cloud in getattr(weather_manager, "cloud_markers", []):
             d = {
-                "type": type(piece).__name__,
-                "position": {"q": piece.position.q, "r": piece.position.r},
+                "type": "CloudMarker",
+                "position": {"q": cloud.position.q, "r": cloud.position.r},
+                "sector": getattr(cloud, "sector", None),
+                "cloud_type": getattr(cloud, "cloud_type", "scattered"),
+                "is_storm": getattr(cloud, "is_storm", False),
             }
-            if hasattr(piece, "is_storm"):
-                d["is_storm"] = piece.is_storm
-            if hasattr(piece, "direction"):
-                d["direction"] = getattr(piece, "direction", None)
-            if hasattr(piece, "sector"):
-                d["sector"] = getattr(piece, "sector", None)
             result.append(d)
+        # Save wind directions
+        for wind in getattr(weather_manager, "wind_directions", []):
+            if hasattr(wind, "to_dict"):
+                result.append(wind.to_dict())
+            else:
+                # fallback for legacy
+                result.append({
+                    "type": "WindDirection",
+                    "sector": getattr(wind, "sector", 1),
+                    "direction": getattr(wind, "direction", 1)
+                })
         return result
 
     def serialize_turn_manager(tm):
@@ -389,8 +398,10 @@ def load_game_state(filename):
     board.pieces = all_pieces
 
     # --- Weather ---
+
     weather_data = data.get("weather", [])
-    weather_pieces = []
+    weather_clouds = []
+    weather_winds = []
     if weather_data:
         from flattop.weather_model import CloudMarker, WindDirection, WeatherManager
         for wd in weather_data:
@@ -403,21 +414,13 @@ def load_game_state(filename):
                 is_storm = wd.get("is_storm", False)
                 cloud = CloudMarker(sector, hex_obj, cloud_type)
                 cloud.is_storm = is_storm
-                weather_pieces.append(cloud)
-            elif t == "Piece":
-                # Possibly a wind marker as Piece with WindDirection as gameModel
-                # Not used in serialization, but handle for completeness
-                pass
+                weather_clouds.append(cloud)
             elif t == "WindDirection":
-                # WindDirection is not a Piece, but we can reconstruct it if needed
-                sector = wd.get("sector", 1)
-                direction = wd.get("direction", 1)
-                wind = WindDirection(sector, direction)
-                weather_pieces.append(wind)
+                wind = WindDirection.from_dict(wd)
+                weather_winds.append(wind)
         weather_manager = WeatherManager(board)
-        weather_manager.cloud_markers = [p for p in weather_pieces if isinstance(p, CloudMarker)]
-        weather_manager.wind_directions = [p for p in weather_pieces if isinstance(p, WindDirection)]
-
-        board.pieces.extend(weather_pieces)  # Add weather pieces to board
+        weather_manager.cloud_markers = weather_clouds
+        weather_manager.wind_directions = weather_winds
+        board.pieces.extend(weather_clouds)  # Only clouds are pieces
 
     return board, turn_manager, weather_manager
