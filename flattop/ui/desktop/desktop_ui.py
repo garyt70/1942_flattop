@@ -590,15 +590,17 @@ class DesktopUI:
                 self.screen.blit(image, rect)
             else:
                 #skip rendering opponent pieces that have not been observed
+                pieces_to_display = None
                 if FEATURE_FLAG_TESTING:
-                    can_display = True
+                    pieces_to_display = pieces
                 else:
-                    can_display = isinstance(piece.game_model, (Base)) or any((isinstance(p.game_model, (Base, TaskForce, AirFormation)) and p.observed_condition > 0) for p in pieces)
-                if any(p.side == self.computer_opponent.side and not can_display for p in pieces):
+                    #pieces to display.  Always display bases.  Only display enemy taskforces and airformations that have been observed. Always display own pieces
+                    pieces_to_display = [p for p in pieces if (isinstance(p.game_model, Base)) or (p.side != self.computer_opponent.side) or (p.observed_condition > 0 and isinstance(p.game_model, (TaskForce, AirFormation)))]
+                if not pieces_to_display:
                     continue
                 # Render stack image for multiple pieces
                 #identify if any pieces have been observed
-                image = PieceImageFactory.stack_image(pieces, observed=any(p.observed_condition > 0 for p in pieces))
+                image = PieceImageFactory.stack_image(pieces_to_display, observed=any(p.observed_condition > 0 for p in pieces))
                 rect = image.get_rect(center=center)
                 self.screen.blit(image, rect)
 
