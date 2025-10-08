@@ -255,19 +255,27 @@ def get_hits_from_table(hit_table, attack_factor):
     return result if result is not None else 0
 
 class AirCombatResult:
-    def __init__(self):
-        self.hits = {}
+
+    def __init__(self, hits=None, story_line=None):
+        self.hits = hits or {}
         self.summary = ""
-        self.story_line = [] #list to hold the story for the attack.
+        self.story_line = story_line or [] #list to hold the story for the attack.
 
     def add_hit(self, plane_type, count):
         self.hits[plane_type] = self.hits.get(plane_type, 0) + count
 
     def __str__(self):
-        r = ""
-        if len(self.hits) > 0:
-           r =  f"Hits: {self.hits}\n{self.summary}\n"
-        return r
+        return f"Hits: {self.hits}, Story: {'; '.join(self.story_line)}"
+
+    def to_dict(self):
+        return {
+            "hits": self.hits,
+            "story_line": self.story_line
+        }
+
+    @staticmethod
+    def from_dict(d):
+        return AirCombatResult(hits=d.get("hits", 0), story_line=d.get("story_line", []))
 
 
 

@@ -177,7 +177,50 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                 })
         return result
 
+    def serialize_aircombat_result(obj):
+        # Accepts AirCombatResult or dict or None
+        if obj is None:
+            return None
+        # If already a dict (from previous serialization), return as is
+        if isinstance(obj, dict):
+            return obj
+        # If AirCombatResult, use to_dict
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        # Fallback: try to convert
+        return {"hits": getattr(obj, "hits", 0), "story_line": getattr(obj, "story_line", [])}
+
+    def serialize_combat_result(result):
+        # Recursively serialize AirCombatResult objects in combat result dicts
+        if result is None:
+            return None
+        if isinstance(result, list):
+            return [serialize_combat_result(r) for r in result]
+        if isinstance(result, dict):
+            out = {}
+            for k, v in result.items():
+                if k in ("air_to_air", "anti_aircraft", "base", "ship", "bomber_hits", "anti_aircraft", "interceptor_hits_on_escorts", "escort_hits_on_interceptors", "interceptor_hits_on_bombers", "bomber_hits_on_interceptors"):
+                    out[k] = serialize_aircombat_result(v)
+                elif k == "eliminated":
+                    # eliminated is a dict of lists
+                    if isinstance(v, dict):
+                        out[k] = {kk: vv for kk, vv in v.items()}
+                    else:
+                        out[k] = v
+                else:
+                    out[k] = serialize_combat_result(v)
+            return out
+        return result
+
     def serialize_turn_manager(tm):
+        # Serialize combat_results_history with AirCombatResult objects handled
+        crh = []
+        for entry in tm.combat_results_history:
+            if isinstance(entry, (tuple, list)) and len(entry) == 2:
+                key, val = entry
+                crh.append((key, serialize_combat_result(val)))
+            else:
+                crh.append(entry)
         return {
             "total_days": tm.total_days,
             "current_day": tm.current_day,
@@ -185,7 +228,7 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
             "turn_number": tm.turn_number,
             "current_phase_index": tm.current_phase_index,
             "side_with_initiative": tm.side_with_initiative,
-            "combat_results_history": tm.combat_results_history,
+            "combat_results_history": crh,
         }
 
     def serialize_board(board):
@@ -229,7 +272,47 @@ def load_game_state(filename):
     turn_manager.turn_number = tm_data.get("turn_number", 1)
     turn_manager.current_phase_index = tm_data.get("current_phase_index", 0)
     turn_manager.side_with_initiative = tm_data.get("side_with_initiative", None)
-    turn_manager.combat_results_history = tm_data.get("combat_results_history", [])
+
+    # Deserialize AirCombatResult objects in combat_results_history
+    def deserialize_aircombat_result(obj):
+        if obj is None:
+            return None
+        # If already AirCombatResult, return as is
+        from flattop.aircombat_engine import AirCombatResult
+        if isinstance(obj, AirCombatResult):
+            return obj
+        if isinstance(obj, dict) and ("hits" in obj or "story_line" in obj):
+            return AirCombatResult.from_dict(obj)
+        return obj
+
+    def deserialize_combat_result(result):
+        if result is None:
+            return None
+        if isinstance(result, list):
+            return [deserialize_combat_result(r) for r in result]
+        if isinstance(result, dict):
+            out = {}
+            for k, v in result.items():
+                if k in ("air_to_air", "anti_aircraft", "base", "ship", "bomber_hits", "anti_aircraft", "interceptor_hits_on_escorts", "escort_hits_on_interceptors", "interceptor_hits_on_bombers", "bomber_hits_on_interceptors"):
+                    out[k] = deserialize_aircombat_result(v)
+                elif k == "eliminated":
+                    if isinstance(v, dict):
+                        out[k] = {kk: vv for kk, vv in v.items()}
+                    else:
+                        out[k] = v
+                else:
+                    out[k] = deserialize_combat_result(v)
+            return out
+        return result
+
+    crh = []
+    for entry in tm_data.get("combat_results_history", []):
+        if isinstance(entry, (list, tuple)) and len(entry) == 2:
+            key, val = entry
+            crh.append((key, deserialize_combat_result(val)))
+        else:
+            crh.append(entry)
+    turn_manager.combat_results_history = crh
 
     # --- Board ---
     board_data = data.get("board", {})
