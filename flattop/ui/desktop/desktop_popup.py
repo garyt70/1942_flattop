@@ -259,16 +259,31 @@ def draw_game_model_popup(desktop, piece, pos):
                     pygame.quit()
                     sys.exit()
 
-def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None):
+def get_pop_text(piece, opponent_side=None):
+    # Return the text to display in the piece selection popup for the given piece
+    if piece.side == opponent_side and piece.observed_condition > 0:
+        return f"{getattr(piece, 'name', str(piece))} | {getattr(piece, 'side', '')}"
+    elif piece.side != opponent_side:
+        return f"{getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
+    
+def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_side=None):
         # Display a popup with a list of pieces and let the user select one
         win_width, win_height = surface.get_size()
         margin = 10
         font = pygame.font.SysFont(None, 24)
         
-        lines = [
-            f"{i+1}: {getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
-            for i, piece in enumerate(pieces)
-        ]
+        lines = []
+        row = 1
+        pieces_for_menu = [piece for piece in pieces if get_pop_text(piece, opponent_side)]
+        for piece in pieces_for_menu:
+            text = get_pop_text(piece, opponent_side)
+            if text:
+                lines.append(f"{row}: {text}")
+                row += 1
+
+        if not lines or len(lines) == 0:
+            return None
+        
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
         popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
         popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
@@ -298,16 +313,16 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None):
                 elif event.type == pygame.KEYDOWN:
                     if pygame.K_1 <= event.key <= pygame.K_9:
                         idx = event.key - pygame.K_1
-                        if idx < len(pieces):
-                            return pieces[idx]
+                        if idx < len(pieces_for_menu):
+                            return pieces_for_menu[idx]
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
                     if popup_rect.collidepoint(mx, my):
                         rel_y = my - popup_rect.top - margin
                         line_height = text_surfaces[0].get_height() + margin // 2
                         idx = rel_y // line_height
-                        if 0 <= idx < len(pieces):
-                            return pieces[idx]
+                        if 0 <= idx < len(pieces_for_menu):
+                            return pieces_for_menu[idx]
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return None
 

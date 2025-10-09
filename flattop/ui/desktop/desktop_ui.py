@@ -623,7 +623,7 @@ class DesktopUI:
             gm = piece.game_model
             if gm and gm.observed_condition > 0:
                 gm = piece.game_model
-                show_observation_report_popup(self, gm.observation_result, pos)
+                show_observation_report_popup(self, piece.observed_condition, pos)
         else: #draw the details for own pieces
             draw_game_model_popup(self, piece, pos)
 
@@ -976,7 +976,7 @@ class DesktopUI:
     
 
     def render_piece_selection_popup(self, pieces, pos):
-        return draw_piece_selection_popup(self.screen, pieces, pos)
+        return draw_piece_selection_popup(self.screen, pieces, pos, self.computer_opponent.side)
 
     def _get_pieces_for_turn_change(self):
         """
