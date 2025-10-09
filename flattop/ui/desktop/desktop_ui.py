@@ -714,12 +714,6 @@ class DesktopUI:
         original_button = event.button
 
         pieces = self.get_pieces_at_pixel(event.pos)
-        if len(pieces) > 0:
-            isOnlyWeather = (len(pieces) == sum(1 for wpiece in pieces
-                                                if (isinstance(wpiece, (CloudMarker)) or isinstance(wpiece.game_model, WindDirection))))
-            if isOnlyWeather:
-                # If only weather pieces are present, ignore the click
-                return
         
         if len(pieces) == 1:
             piece = pieces[0]
@@ -823,7 +817,12 @@ class DesktopUI:
         y -= self.origin[1]
         q = int(round((2/3 * x) / HEX_SIZE))
         r = int(round((y / (math.sqrt(3) * HEX_SIZE)) - 0.5 * (q % 2)))
-        return [piece for piece in self.board.pieces if piece.position.q == q and piece.position.r == r]
+        return [
+            piece for piece in self.board.pieces
+            if piece.position.q == q and piece.position.r == r
+            and not isinstance(piece, (CloudMarker)) 
+            and not isinstance(getattr(piece, "game_model", None), WindDirection)
+        ]
 
     def show_piece_menu(self, piece:Piece, pos):
         menu_options = []

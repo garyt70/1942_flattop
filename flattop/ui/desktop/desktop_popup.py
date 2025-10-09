@@ -263,14 +263,11 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos:Hex):
         win_width, win_height = surface.get_size()
         margin = 10
         font = pygame.font.SysFont(None, 24)
-        # Show: Piece name, type, and side
-        # Filter out CloudMarker pieces
-        filtered_pieces = [piece for piece in pieces if not isinstance(piece, CloudMarker)]
+        
         lines = [
             f"{i+1}: {getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
-            for i, piece in enumerate(filtered_pieces)
+            for i, piece in enumerate(pieces)
         ]
-        pieces = filtered_pieces  # Update pieces to match lines for selection logic below
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
         popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
         popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2

@@ -57,7 +57,7 @@ class CombatResultsList:
     FONT_NAME = None
     CLOSE_BUTTON_SIZE = (80, 30)
 
-    def __init__(self, turn_results, screen=None, width=900, height=700):
+    def __init__(self, turn_results, screen=None, width=500, height=700):
         """
         Args:
             turn_results: List of combat results from TurnManager
