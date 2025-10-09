@@ -1,3 +1,4 @@
+from operator import pos
 import sys
 import pygame
 
@@ -258,7 +259,7 @@ def draw_game_model_popup(desktop, piece, pos):
                     pygame.quit()
                     sys.exit()
 
-def draw_piece_selection_popup(surface, pieces:list[Piece], pos:Hex):
+def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None):
         # Display a popup with a list of pieces and let the user select one
         win_width, win_height = surface.get_size()
         margin = 10
@@ -271,9 +272,10 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos:Hex):
         text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
         popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
         popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        x, y = pos if pos else (win_width // 2 - popup_width // 2, win_height // 2 - popup_height // 2)
         popup_rect = pygame.Rect(
-            win_width // 2 - popup_width // 2,
-            win_height // 2 - popup_height // 2,
+            x,
+            y,
             popup_width,
             popup_height
         )

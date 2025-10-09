@@ -810,6 +810,13 @@ class DesktopUI:
         #if not hasattr(self, '_last_mouse_pos'):
         #    self._last_mouse_pos = last_mouse_pos
 
+    def get_player_pieces_at_pixel(self, pos):
+        
+        return [
+            piece for piece in self.get_pieces_at_pixel(pos)
+            if piece.side != self.computer_opponent.side
+        ]
+    
     def get_pieces_at_pixel(self, pos):
         # Return all pieces at the hex under the given pixel
         x, y = pos
