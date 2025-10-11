@@ -6,6 +6,7 @@ import math
 
 from flattop.game_engine import perform_land_piece_action, perform_observation_for_piece, perform_observation_phase, perform_turn_start_actions
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, TurnManager, get_distance  # Adjust import as needed
+from flattop.observation_rules import report_observation
 from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormation, Base, TaskForce, AircraftOperationsStatus  # Adjust import as needed
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
@@ -623,7 +624,9 @@ class DesktopUI:
             gm = piece.game_model
             if gm and gm.observed_condition > 0:
                 gm = piece.game_model
-                show_observation_report_popup(self, piece.observed_condition, pos)
+                if getattr(gm, "observation_results", None) is None:
+                    gm.observation_results = report_observation(piece.observed_condition, gm)
+                show_observation_report_popup(self, gm.observation_results, pos)
         else: #draw the details for own pieces
             draw_game_model_popup(self, piece, pos)
 

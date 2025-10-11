@@ -373,11 +373,11 @@ def report_observation(condition_number, target):
     """
     if condition_number == 1:
         # Only presence and type
-        return {"type": type(target).__name__, "present": True}
+        return {"type": type(target).__name__}
     elif condition_number == 2:
         # Number, classes, and total ships/planes (±50% fudge allowed)
         # For simplicity, we do not apply fudge here
-        info = {"type": type(target).__name__, "present": True}
+        info = {"type": type(target).__name__}
         if isinstance(target, AirFormation):
             info["aircraft_classes"] = list(set(ac.type for ac in target.aircraft))
             info["total_aircraft"] = sum(ac.count for ac in target.aircraft)
@@ -387,7 +387,7 @@ def report_observation(condition_number, target):
         return info
     elif condition_number == 3:
         # Exact numbers and classes
-        info = {"type": type(target).__name__, "present": True}
+        info = {"type": type(target).__name__}
         if isinstance(target, AirFormation):
             info["aircraft_details"] = [(ac.type, ac.count) for ac in target.aircraft]
         elif isinstance(target, TaskForce):
