@@ -1,3 +1,4 @@
+import flattop.ui.desktop.desktop_config as config
 from operator import pos
 import sys
 import pygame
@@ -260,6 +261,9 @@ def draw_game_model_popup(desktop, piece, pos):
                     sys.exit()
 
 def get_pop_text(piece, opponent_side=None):
+    if config.FEATURE_FLAG_TESTING:
+        return f"{getattr(piece, 'name', str(piece))} | {getattr(piece, 'side', '')}"
+
     # Return the text to display in the piece selection popup for the given piece
     if piece.side == opponent_side and piece.observed_condition > 0:
         return f"{getattr(piece, 'name', str(piece))} | {getattr(piece, 'side', '')}"
