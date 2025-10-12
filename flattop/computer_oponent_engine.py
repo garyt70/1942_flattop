@@ -780,53 +780,32 @@ class ComputerOpponent:
         # - Implement fuel/range tracking for each aircraft and force landing if range is too low.
         # - Add logic for retreating if odds are unfavorable (e.g., outnumbered/intercepted).
 
-    def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
-        logger.info(f"Executing movement phase for move_type={move_type}")
-        """
-        Move phase logic:
-        - If observed enemy pieces exist, move toward nearest observed enemy.
-        - If no observed enemies, move in a search pattern:
-            - Fighters/interceptors (non-bombers) move close to bases (CAP/intercept role).
-            - Bombers can search more widely (random within range).
-        - Air formations consider aircraft range; if low, move toward nearest base.
-        - Air formations make multiple short moves (2-3 hexes) toward their destination, observing after each move.
-        """
-        # If actionable is None, recompute it
-        if actionable is None:
-            
-            actionable = get_actionable_pieces(self.board, self.turn_manager, self.side)
-        if not actionable:
-            return
-        # Only move pieces belonging to the computer side
-        actionable = [p for p in actionable if p.side == self.side and p.can_move and not p.has_moved]
-        # Determine which type of pieces to move this phase
-        if move_type == "plane":
-            actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
-        elif move_type == "taskforce":
-            self._perform_taskforce_movement_phase(actionable, observed_enemy_pieces)
-            return
-        if not actionable:
-            return
+    def _perform_airformation_movement_phase(self, actionable, observed_enemy_pieces):
+
+        if actionable is None:  
+            # Only move pieces belonging to the computer side
+            actionable = [p for p in actionable if p.side == self.side and p.can_move and not p.has_moved and isinstance(getattr(p, 'game_model', None), AirFormation)]
         
+
         own_pieces = [p for p in self.board.pieces if p.side == self.side]
         base_pieces = [p for p in own_pieces if isinstance(p.game_model, Base)]
         base_hexes = [b.position for b in base_pieces]
         # Update last spotted enemy task force locations
         self._update_last_spotted_taskforce(observed_enemy_pieces)
-      
+        last_spotted_hex = self._get_last_spotted_taskforce_hex() if not observed_enemy_pieces else None
 
+        piece:Piece
         for piece in actionable:
             logger.debug(f"Processing piece {piece.name} for movement.")
-            gm = getattr(piece, 'game_model', None)
+            af:AirFormation = getattr(piece, 'game_model', None)
             #handle running out of range
             # Range logic: if any aircraft in formation has just enough range to return to base, move toward nearest base
-            if isinstance(gm, AirFormation):
-                logger.debug(f"Checking low fuel for AirFormation {gm.name}.")
-                if self._handle_check_airformation_fuel_ammo_and_move(piece, base_pieces):
-                    continue
+            logger.debug(f"Checking low fuel for AirFormation {af.name}.")
+            if self._handle_check_airformation_fuel_ammo_and_move(piece, base_pieces):
+                continue
 
             # If no currently observed enemy, but a task force was previously spotted, do focused search
-            last_spotted_hex = self._get_last_spotted_taskforce_hex() if not observed_enemy_pieces else None
+            
             search_airformations = []
             if last_spotted_hex:
                 logger.info(f"No currently observed enemies, but last spotted at {last_spotted_hex}. Performing focused search.")
@@ -852,105 +831,40 @@ class ComputerOpponent:
             if (not observed_enemy_pieces or len(observed_enemy_pieces) == 0) and not last_spotted_hex:
                 logger.info(f"No observed enemies for piece {piece.name}. Moving in search pattern.")
                 # No observed enemies: move in a search pattern                
-                if isinstance(gm, AirFormation):
-                    # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
-                    is_bomber = any(ac.is_bomber for ac in gm.aircraft)
+                
+                # Classify aircraft: if all are bombers, treat as bomber; else, treat as fighter/interceptor
+                is_bomber = any(ac.is_bomber for ac in af.aircraft)
 
-                    if is_bomber and base_hexes:
-                         # Bombers: search more widely (random within movement range)
-                        move_range = getattr(gm, 'movement_factor', 4)
-                        self._move_intelligent_search(piece, max_range=move_range)
+                if is_bomber and base_hexes:
+                    # Bombers: search more widely (random within movement range)
+                    move_range = getattr(af, 'movement_factor', 4)
+                    self._move_intelligent_search(piece, max_range=move_range)
+                else:
+                    # Fighters/interceptors: move close to nearest base (within 2-3 hexes)
+                    logger.debug(f"Fighter/interceptor {piece.name} logic")
+                    # Find nearest base
+                    min_dist = float('inf')
+                    nearest_base = None
+                    for base_hex in base_hexes:
+                        dist = get_distance(piece.position, base_hex)
+                        if dist < min_dist:
+                            min_dist = dist
+                            nearest_base = base_hex
+                    # Move toward base, but not into the base hex (prefer 1-3 hexes away)
+                    if nearest_base and min_dist > 1:
+                        # Make multiple short moves (2-3 hexes) toward base
+                        logger.debug(f"Fighter/interceptor {piece.name} moving toward nearest base.")
+                        hops = min(3, min_dist)
+                        for _ in range(hops):
+                            if get_distance(piece.position, nearest_base) > 1:
+                                result = self._move_toward(piece, nearest_base, stop_distance=1)
+                                if len(result) > 0:
+                                    break #stop moving
                     else:
-                        # Fighters/interceptors: move close to nearest base (within 2-3 hexes)
-                        logger.debug(f"Fighter/interceptor {piece.name} logic")
-                        # Find nearest base
-                        min_dist = float('inf')
-                        nearest_base = None
-                        for base_hex in base_hexes:
-                            dist = get_distance(piece.position, base_hex)
-                            if dist < min_dist:
-                                min_dist = dist
-                                nearest_base = base_hex
-                        # Move toward base, but not into the base hex (prefer 1-3 hexes away)
-                        if nearest_base and min_dist > 1:
-                            # Make multiple short moves (2-3 hexes) toward base
-                            logger.debug(f"Fighter/interceptor {piece.name} moving toward nearest base.")
-                            hops = min(3, min_dist)
-                            for _ in range(hops):
-                                if get_distance(piece.position, nearest_base) > 1:
-                                    result = self._move_toward(piece, nearest_base, stop_distance=1)
-                                    if len(result) > 0:
-                                        break #stop moving
-                        else:
-                            # Already close, loiter or move randomly within 2 hexes
-                            logger.debug(f"Fighter/interceptor {piece.name} already close to base, loitering.")
-                            self._move_random_within_range(piece, max_range=4)
-                elif isinstance(gm, TaskForce):
-                    """
-                    task force movement rules
-                    
-                    - Avoid moving into storm hexes
-                    - Move toward last known enemy task force location if available
-                    - Move toward nearest enemy base 
-                    - Taskforce with carriers should keep their distance from enemy task forces (at least 10-20 hexes)
-                    - Otherwise, move randomly but avoid clustering with other friendly task forces (maintain at least 2-3 hexes apart)
-                    """
-                    # Avoid moving into storm hexes
-                    current_hex = piece.position
-                    if self.weather_manager.is_storm_hex(current_hex):
-                        # Move to nearest non-storm sea hex
-                        candidates = [tile for tile in self.board.tiles
-                                      if self.board.get_terrain(tile) == 'sea'
-                                      and not self.weather_manager.is_storm_hex(tile)
-                                      and get_distance(current_hex, tile) <= 3]
-                        if candidates:
-                            dest = random.choice(candidates)
-                            self.board.move_piece(piece, dest)
-                        continue
-
-                    # Move toward last known enemy task force location if available
-                    last_spotted_hex = self._get_last_spotted_taskforce_hex()
-                    if last_spotted_hex:
-                        # If carriers present, keep distance (10-20 hexes)
-                        tf = piece.game_model
-                        has_carrier = hasattr(tf, 'get_carriers') and tf.get_carriers()
-                        dist_to_enemy_tf = get_distance(current_hex, last_spotted_hex)
-                        if has_carrier and dist_to_enemy_tf < 10:
-                            # Move away from enemy task force
-                            candidates = [tile for tile in self.board.tiles
-                                          if self.board.get_terrain(tile) == 'sea'
-                                          and get_distance(tile, last_spotted_hex) > 10
-                                          and get_distance(current_hex, tile) <= 3]
-                            if candidates:
-                                dest = random.choice(candidates)
-                                self.board.move_piece(piece, dest)
-                        else:
-                            # Move toward enemy task force
-                            self._move_toward(piece, last_spotted_hex, stop_distance=0)
-                        continue
-
-                    # Move toward nearest enemy base
-                    enemy_base_pieces = [p for p in self.board.pieces if p.side != self.side and isinstance(p.game_model, Base)]
-                    if enemy_base_pieces:
-                        nearest_base = min(enemy_base_pieces, key=lambda b: get_distance(current_hex, b.position))
-                        self._move_toward(piece, nearest_base.position, stop_distance=0)
-                        continue
-
-                    # Otherwise, move randomly but avoid clustering with other friendly task forces
-                    friendly_taskforces = [p for p in self.board.pieces if p.side == self.side and isinstance(p.game_model, TaskForce) and p != piece]
-                    avoid_hexes = {p.position for p in friendly_taskforces}
-                    candidates = [tile for tile in self.board.tiles
-                                  if self.board.get_terrain(tile) == 'sea'
-                                  and all(get_distance(tile, hex) >= 3 for hex in avoid_hexes)
-                                  and get_distance(current_hex, tile) <= 3]
-                    if candidates:
-                        dest = random.choice(candidates)
-                        self.board.move_piece(piece, dest)
-                    else:
-                        # If no good candidates, stay in place
-                        pass
-
-                    continue
+                        # Already close, loiter or move randomly within 2 hexes
+                        logger.debug(f"Fighter/interceptor {piece.name} already close to base, loitering.")
+                        self._move_random_within_range(piece, max_range=4)
+                
             else:
                 logger.info(f"Observed enemies present. Moving piece {piece.name} toward nearest enemy.")
                 # Move each actionable piece toward the nearest observed enemy
@@ -962,99 +876,82 @@ class ComputerOpponent:
                 # - Air formations make multiple short moves (2-3 hexes) toward their destination
                 # Gather friendly task force positions for stacking avoidance
                 friendly_taskforce_hexes = [p.position for p in self.board.pieces if p.side == self.side and isinstance(getattr(p, 'game_model', None), TaskForce)]
-                # Gather friendly bases for CAP prioritization
-                own_pieces = [p for p in self.board.pieces if p.side == self.side]
-                bases = [p for p in own_pieces if isinstance(p.game_model, Base)]
-                base_hexes = [b.position for b in bases]
                 # Gather all actionable bombers for coordination
                 actionable_bombers = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation) and all(ac.armament is not None for ac in p.game_model.aircraft)]
                 # Track which bombers have already moved for coordination
                 bombers_moved = set()
-                for piece in actionable:
-                    if not hasattr(piece, 'can_move') or not piece.can_move:
-                        continue
-                    gm = getattr(piece, 'game_model', None)
-                    # Find nearest enemy and its type
-                    min_dist = float('inf')
-                    target = None
-                    target_type = None
-                    for enemy in observed_enemy_pieces:
-                        dist = get_distance(piece.position, enemy.position)
-                        if dist < min_dist:
-                            min_dist = dist
-                            target = enemy
-                            target_type = type(enemy.game_model)
-                    if target:
-                        # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
-                        is_interceptor = False
-                        if isinstance(gm, AirFormation):
-                            is_interceptor = any(ac.is_interceptor for ac in gm.aircraft)
-                        if target_type == AirFormation and is_interceptor:
-                            logger.debug(f"Interceptor {gm.name} prioritizing CAP for base/carrier.")
-                            # Prioritize high-value base/carrier for CAP
-                            high_value_bases = [b for b in bases if getattr(b.game_model, 'is_high_value', False)]
-                            cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
-                            min_base_dist = float('inf')
-                            nearest_base = None
-                            for base_hex in cap_base_hexes:
-                                dist = get_distance(piece.position, base_hex)
-                                if dist < min_base_dist:
-                                    min_base_dist = dist
-                                    nearest_base = base_hex
-                            # Move to base if not already there
-                            if nearest_base and piece.position != nearest_base:
-                                self._move_toward(piece, nearest_base, stop_distance=0)
-                                if hasattr(self, 'perform_observation'):
-                                    self.perform_observation()
-                            continue
-                        # Bombers: coordinate attacks if multiple formations are available
-                        is_bomber = all(getattr(ac, 'is_bomber', False) for ac in gm.aircraft) if isinstance(gm, AirFormation) and gm.aircraft else False
-                        if target_type in (TaskForce, Base) and is_bomber:
-                            logger.debug(f"Bomber {gm.name} coordinating attack on {target.name}.")
-                            # Only move bombers together if not already moved
-                            if piece not in bombers_moved:
-                                # Find all bombers targeting the same enemy
-                                group = [b for b in actionable_bombers if get_distance(b.position, target.position) == min_dist]
-                                for bomber in group:
-                                    hops = min(3, min_dist)
-                                    for _ in range(hops):
-                                        if get_distance(bomber.position, target.position) > 0:
-                                            self._move_toward(bomber, target.position)
-                                            if hasattr(self, 'perform_observation'):
-                                                self.perform_observation()
-                                    bombers_moved.add(bomber)
-                            continue
-                        # Other air formations: avoid stacking with friendly task forces and avoid poor weather
-                        if target_type in (TaskForce, Base) and not is_bomber:
-                            hops = min(3, min_dist)
-                            for _ in range(hops):
-                                if get_distance(piece.position, target.position) > 0:
-                                    next_hex = target.position
+                
+                if not piece.can_move:
+                    continue
 
-                                    # Avoid storms
-                                    if self.weather_manager.is_storm_hex(next_hex):
-                                        self._move_random_within_range(piece, max_range=2)
-                                    else:
-                                        self._move_toward(piece, next_hex)
-                                    self.perform_observation()
-                            continue
-                        # If enemy is AirFormation and own piece is not interceptor, loiter or move randomly
-                        if target_type == AirFormation and not is_interceptor:
-                            self._move_random_within_range(piece, max_range=2)
-                            self.perform_observation()
-                            continue
-                        # Task forces: avoid moving into hexes with enemy air formations unless protected by CAP
-                        if isinstance(gm, TaskForce):
-                            enemy_air_hexes = [e.position for e in observed_enemy_pieces if isinstance(e.game_model, AirFormation)]
-                            cap_present = any(
-                                isinstance(p.game_model, AirFormation) and any(ac.type in ('Zero', 'Wildcat', 'P-38', 'P-39', 'P-40', 'Beaufighter') for ac in p.game_model.aircraft)
-                                and get_distance(p.position, piece.position) <= 2
-                                for p in self.board.pieces if p.side == self.side
-                            )
-                            for hex in enemy_air_hexes:
-                                if get_distance(piece.position, hex) <= 1 and not cap_present:
-                                    # Retreat or hold position
-                                    continue
+                # Find nearest enemy and its type
+                min_dist = float('inf')
+                target = None
+                target_type = None
+                for enemy in observed_enemy_pieces:
+                    dist = get_distance(piece.position, enemy.position)
+                    if dist < min_dist:
+                        min_dist = dist
+                        target = enemy
+                        target_type = type(enemy.game_model)
+                if target:
+                    # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
+                    is_interceptor = any(ac.is_interceptor for ac in af.aircraft)
+                    if target_type == AirFormation and is_interceptor:
+                        logger.debug(f"Interceptor {af.name} prioritizing CAP for base/carrier.")
+                        # Prioritize high-value base/carrier for CAP
+                        high_value_bases = [b for b in base_pieces if getattr(b.game_model, 'is_high_value', False)]
+                        cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
+                        min_base_dist = float('inf')
+                        nearest_base = None
+                        for base_hex in cap_base_hexes:
+                            dist = get_distance(piece.position, base_hex)
+                            if dist < min_base_dist:
+                                min_base_dist = dist
+                                nearest_base = base_hex
+                        # Move to base if not already there
+                        if nearest_base and piece.position != nearest_base:
+                            self._move_toward(piece, nearest_base, stop_distance=0)
+                            if hasattr(self, 'perform_observation'):
+                                self.perform_observation()
+                        continue
+                    # Bombers: coordinate attacks if multiple formations are available
+                    is_bomber = any(ac.is_bomber for ac in af.aircraft)
+                    if target_type in (TaskForce, Base) and is_bomber:
+                        logger.debug(f"Bomber {af.name} coordinating attack on {target.name}.")
+                        # Only move bombers together if not already moved
+                        if piece not in bombers_moved:
+                            # Find all bombers targeting the same enemy
+                            group = [b for b in actionable_bombers if get_distance(b.position, target.position) == min_dist]
+                            for bomber in group:
+                                hops = min(3, min_dist)
+                                for _ in range(hops):
+                                    if get_distance(bomber.position, target.position) > 0:
+                                        self._move_toward(bomber, target.position)
+                                        if hasattr(self, 'perform_observation'):
+                                            self.perform_observation()
+                                bombers_moved.add(bomber)
+                        continue
+                    # Other air formations: avoid stacking with friendly task forces and avoid poor weather
+                    if target_type in (TaskForce, Base) and not is_bomber:
+                        hops = min(3, min_dist)
+                        for _ in range(hops):
+                            if get_distance(piece.position, target.position) > 0:
+                                next_hex = target.position
+
+                                # Avoid storms
+                                if self.weather_manager.is_storm_hex(next_hex):
+                                    self._move_random_within_range(piece, max_range=2)
+                                else:
+                                    self._move_toward(piece, next_hex)
+                                self.perform_observation()
+                        continue
+                    # If enemy is AirFormation and own piece is not interceptor, loiter or move randomly
+                    if target_type == AirFormation and not is_interceptor:
+                        self._move_random_within_range(piece, max_range=2)
+                        self.perform_observation()
+                        continue
+                   
         # Additional rules to consider:
         # - Air formations should avoid moving into hexes with friendly task forces to prevent stacking.
         # - Bombers should coordinate attacks if multiple formations are available (strike together).
@@ -1063,6 +960,35 @@ class ComputerOpponent:
         # - Air formations should avoid moving into hexes with poor weather (clouds) unless necessary for attack.
         # - Implement fuel/range tracking for each aircraft and force landing if range is too low.
         # - Add logic for retreating if odds are unfavorable (e.g., outnumbered/intercepted).
+
+    def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
+        logger.info(f"Executing movement phase for move_type={move_type}")
+        """
+        Move phase logic:
+        - If observed enemy pieces exist, move toward nearest observed enemy.
+        - If no observed enemies, move in a search pattern:
+            - Fighters/interceptors (non-bombers) move close to bases (CAP/intercept role).
+            - Bombers can search more widely (random within range).
+        - Air formations consider aircraft range; if low, move toward nearest base.
+        - Air formations make multiple short moves (2-3 hexes) toward their destination, observing after each move.
+        """
+        # If actionable is None, recompute it
+        if actionable is None:
+            
+            actionable = get_actionable_pieces(self.board, self.turn_manager, self.side)
+        if not actionable:
+            return
+        # Only move pieces belonging to the computer side
+        actionable = [p for p in actionable if p.side == self.side and p.can_move and not p.has_moved]
+        # Determine which type of pieces to move this phase
+        if move_type == "plane":
+            self._perform_airformation_movement_phase(actionable, observed_enemy_pieces)
+            return
+        elif move_type == "taskforce":
+            self._perform_taskforce_movement_phase(actionable, observed_enemy_pieces)
+            return
+        
+        
 
     def _perform_combat_phase_for_piece_in_hex(self, piece, observed_enemy_pieces):
         logger.debug(f"Resolving combat for {piece.name} in hex {piece.position}")
