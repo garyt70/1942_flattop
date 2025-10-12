@@ -463,8 +463,7 @@ class ComputerOpponent:
         """
         phase = self.turn_manager.current_phase
         logger.info(f"Performing turn for phase: {phase}")
-        all_actionable = get_actionable_pieces(self.board, self.turn_manager)
-        actionable = [p for p in all_actionable if p.side == self.side]
+        actionable = get_actionable_pieces(self.board, self.turn_manager, self.side)
         observed_enemy_pieces = [p for p in self.board.pieces if p.side != self.side and getattr(p, 'observed_condition', 0) > 0]
         try:
             if phase == "Air Operations":
@@ -674,6 +673,112 @@ class ComputerOpponent:
             return True  # Indicate that movement was handled
         
         return False  # No special movement needed
+    
+
+    def _perform_taskforce_movement_phase(self, actionable, observed_enemy_pieces):
+       
+        # If actionable is None, recompute it
+        if actionable is None:  
+            # Only move pieces belonging to the computer side
+            actionable = [p for p in actionable if p.side == self.side and p.can_move and not p.has_moved and isinstance(getattr(p, 'game_model', None), TaskForce)]
+        
+        base_pieces = [p for p in actionable if isinstance(p.game_model, Base)]
+        base_hexes = [b.position for b in base_pieces]
+        # Update last spotted enemy task force locations
+        self._update_last_spotted_taskforce(observed_enemy_pieces)
+        last_spotted_hex = self._get_last_spotted_taskforce_hex()
+
+        for piece in actionable:
+            logger.debug(f"Processing piece {piece.name} for movement.")
+
+            #determine task force type = CV == carrier group, transport or battle group
+            tf : TaskForce = piece.game_model
+            tf_type = None
+            if any(ship.type == "AP" for ship in tf.ships):
+                #a taskforce with an AP is a transport group even if there are carriers present
+                tf_type = 'transport'
+            elif hasattr(tf, 'get_carriers') and tf.get_carriers():
+                tf_type = 'carrier'
+            else:
+                tf_type = 'battle'
+
+            
+
+            if (not observed_enemy_pieces or len(observed_enemy_pieces) == 0) and not last_spotted_hex:
+                logger.info(f"No observed enemies for piece {piece.name}. Moving in search pattern.")
+                # No observed enemies: move in a search pattern                
+                """
+                task force movement rules
+                
+                - Move toward last known enemy task force location if available
+                - Move toward nearest enemy base 
+                - Taskforce with carriers should keep their distance from enemy task forces (at least 10-20 hexes)
+                - Otherwise, move randomly but avoid clustering with other friendly task forces (maintain at least 2-3 hexes apart)
+                """
+
+                
+                # Move toward last known enemy task force location if available
+                last_spotted_hex = self._get_last_spotted_taskforce_hex()
+                if last_spotted_hex and tf_type in ['carrier', 'battle']:
+
+                    dist_to_enemy_tf = get_distance(piece.position, last_spotted_hex)
+                    if tf_type == 'carrier' and dist_to_enemy_tf < 10:
+                        # Move away from enemy task force
+                        candidates = [tile for tile in self.board.tiles
+                                        if self.board.get_terrain(tile) == 'sea'
+                                        and get_distance(tile, last_spotted_hex) > 10
+                                        and get_distance(piece.position, tile) <= 3]
+                        if candidates:
+                            dest = random.choice(candidates)
+                            self.board.move_piece(piece, dest)
+                    else:
+                        # Move toward enemy task force
+                        self._move_toward(piece, last_spotted_hex, stop_distance=0)
+                else:
+                    logger.info(f"No last spotted enemy task force location for piece {piece.name} or transport, moving towards enemy base.")
+                    # Move toward nearest enemy base
+                    enemy_base_pieces = [p for p in self.board.pieces if p.side != self.side and isinstance(p.game_model, Base)]
+                    if enemy_base_pieces:
+                        nearest_base = min(enemy_base_pieces, key=lambda b: get_distance(piece.position, b.position))
+                        self._move_toward(piece, nearest_base.position, stop_distance=0)
+            else:
+                # Observed enemies present: 
+                # Carriers should move no closer than 10 hexes to observed enemy task forces
+                # Battle groups can move directly toward observed enemy task forces
+                # Transports should avoid observed enemy task forces by at least 20 hexes and moved toward nearest enemy base
+
+                logger.info(f"Observed enemies present. Moving piece {piece.name} toward nearest enemy.")
+                if last_spotted_hex and tf_type in ['carrier', 'battle']:
+
+                    dist_to_enemy_tf = get_distance(piece.position, last_spotted_hex)
+                    if tf_type == 'carrier' and dist_to_enemy_tf < 10:
+                        # Move away from enemy task force
+                        candidates = [tile for tile in self.board.tiles
+                                        if self.board.get_terrain(tile) == 'sea'
+                                        and get_distance(tile, last_spotted_hex) > 10
+                                        and get_distance(piece.position, tile) <= 3]
+                        if candidates:
+                            dest = random.choice(candidates)
+                            self.board.move_piece(piece, dest)
+                    else:
+                        # Move toward enemy task force
+                        self._move_toward(piece, last_spotted_hex, stop_distance=0)
+                else:
+                    logger.info(f"No last spotted enemy task force location for piece {piece.name} or transport, moving towards enemy base.")
+                    # Move toward nearest enemy base
+                    enemy_base_pieces = [p for p in self.board.pieces if p.side != self.side and isinstance(p.game_model, Base)]
+                    if enemy_base_pieces:
+                        nearest_base = min(enemy_base_pieces, key=lambda b: get_distance(piece.position, b.position))
+                        self._move_toward(piece, nearest_base.position, stop_distance=0)
+                
+        # Additional rules to consider:
+        # - Air formations should avoid moving into hexes with friendly task forces to prevent stacking.
+        # - Bombers should coordinate attacks if multiple formations are available (strike together).
+        # - Interceptors could prioritize defending high-value bases/carriers.
+        # - Task forces should avoid moving into hexes with enemy air formations unless protected by CAP.
+        # - Air formations should avoid moving into hexes with poor weather (clouds) unless necessary for attack.
+        # - Implement fuel/range tracking for each aircraft and force landing if range is too low.
+        # - Add logic for retreating if odds are unfavorable (e.g., outnumbered/intercepted).
 
     def _perform_movement_phase(self, actionable, observed_enemy_pieces, move_type=None):
         logger.info(f"Executing movement phase for move_type={move_type}")
@@ -689,7 +794,7 @@ class ComputerOpponent:
         # If actionable is None, recompute it
         if actionable is None:
             
-            actionable = get_actionable_pieces(self.board, None)
+            actionable = get_actionable_pieces(self.board, self.turn_manager, self.side)
         if not actionable:
             return
         # Only move pieces belonging to the computer side
@@ -698,7 +803,8 @@ class ComputerOpponent:
         if move_type == "plane":
             actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), AirFormation)]
         elif move_type == "taskforce":
-            actionable = [p for p in actionable if isinstance(getattr(p, 'game_model', None), TaskForce)]
+            self._perform_taskforce_movement_phase(actionable, observed_enemy_pieces)
+            return
         if not actionable:
             return
         

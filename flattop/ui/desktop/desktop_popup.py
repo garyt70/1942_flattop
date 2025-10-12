@@ -262,7 +262,7 @@ def draw_game_model_popup(desktop, piece, pos):
 
 def get_pop_text(piece, opponent_side=None):
     if config.FEATURE_FLAG_TESTING:
-        return f"{getattr(piece, 'name', str(piece))} | {getattr(piece, 'side', '')}"
+        return f"{getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
 
     # Return the text to display in the piece selection popup for the given piece
     if piece.side == opponent_side and piece.observed_condition > 0:

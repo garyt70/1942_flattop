@@ -986,7 +986,8 @@ class DesktopUI:
         Use game_engine to get actionable pieces for the current phase.
         """
         from flattop.game_engine import get_actionable_pieces
-        return get_actionable_pieces(self.board, self.turn_manager)
+        player_side = "Allied" if self.computer_opponent.side == "Japanese" else "Japanese"
+        return get_actionable_pieces(self.board, self.turn_manager, player_side)
 
     def _perform_observation(self, piece: Piece):
         """

@@ -77,24 +77,27 @@ def perform_repair_phase(board):
                     base.damage -= 1
                     logger.debug(f"Base {base.name} repair took place.")
 
-def get_actionable_pieces(board, turn_manager):
+def get_actionable_pieces(board:HexBoardModel, turn_manager:TurnManager, side:str) -> list[Piece]:
     """
     Move phase = get all pieces that can move but have not moved yet.
     Combat phase = get all pieces that can attack but have not attacked yet.
     Air Operations phase = get all bases that have available Launch or Ready Factor count.
     Returns a list of pieces that can perform actions in the current phase.
     """
+    if side is None:
+        raise ValueError("Side must be specified to get actionable pieces.")
+
     all_pieces:list[Piece] = board.pieces
     action_available_pieces = []
     if turn_manager.current_phase == "Plane Movement":
-        action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, AirFormation)]
+        action_available_pieces = [p for p in all_pieces if p.side == side and p.can_move and not p.has_moved and isinstance(p.game_model, AirFormation)]
     elif turn_manager.current_phase == "Task Force Movement":
-        action_available_pieces = [p for p in all_pieces if p.can_move and not p.has_moved and isinstance(p.game_model, TaskForce)]
+        action_available_pieces = [p for p in all_pieces if p.side == side and p.can_move and not p.has_moved and isinstance(p.game_model, TaskForce)]
     elif turn_manager.current_phase == "Combat":
-        action_available_pieces = [p for p in all_pieces if p.can_attack]
+        action_available_pieces = [p for p in all_pieces if p.side == side and p.can_attack]
     elif turn_manager.current_phase == "Air Operations":
-        
-        for piece in all_pieces:
+        side_pieces = [p for p in all_pieces if p.side == side and isinstance(p.game_model, (Base, TaskForce))] 
+        for piece in side_pieces:
             base = None
             if isinstance(piece.game_model, Base):
                 base = piece.game_model
