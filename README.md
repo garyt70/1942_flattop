@@ -1,5 +1,8 @@
 # 1942 Flat Top
 
+<img width="1491" height="1065" alt="Screenshot 2025-10-15 at 21 49 35" src="https://github.com/user-attachments/assets/be34b1bf-df6a-4be6-8fa2-0df554d2bbb7" />
+
+
 **1942 Flat Top** is a digital adaptation of the classic 1980s board wargame simulating naval battles in the Pacific Theater during World War II, focusing on the Battle of Midway and the Coral Sea. Players control either Japanese or Allied forces, managing air and naval operations across a hexagonal map.
 
 ## Features
