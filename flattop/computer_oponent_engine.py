@@ -789,6 +789,15 @@ class ComputerOpponent:
 
         own_pieces = [p for p in self.board.pieces if p.side == self.side]
         base_pieces = [p for p in own_pieces if isinstance(p.game_model, Base)]
+        #add taskforce carriers as bases
+        taskforce_pieces = [p for p in own_pieces if isinstance(p.game_model, TaskForce)]
+        for p in taskforce_pieces:
+            tf:TaskForce = p.game_model
+            carriers = tf.get_carriers() if hasattr(tf, 'get_carriers') else []
+            if carriers:
+                #as there can only be one carrier per taskforce in the current game then we can add just the taskforce
+                base_pieces.append(p)
+            
         base_hexes = [b.position for b in base_pieces]
         # Update last spotted enemy task force locations
         self._update_last_spotted_taskforce(observed_enemy_pieces)
