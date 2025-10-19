@@ -631,7 +631,18 @@ class ComputerOpponent:
                     self.perform_observation()
         # If air formation is at base, land it and remove from board
         if piece.position == nearest_base_piece.position:
-            base: Base = nearest_base_piece.game_model
+            base: Base = None
+            if isinstance(nearest_base_piece.game_model, TaskForce):
+                # If the base is on a carrier, get the carrier's base
+                carrier: TaskForce = nearest_base_piece.game_model
+                carriers = carrier.get_carriers()
+                if carriers and len(carriers) > 0:
+                    base = carriers[0].base
+            else:
+                base = nearest_base_piece.game_model
+                
+            
+            nearest_base_piece.game_model
             airformation: AirFormation = piece.game_model
             # Land each aircraft in the air formation
             logger.info(f"AirFormation {airformation.name} landing at base {base.name}.")
@@ -639,6 +650,15 @@ class ComputerOpponent:
                 # Add aircraft back to base's tracker (simulate landing)
                 base.air_operations_tracker.set_operations_status(ac, AircraftOperationsStatus.JUST_LANDED)
                 logger.info(f"Aircraft {ac} landed at base {base.name}.")
+                # If this is a search airformation, reduce the count for the origin base
+                if hasattr(airformation, '_is_search_formation') and airformation._is_search_formation:
+                    origin_base_id = getattr(airformation, '_origin_base', None)
+                    if origin_base_id:
+                        # Find base ID for the origin base
+                        if origin_base_id in self._search_airformation_counts:
+                            self._search_airformation_counts[origin_base_id] = max(0, self._search_airformation_counts[origin_base_id] - 1)
+                            logger.debug(f"Reduced search airformation count for base {origin_base_id} to {self._search_airformation_counts[origin_base_id]}")
+                        break
             # Remove air formation piece from board
             if piece in self.board.pieces:
                 self.board.pieces.remove(piece)
@@ -1383,7 +1403,7 @@ class ComputerOpponent:
                     break
                 logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
                 for ac in best:
-                    af = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
+                    af:AirFormation = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
                     created_airformation.append(af)
                     if af:
                         logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  
