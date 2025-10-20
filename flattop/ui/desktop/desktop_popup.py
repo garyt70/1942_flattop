@@ -4,7 +4,7 @@ import sys
 import pygame
 
 from flattop.hex_board_game_model import Hex, Piece
-from flattop.operations_chart_models import AirFormation, Base, TaskForce
+from flattop.operations_chart_models import AirFormation, Base, TaskForce, Carrier, AircraftOperationsStatus
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
@@ -84,6 +84,295 @@ def show_observation_report_popup(desktop, report, pos=None):
                 sys.exit()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 waiting = False
+
+
+def show_observation_summary_popup(desktop):
+    """
+    Displays a comprehensive popup window showing all observed opponent pieces.
+    
+    If FEATURE_FLAG_TESTING is True, shows all opponent pieces.
+    
+    For carriers and bases, shows a summary of aircraft organized by status
+    (Just Landed, Readying, Ready).
+    
+    Args:
+        desktop: The desktop UI object (must have .screen and .board attributes)
+    """
+    screen = desktop.screen
+    win_width, win_height = screen.get_size()
+    margin = 16
+    font = pygame.font.SysFont(None, 20)
+    title_font = pygame.font.SysFont(None, 28, bold=True)
+    header_font = pygame.font.SysFont(None, 22, bold=True)
+    
+    # Get current player's side
+    current_player_side = desktop.turn_manager.side_with_initiative if hasattr(desktop.turn_manager, 'side_with_initiative') else "Allied"
+    
+    # Collect opponent pieces
+    opponent_pieces = []
+    for piece in desktop.board.pieces:
+        if piece.side != current_player_side:
+            # If testing mode, show all opponent pieces
+            if config.FEATURE_FLAG_TESTING or piece.observed_condition > 0:
+                opponent_pieces.append(piece)
+    
+    # Prepare lines for display
+    lines = []
+    
+    if not opponent_pieces:
+        lines.append("No opponent pieces observed.")
+    else:
+        # Group pieces by type
+        taskforces = [p for p in opponent_pieces if isinstance(p.game_model, TaskForce)]
+        airformations = [p for p in opponent_pieces if isinstance(p.game_model, AirFormation)]
+        bases = [p for p in opponent_pieces if isinstance(p.game_model, Base)]
+        
+        # Display Task Forces
+        if taskforces:
+            lines.append("=== TASK FORCES ===")
+            for piece in taskforces:
+                tf = piece.game_model
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                lines.append(f"{tf.name} at {piece.position}{obs_status}")
+                
+                # Show ships if observed at condition 2 or higher
+                if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 2:
+                    lines.append(f"  Ships: {len(tf.ships)}")
+                    if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 3:
+                        for ship in tf.ships:
+                            lines.append(f"    - {ship.name} ({ship.type})")
+                    
+                    # Check for carriers and show aircraft
+                    carriers = tf.get_carriers()
+                    for carrier in carriers:
+                        if isinstance(carrier, Carrier) and hasattr(carrier, 'base'):
+                            lines.append(f"  Carrier: {carrier.name}")
+                            tracker = carrier.base.air_operations_tracker
+                            
+                            # Group aircraft by status from the separate arrays
+                            ready_aircraft = {}
+                            readying_aircraft = {}
+                            just_landed_aircraft = {}
+                            
+                            # Process ready aircraft
+                            for ac in tracker.ready:
+                                aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                                ready_aircraft[aircraft_type] = ready_aircraft.get(aircraft_type, 0) + ac.count
+                            
+                            # Process readying aircraft
+                            for ac in tracker.readying:
+                                aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                                readying_aircraft[aircraft_type] = readying_aircraft.get(aircraft_type, 0) + ac.count
+                            
+                            # Process just landed aircraft
+                            for ac in tracker.just_landed:
+                                aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                                just_landed_aircraft[aircraft_type] = just_landed_aircraft.get(aircraft_type, 0) + ac.count
+                            
+                            if ready_aircraft:
+                                ready_list = [f"{atype}: {count}" for atype, count in ready_aircraft.items()]
+                                lines.append(f"    Ready: {', '.join(ready_list)}")
+                            if readying_aircraft:
+                                readying_list = [f"{atype}: {count}" for atype, count in readying_aircraft.items()]
+                                lines.append(f"    Readying: {', '.join(readying_list)}")
+                            if just_landed_aircraft:
+                                landed_list = [f"{atype}: {count}" for atype, count in just_landed_aircraft.items()]
+                                lines.append(f"    Just Landed: {', '.join(landed_list)}")
+                
+                lines.append("")  # Empty line for spacing
+        
+        # Display Air Formations
+        if airformations:
+            lines.append("=== AIR FORMATIONS ===")
+            for piece in airformations:
+                af = piece.game_model
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                lines.append(f"{af.name} at {piece.position}{obs_status}")
+                lines.append(f"  Height: {af.height}, Launch Hour: {af.launch_hour}")
+                
+                # Show aircraft if observed at condition 2 or higher
+                if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 2:
+                    total_aircraft = sum(ac.count for ac in af.aircraft)
+                    lines.append(f"  Total Aircraft: {total_aircraft}")
+                    
+                    if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 3:
+                        for aircraft in af.aircraft:
+                            lines.append(f"    - {aircraft.type}: {aircraft.count}")
+                
+                lines.append("")  # Empty line for spacing
+        
+        # Display Bases
+        if bases:
+            lines.append("=== BASES ===")
+            for piece in bases:
+                base = piece.game_model
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                lines.append(f"{base.name} at {piece.position}{obs_status}")
+                
+                # Show aircraft at base
+                if hasattr(base, 'air_operations_tracker'):
+                    tracker = base.air_operations_tracker
+                    
+                    # Group aircraft by status from the separate arrays
+                    ready_aircraft = {}
+                    readying_aircraft = {}
+                    just_landed_aircraft = {}
+                    
+                    # Process ready aircraft
+                    for ac in tracker.ready:
+                        aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                        ready_aircraft[aircraft_type] = ready_aircraft.get(aircraft_type, 0) + ac.count
+                    
+                    # Process readying aircraft
+                    for ac in tracker.readying:
+                        aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                        readying_aircraft[aircraft_type] = readying_aircraft.get(aircraft_type, 0) + ac.count
+                    
+                    # Process just landed aircraft
+                    for ac in tracker.just_landed:
+                        aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
+                        just_landed_aircraft[aircraft_type] = just_landed_aircraft.get(aircraft_type, 0) + ac.count
+                    
+                    if ready_aircraft:
+                        ready_list = [f"{atype}: {count}" for atype, count in ready_aircraft.items()]
+                        lines.append(f"  Ready: {', '.join(ready_list)}")
+                    if readying_aircraft:
+                        readying_list = [f"{atype}: {count}" for atype, count in readying_aircraft.items()]
+                        lines.append(f"  Readying: {', '.join(readying_list)}")
+                    if just_landed_aircraft:
+                        landed_list = [f"{atype}: {count}" for atype, count in just_landed_aircraft.items()]
+                        lines.append(f"  Just Landed: {', '.join(landed_list)}")
+                
+                lines.append("")  # Empty line for spacing
+    
+    # Add title at the beginning
+    title = "OBSERVATION REPORT"
+    if config.FEATURE_FLAG_TESTING:
+        title += " (TESTING MODE - All Opponent Pieces)"
+    
+    # Render all text
+    title_surf = title_font.render(title, True, (255, 255, 0))
+    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+    
+    # Calculate popup size with scrolling support
+    popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+    popup_width = min(popup_width, win_width - 2 * margin)  # Don't exceed screen width
+    
+    max_visible_lines = 25  # Maximum number of lines to show at once
+    visible_lines = min(len(text_surfaces), max_visible_lines)
+    line_height = font.get_height() + 4
+    popup_height = title_surf.get_height() + visible_lines * line_height + 3 * margin
+    popup_height = min(popup_height, win_height - 2 * margin)  # Don't exceed screen height
+    
+    # Center the popup
+    popup_rect = pygame.Rect(
+        win_width // 2 - popup_width // 2,
+        win_height // 2 - popup_height // 2,
+        popup_width,
+        popup_height
+    )
+    
+    scroll_offset = 0
+    
+    # Create a background surface to avoid redrawing the entire game board
+    background = screen.copy()
+    
+    # Create a surface for the popup content that can be reused
+    popup_surface = pygame.Surface((popup_width, popup_height))
+    
+    def draw_popup_content():
+        """Helper function to draw the popup content efficiently"""
+        # Clear popup surface
+        popup_surface.fill((40, 40, 50))
+        
+        # Draw border on popup surface
+        pygame.draw.rect(popup_surface, (200, 200, 200), popup_surface.get_rect(), 2)
+        
+        # Draw title
+        y = margin
+        title_rect = title_surf.get_rect(centerx=popup_width // 2, top=y)
+        popup_surface.blit(title_surf, title_rect)
+        y += title_surf.get_height() + margin // 2
+        
+        # Draw separator line
+        pygame.draw.line(popup_surface, (150, 150, 150), 
+                       (margin, y),
+                       (popup_width - margin, y), 1)
+        y += margin // 2
+        
+        # Draw visible lines with scrolling
+        content_start_y = y
+        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+            ts = text_surfaces[i]
+            text_rect = ts.get_rect()
+            text_rect.topleft = (margin, y)
+            popup_surface.blit(ts, text_rect)
+            y += line_height
+        
+        # Draw scroll indicators if needed
+        indicator_y = popup_height - margin - font.get_height()
+        if scroll_offset > 0:
+            up_arrow = font.render("▲ Scroll Up", True, (255, 255, 0))
+            popup_surface.blit(up_arrow, (margin, indicator_y))
+        if scroll_offset + visible_lines < len(text_surfaces):
+            down_arrow = font.render("▼ Scroll Down", True, (255, 255, 0))
+            popup_surface.blit(down_arrow, (popup_width - margin - down_arrow.get_width(), indicator_y))
+        
+        # Draw close instruction
+        close_text = font.render("Press ESC or Click to Close", True, (200, 200, 200))
+        close_rect = close_text.get_rect(centerx=popup_width // 2, bottom=popup_height - 4)
+        popup_surface.blit(close_text, close_rect)
+    
+    # Initial draw
+    draw_popup_content()
+    screen.blit(background, (0, 0))
+    screen.blit(popup_surface, popup_rect.topleft)
+    pygame.display.flip()
+    
+    # Event loop for scrolling
+    while True:
+        # Handle events
+        event = pygame.event.wait()
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                break
+            elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
+                scroll_offset += 1
+                # Redraw only the popup
+                draw_popup_content()
+                screen.blit(background, (0, 0))
+                screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
+            elif event.key == pygame.K_UP and scroll_offset > 0:
+                scroll_offset -= 1
+                # Redraw only the popup
+                draw_popup_content()
+                screen.blit(background, (0, 0))
+                screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click
+                break
+            elif event.button == 4:  # Scroll up
+                if scroll_offset > 0:
+                    scroll_offset -= 1
+                    # Redraw only the popup
+                    draw_popup_content()
+                    screen.blit(background, (0, 0))
+                    screen.blit(popup_surface, popup_rect.topleft)
+                    pygame.display.update(popup_rect)
+            elif event.button == 5:  # Scroll down
+                if scroll_offset + visible_lines < len(text_surfaces):
+                    scroll_offset += 1
+                    # Redraw only the popup
+                    draw_popup_content()
+                    screen.blit(background, (0, 0))
+                    screen.blit(popup_surface, popup_rect.topleft)
+                    pygame.display.update(popup_rect)
+
 
 def draw_turn_info_popup(desktop):
     # Draws the current day, hour, phase, and initiative in the bottom right corner
@@ -373,47 +662,62 @@ def show_turn_change_popup(desktop_ui):
     )
     scroll_offset = 0
 
-    needs_redraw = True
+    # Create a background surface to avoid redrawing the entire game board
+    background = desktop_ui.screen.copy()
+    
+    # Create a surface for the popup
+    popup_surface = pygame.Surface((popup_width, popup_height))
+    
+    def draw_popup_content():
+        """Helper function to draw the popup content efficiently"""
+        # Clear popup surface
+        popup_surface.fill((50, 50, 50))
+        
+        # Draw border
+        pygame.draw.rect(popup_surface, (200, 200, 200), popup_surface.get_rect(), 2)
+        
+        # Draw header
+        y = margin
+        popup_surface.blit(header_surf, (margin, y))
+        y += header_surf.get_height() + margin // 2
+
+        # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
+        next_phase_rect = next_phase_surf.get_rect(topleft=(margin, y))
+        if unmoved:
+            pygame.draw.rect(popup_surface, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
+            popup_surface.blit(next_phase_surf, next_phase_rect.topleft)
+        else:
+            pygame.draw.rect(popup_surface, (30, 80, 30), next_phase_rect.inflate(12, 8))
+            popup_surface.blit(next_phase_surf, next_phase_rect.topleft)
+        y += next_phase_rect.height + margin // 2
+
+        # Draw visible lines with scrolling
+        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
+            ts = text_surfaces[i]
+            text_rect = ts.get_rect()
+            text_rect.topleft = (margin, y)
+            popup_surface.blit(ts, text_rect)
+            y += line_height
+
+        # Draw scroll indicators if needed
+        if scroll_offset > 0:
+            up_arrow = font.render("^", True, (255, 255, 255))
+            popup_surface.blit(up_arrow, (popup_width - margin - up_arrow.get_width(), margin))
+        if scroll_offset + visible_lines < len(text_surfaces):
+            down_arrow = font.render("v", True, (255, 255, 255))
+            popup_surface.blit(down_arrow, (popup_width - margin - down_arrow.get_width(), popup_height - margin - down_arrow.get_height()))
+    
+    # Store button rect relative to popup
+    next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2))
+    
+    # Initial draw
+    draw_popup_content()
+    desktop_ui.screen.blit(background, (0, 0))
+    desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+    pygame.display.flip()
+
     running = True
     while running:
-        if needs_redraw:
-            desktop_ui.draw()  # Redraw board behind popup
-            pygame.draw.rect(desktop_ui.screen, (50, 50, 50), popup_rect)
-            pygame.draw.rect(desktop_ui.screen, (200, 200, 200), popup_rect, 2)
-            # Draw header
-            y = popup_rect.top + margin
-            desktop_ui.screen.blit(header_surf, (popup_rect.left + margin, y))
-            y += header_surf.get_height() + margin // 2
-
-            # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
-            next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, y))
-            if unmoved:
-                pygame.draw.rect(desktop_ui.screen, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
-                desktop_ui.screen.blit(next_phase_surf, next_phase_rect.topleft)
-            else:
-                pygame.draw.rect(desktop_ui.screen, (30, 80, 30), next_phase_rect.inflate(12, 8))
-                desktop_ui.screen.blit(next_phase_surf, next_phase_rect.topleft)
-            y += next_phase_rect.height + margin // 2
-
-            # Draw visible lines with scrolling
-            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-                ts = text_surfaces[i]
-                text_rect = ts.get_rect()
-                text_rect.topleft = (popup_rect.left + margin, y)
-                desktop_ui.screen.blit(ts, text_rect)
-                y += line_height
-
-            # Draw scroll indicators if needed
-            if scroll_offset > 0:
-                up_arrow = font.render("^", True, (255, 255, 255))
-                desktop_ui.screen.blit(up_arrow, (popup_rect.right - margin - up_arrow.get_width(), popup_rect.top + margin))
-            if scroll_offset + visible_lines < len(text_surfaces):
-                down_arrow = font.render("v", True, (255, 255, 255))
-                desktop_ui.screen.blit(down_arrow, (popup_rect.right - margin - down_arrow.get_width(), popup_rect.bottom - margin - down_arrow.get_height()))
-
-            pygame.display.flip()
-            needs_redraw = False
-
         event = pygame.event.wait()
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -423,10 +727,18 @@ def show_turn_change_popup(desktop_ui):
                 return
             elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
                 scroll_offset += 1
-                needs_redraw = True
+                # Redraw only the popup
+                draw_popup_content()
+                desktop_ui.screen.blit(background, (0, 0))
+                desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
             elif event.key == pygame.K_UP and scroll_offset > 0:
                 scroll_offset -= 1
-                needs_redraw = True
+                # Redraw only the popup
+                draw_popup_content()
+                desktop_ui.screen.blit(background, (0, 0))
+                desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
             elif pygame.K_1 <= event.key <= pygame.K_9:
                 idx = event.key - pygame.K_1 + scroll_offset
                 if 0 <= idx < len(unmoved):
@@ -470,12 +782,20 @@ def show_turn_change_popup(desktop_ui):
                 up_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.top + margin, 20, 20)
                 if up_arrow_rect.collidepoint(mx, my):
                     scroll_offset -= 1
-                    needs_redraw = True
+                    # Redraw only the popup
+                    draw_popup_content()
+                    desktop_ui.screen.blit(background, (0, 0))
+                    desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                    pygame.display.update(popup_rect)
             if scroll_offset + visible_lines < len(text_surfaces):
                 down_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.bottom - margin - 20, 20, 20)
                 if down_arrow_rect.collidepoint(mx, my):
                     scroll_offset += 1
-                    needs_redraw = True
+                    # Redraw only the popup
+                    draw_popup_content()
+                    desktop_ui.screen.blit(background, (0, 0))
+                    desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                    pygame.display.update(popup_rect)
 
 """
 Desktop UI dashboard
@@ -641,10 +961,9 @@ class Dashboard:
                 # Example: Show turn info popup or details
                 pass
             elif section_name == "Observation Report":
-                # Example: Show observation report
-                pass
+                # Show comprehensive observation report summary
+                show_observation_summary_popup(self.desktop)
             elif section_name == "Combat Results":
-                # Example: Show combat results
                 show_combat_results_list(self.desktop)
                 pass
             elif section_name == "Phase/Turn Change":
