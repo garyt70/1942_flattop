@@ -176,10 +176,12 @@ class ComputerOpponent:
                                 if land_adjacent:
                                     boundary_neighbors.append(neighbor)
                         # Sort neighbors to favor direction
+                        """
                         if direction == 'left':
                             boundary_neighbors.sort(key=lambda n: (n.q - current.q, n.r - current.r))
                         else:
                             boundary_neighbors = sorted(boundary_neighbors, key=lambda n: get_distance(n, end_hex))
+                        """
                         for neighbor in boundary_neighbors:
                             if neighbor not in visited:
                                 queue.append((neighbor, path + [neighbor]))
@@ -208,18 +210,9 @@ class ComputerOpponent:
 
 
             # 2. Try left detour
-            left_path = detour_path(waypoint, end_hex, 'left')
-            # 3. Try right detour
-            right_path = detour_path(waypoint, end_hex, 'right')
+            alternate_path = detour_path(waypoint, end_hex, 'left')
 
-            # 4. Choose shortest valid path
-            valid_paths = [p for p in [left_path, right_path] if p is not None]
-
-            if not valid_paths:
-                return None
-
-            detour_path = min(valid_paths, key=len)
-            detour_sea_path = [hex for hex in detour_path if hex.terrain == 'sea']
+            detour_sea_path = [hex for hex in alternate_path if hex.terrain == 'sea']
             # Combine direct_sea_path and detour_sea_path, skipping duplicates
             # Start with direct_sea_path, then add detour_sea_path skipping any hex already in direct_sea_path
             sea_path = direct_sea_path + [hex for hex in detour_sea_path[1:] if hex not in direct_sea_path]
@@ -263,7 +256,6 @@ class ComputerOpponent:
             return self._move_taskforce_toward(piece, target_hex)
 
         # If already within stop_distance, do not move
-        from flattop.hex_board_game_model import get_distance
         distance_to_destination = get_distance(current, target_hex)
         if distance_to_destination <= stop_distance:
             return None
@@ -585,8 +577,9 @@ class ComputerOpponent:
         # 1. Arm aircraft with AP if TaskForce is observed and launch them to attack
         taskforce_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, TaskForce)]
         if taskforce_targets:
-            base:Base
-            for base in bases:
+            
+            for base_piece in bases:
+                base:Base = base_piece.game_model
                 ready = list(base.air_operations_tracker.ready)
                 if ready:
                     # If there are ready aircraft, create an air formation to attack
