@@ -155,20 +155,26 @@ class ComputerOpponent:
                     visited = set()
                     queue = deque()
                     queue.append((start_hex, [start_hex]))
+                    
                     while queue:
                         current, path = queue.popleft()
+                        
                         # If current is the end_hex, return path
                         if current == end_hex:
                             return path
-                        # If any neighbor is the end_hex and it is land, return path + [end_hex]
-                        for neighbor in neighbors(current):
-                            if neighbor == end_hex and neighbor.terrain == 'land':
-                                return path + [end_hex]
+                        
+                        # Skip if already visited
+                        if current in visited:
+                            continue
                         visited.add(current)
-                        # Find neighbors that are sea hexes adjacent to at least one land hex
-                        boundary_neighbors = []
+                        
+                        # Get neighbors and filter valid ones
                         current_neighbors = neighbors(current)
+                        
+                        # Find valid sea neighbors (on board)
+                        valid_neighbors = []
                         for neighbor in current_neighbors:
+<<<<<<< HEAD
                             # Check if neighbor is a sea hex and adjacent to land
                             if neighbor.terrain == 'sea':
                                 # Check if any of neighbor's neighbors are land
@@ -185,6 +191,54 @@ class ComputerOpponent:
                         for neighbor in boundary_neighbors:
                             if neighbor not in visited:
                                 queue.append((neighbor, path + [neighbor]))
+=======
+                            # Check if neighbor is on the board
+                            if not self.board.is_valid_tile(neighbor):
+                                continue
+                            
+                            # Only consider sea hexes
+                            if neighbor.terrain != 'sea':
+                                continue
+                            
+                            # Skip already visited
+                            if neighbor in visited:
+                                continue
+                            
+                            valid_neighbors.append(neighbor)
+                        
+                        # For finding path around islands, prefer hexes adjacent to land
+                        # but also allow open sea hexes to ensure we can find a path
+                        boundary_neighbors = []
+                        open_sea_neighbors = []
+                        
+                        for neighbor in valid_neighbors:
+                            # Check if any of neighbor's neighbors are land
+                            neighbor_neighbors = neighbors(neighbor)
+                            land_adjacent = any(
+                                self.board.is_valid_tile(n) and n.terrain == 'land' 
+                                for n in neighbor_neighbors
+                            )
+                            if land_adjacent:
+                                boundary_neighbors.append(neighbor)
+                            else:
+                                open_sea_neighbors.append(neighbor)
+                        
+                        # Prioritize boundary neighbors, but also consider open sea
+                        # Sort to favor direction and distance to goal
+                        if direction == 'left':
+                            boundary_neighbors.sort(key=lambda n: (n.q - current.q, n.r - current.r))
+                            open_sea_neighbors.sort(key=lambda n: (n.q - current.q, n.r - current.r))
+                        else:  # 'right' or default
+                            boundary_neighbors.sort(key=lambda n: get_distance(n, end_hex))
+                            open_sea_neighbors.sort(key=lambda n: get_distance(n, end_hex))
+                        
+                        # Add boundary neighbors first, then open sea neighbors
+                        all_neighbors = boundary_neighbors + open_sea_neighbors
+                        
+                        for neighbor in all_neighbors:
+                            queue.append((neighbor, path + [neighbor]))
+                    
+>>>>>>> origin/master
                     return None
 
                 # Use the land boundary tracing pathfinder
