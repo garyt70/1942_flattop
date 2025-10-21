@@ -235,11 +235,8 @@ class HexBoardModel:
             return True
         return False
 
-    def get_terrain(self, hex_coord):
-        for tile in self.tiles:
-            if tile.q == hex_coord.q and tile.r == hex_coord.r:
-                return tile.terrain
-        return None
+    def get_terrain(self, hex_coord:Hex):
+        return hex_coord.terrain
 
     def display(self):
         for piece in self.pieces:
@@ -290,7 +287,48 @@ class HexBoardModel:
                 tf:TaskForce
                 tf = piece.game_model
                 tf.reset_for_new_turn()
-                
+
+    def find_path(self, start_hex, end_hex, sea_only=True):
+        """
+        A* pathfinding algorithm for hex grid. TaskForce pieces avoid land hexes.
+        Returns a list of hexes representing the shortest path, or [] if no path found.
+        """
+        import heapq
+        import itertools
+        def heuristic(a, b):
+            return get_distance(a, b)
+
+        open_set = []
+        counter = itertools.count()
+        heapq.heappush(open_set, (0, next(counter), start_hex))
+        came_from = {}
+        g_score = {start_hex: 0}
+        f_score = {start_hex: heuristic(start_hex, end_hex)}
+
+        while open_set:
+            _, _, current = heapq.heappop(open_set)
+            if current == end_hex:
+                # reconstruct path
+                path = [current]
+                while current in came_from:
+                    current = came_from[current]
+                    path.append(current)
+                path.reverse()
+                return path
+
+            for neighbor in self.get_neighbors(current):
+                # TaskForce pieces cannot move into land hexes
+                if sea_only and self.get_terrain(neighbor) == "land":
+                    #only exception is if the neighbor is the end_hex
+                    if neighbor != end_hex:
+                        continue
+                tentative_g_score = g_score[current] + 1
+                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end_hex)
+                    heapq.heappush(open_set, (f_score[neighbor], next(counter), neighbor))
+        return []
 
 def get_distance(start_hex: Hex, dest_hex: Hex):
     # Calculate distance using offset coordinates (odd-q vertical layout)
@@ -434,16 +472,35 @@ if __name__ == "__main__":
     land_hexes = {Hex(0, 0), Hex(1, 1)}
     board = HexBoardModel(3, 3, land_hexes=land_hexes)
 
-    p1 = Piece(side="Player 1", position=Hex(0, 0))
+    # Example: create a TaskForce piece and find a path avoiding land
+    from flattop.operations_chart_models import TaskForce
+    class DummyTaskForce(TaskForce):
+        def __init__(self):
+            super().__init__()
+            self.can_attack = False
+            self.can_observe = False
+            self.movement_factor = 3
+
+    tf_model = DummyTaskForce()
+    taskforce_piece = Piece(name="TF1", side="Player 1", position=Hex(0, 2), gameModel=tf_model)
+    board.add_piece(taskforce_piece)
+
+    start = taskforce_piece.position
+    end = Hex(2, 0)
+    path = board.find_path(start, end, piece=taskforce_piece)
+    print(f"A* path for TaskForce from {start} to {end} (avoiding land):")
+    for hex_tile in path:
+        print(hex_tile)
+
+    # Other example code remains unchanged
     p2 = Piece(side="Player 2", position=Hex(1, -1))
-    board.add_piece(p1)
     board.add_piece(p2)
 
     print("Initial board:")
     board.display()
 
     print("\nPlayer 1 moves:")
-    move_success = board.move_piece(p1, Hex(1, 0))
+    move_success = board.move_piece(taskforce_piece, Hex(1, 2))
     print(f"Move success: {move_success}")
     board.display()
 
