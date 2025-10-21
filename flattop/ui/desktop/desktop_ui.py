@@ -53,7 +53,7 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     defending_taskforce_p:Piece = None
     if len(defending_taskforce_pieces) > 1:
         # Show a popup to select the taskforces
-        defending_taskforce_p:Piece = draw_piece_selection_popup(screen, defending_taskforce_pieces, pos)
+        defending_taskforce_p:Piece = draw_piece_selection_popup(screen, defending_taskforce_pieces, pos = None)
     elif len(defending_taskforce_pieces) == 1:
         # If there is only one taskforce on each side, then just use those
         defending_taskforce_p = defending_taskforce_pieces[0]

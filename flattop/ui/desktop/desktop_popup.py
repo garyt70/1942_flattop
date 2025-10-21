@@ -562,6 +562,8 @@ def get_pop_text(piece, opponent_side=None):
 def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_side=None):
         # Display a popup with a list of pieces and let the user select one
         win_width, win_height = surface.get_size()
+        if pos is None:
+            pos = (win_width // 2, win_height // 2)
         margin = 10
         font = pygame.font.SysFont(None, 24)
         
