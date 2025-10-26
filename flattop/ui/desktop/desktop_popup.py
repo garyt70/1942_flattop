@@ -111,11 +111,11 @@ def show_observation_summary_popup(desktop):
     # Collect opponent pieces
     opponent_pieces = []
     for piece in desktop.board.pieces:
-        if piece.side != current_player_side:
-            # If testing mode, show all opponent pieces
-            if config.FEATURE_FLAG_TESTING or piece.observed_condition > 0:
-                opponent_pieces.append(piece)
-    
+        if config.FEATURE_FLAG_TESTING:
+            opponent_pieces.append(piece)
+        elif piece.side != current_player_side and piece.observed_condition > 0:
+            opponent_pieces.append(piece)
+
     # Prepare lines for display
     lines = []
     
