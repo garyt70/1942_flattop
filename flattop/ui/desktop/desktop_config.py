@@ -13,4 +13,4 @@ HEX_BORDER = (100, 100, 100)
 COLOR_JAPANESE_PIECE = (255, 0, 0)  # RED
 COLOR_ALLIED_PIECE = (0, 128, 255)  # Blue
 
-FEATURE_FLAG_TESTING = True  # Set to True to disable fog of war for testing
+DISABLE_FOG_OF_WAR_FOR_TESTING = True  # Set to True to disable fog of war for testing

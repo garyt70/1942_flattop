@@ -22,7 +22,7 @@ from flattop.computer_oponent_engine import ComputerOpponent
 import flattop.ui.desktop.desktop_config as config
 from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
-FEATURE_FLAG_TESTING = config.FEATURE_FLAG_TESTING
+FEATURE_FLAG_TESTING = config.DISABLE_FOG_OF_WAR_FOR_TESTING
 
 
 # Import color and size constants from config

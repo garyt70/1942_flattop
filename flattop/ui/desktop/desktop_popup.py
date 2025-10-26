@@ -111,7 +111,7 @@ def show_observation_summary_popup(desktop):
     # Collect opponent pieces
     opponent_pieces = []
     for piece in desktop.board.pieces:
-        if config.FEATURE_FLAG_TESTING:
+        if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
             opponent_pieces.append(piece)
         elif piece.side != current_player_side and piece.observed_condition > 0:
             opponent_pieces.append(piece)
@@ -132,13 +132,13 @@ def show_observation_summary_popup(desktop):
             lines.append("=== TASK FORCES ===")
             for piece in taskforces:
                 tf = piece.game_model
-                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.DISABLE_FOG_OF_WAR_FOR_TESTING else ""
                 lines.append(f"{tf.name} at {piece.position}{obs_status}")
                 
                 # Show ships if observed at condition 2 or higher
-                if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 2:
+                if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 2:
                     lines.append(f"  Ships: {len(tf.ships)}")
-                    if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 3:
+                    if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 3:
                         for ship in tf.ships:
                             lines.append(f"    - {ship.name} ({ship.type})")
                     
@@ -186,16 +186,16 @@ def show_observation_summary_popup(desktop):
             lines.append("=== AIR FORMATIONS ===")
             for piece in airformations:
                 af = piece.game_model
-                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.DISABLE_FOG_OF_WAR_FOR_TESTING else ""
                 lines.append(f"{af.name} at {piece.position}{obs_status}")
                 lines.append(f"  Height: {af.height}, Launch Hour: {af.launch_hour}")
                 
                 # Show aircraft if observed at condition 2 or higher
-                if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 2:
+                if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 2:
                     total_aircraft = sum(ac.count for ac in af.aircraft)
                     lines.append(f"  Total Aircraft: {total_aircraft}")
                     
-                    if config.FEATURE_FLAG_TESTING or piece.observed_condition >= 3:
+                    if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 3:
                         for aircraft in af.aircraft:
                             lines.append(f"    - {aircraft.type}: {aircraft.count}")
                 
@@ -206,7 +206,7 @@ def show_observation_summary_popup(desktop):
             lines.append("=== BASES ===")
             for piece in bases:
                 base = piece.game_model
-                obs_status = f" [Obs: {piece.observed_condition}]" if not config.FEATURE_FLAG_TESTING else ""
+                obs_status = f" [Obs: {piece.observed_condition}]" if not config.DISABLE_FOG_OF_WAR_FOR_TESTING else ""
                 lines.append(f"{base.name} at {piece.position}{obs_status}")
                 
                 # Show aircraft at base
@@ -247,7 +247,7 @@ def show_observation_summary_popup(desktop):
     
     # Add title at the beginning
     title = "OBSERVATION REPORT"
-    if config.FEATURE_FLAG_TESTING:
+    if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
         title += " (TESTING MODE - All Opponent Pieces)"
     
     # Render all text
@@ -550,7 +550,7 @@ def draw_game_model_popup(desktop, piece, pos):
                     sys.exit()
 
 def get_pop_text(piece, opponent_side=None):
-    if config.FEATURE_FLAG_TESTING:
+    if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
         return f"{getattr(piece, 'name', str(piece))} | {str(piece.game_model)} | {getattr(piece, 'side', '')}"
 
     # Return the text to display in the piece selection popup for the given piece
