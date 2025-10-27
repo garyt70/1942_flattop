@@ -106,14 +106,14 @@ def show_observation_summary_popup(desktop):
     header_font = pygame.font.SysFont(None, 22, bold=True)
     
     # Get current player's side
-    current_player_side = desktop.turn_manager.side_with_initiative if hasattr(desktop.turn_manager, 'side_with_initiative') else "Allied"
+    computer_player_side = desktop.computer_opponent.side
     
     # Collect opponent pieces
     opponent_pieces = []
     for piece in desktop.board.pieces:
         if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
             opponent_pieces.append(piece)
-        elif piece.side != current_player_side and piece.observed_condition > 0:
+        elif piece.side == computer_player_side and piece.observed_condition > 0:
             opponent_pieces.append(piece)
 
     # Prepare lines for display
@@ -194,7 +194,7 @@ def show_observation_summary_popup(desktop):
                 if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 2:
                     total_aircraft = sum(ac.count for ac in af.aircraft)
                     lines.append(f"  Total Aircraft: {total_aircraft}")
-                    
+
                     if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 3:
                         for aircraft in af.aircraft:
                             lines.append(f"    - {aircraft.type}: {aircraft.count}")
