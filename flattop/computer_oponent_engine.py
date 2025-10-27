@@ -813,12 +813,10 @@ class ComputerOpponent:
                     is_interceptor = any(ac.is_interceptor for ac in af.aircraft)
                     if target_type == AirFormation and is_interceptor:
                         logger.debug(f"Interceptor {af.name} prioritizing CAP for base/carrier.")
-                        # Prioritize high-value base/carrier for CAP
-                        high_value_bases = [b for b in base_pieces if getattr(b.game_model, 'is_high_value', False)]
-                        cap_base_hexes = [b.position for b in high_value_bases] if high_value_bases else base_hexes
+                        all_cap_pieces = friendly_taskforce_hexes + base_hexes
                         min_base_dist = float('inf')
                         nearest_base = None
-                        for base_hex in cap_base_hexes:
+                        for base_hex in all_cap_pieces:
                             dist = get_distance(piece.position, base_hex)
                             if dist < min_base_dist:
                                 min_base_dist = dist
@@ -1025,11 +1023,14 @@ class ComputerOpponent:
             if len(af.aircraft) == 0:
                 logger.debug(f"Removing empty computer air formation {af.name} from board.")
                 self.board.pieces.remove(next(p for p in self.board.pieces if p.game_model == af))
-        for af in enemy_airformations:
+        
+        # First, remove aircraft with count 0 from all air formations in the hex
+        for af_piece in hex_airformations + [p for p in hex_enemies if isinstance(p.game_model, AirFormation)]:
+            af = af_piece.game_model
             af.aircraft = [ac for ac in af.aircraft if ac.count > 0]
-            if len(af.aircraft) == 0:
-                logger.debug(f"Removing empty enemy air formation {af.name} from board.")
-                self.board.pieces.remove(next(p for p in self.board.pieces if p.game_model == af))
+            if not af.aircraft and af_piece in self.board.pieces:
+                self.board.pieces.remove(af_piece)
+                logger.debug(f"Removing empty air formation {af.name} from board.")
 
         ### execute anti aircraft combat ###
         # the taskforce being attacked by the air formations need to be selected.
