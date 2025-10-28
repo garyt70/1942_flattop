@@ -110,6 +110,8 @@ def show_observation_summary_popup(desktop):
     
     # Collect opponent pieces
     opponent_pieces = []
+    aircraft_count = {}
+
     for piece in desktop.board.pieces:
         if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
             opponent_pieces.append(piece)
@@ -158,16 +160,19 @@ def show_observation_summary_popup(desktop):
                             for ac in tracker.ready:
                                 aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                                 ready_aircraft[aircraft_type] = ready_aircraft.get(aircraft_type, 0) + ac.count
+                                aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                             
                             # Process readying aircraft
                             for ac in tracker.readying:
                                 aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                                 readying_aircraft[aircraft_type] = readying_aircraft.get(aircraft_type, 0) + ac.count
+                                aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                             
                             # Process just landed aircraft
                             for ac in tracker.just_landed:
                                 aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                                 just_landed_aircraft[aircraft_type] = just_landed_aircraft.get(aircraft_type, 0) + ac.count
+                                aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                             
                             if ready_aircraft:
                                 ready_list = [f"{atype}: {count}" for atype, count in ready_aircraft.items()]
@@ -198,6 +203,7 @@ def show_observation_summary_popup(desktop):
                     if config.DISABLE_FOG_OF_WAR_FOR_TESTING or piece.observed_condition >= 3:
                         for aircraft in af.aircraft:
                             lines.append(f"    - {aircraft.type}: {aircraft.count}")
+                            aircraft_count[aircraft.type] = aircraft_count.get(aircraft.type, 0) + aircraft.count
                 
                 lines.append("")  # Empty line for spacing
         
@@ -222,16 +228,19 @@ def show_observation_summary_popup(desktop):
                     for ac in tracker.ready:
                         aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                         ready_aircraft[aircraft_type] = ready_aircraft.get(aircraft_type, 0) + ac.count
+                        aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                     
                     # Process readying aircraft
                     for ac in tracker.readying:
                         aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                         readying_aircraft[aircraft_type] = readying_aircraft.get(aircraft_type, 0) + ac.count
+                        aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                     
                     # Process just landed aircraft
                     for ac in tracker.just_landed:
                         aircraft_type = ac.type.value if hasattr(ac.type, 'value') else str(ac.type)
                         just_landed_aircraft[aircraft_type] = just_landed_aircraft.get(aircraft_type, 0) + ac.count
+                        aircraft_count[aircraft_type] = aircraft_count.get(aircraft_type, 0) + ac.count
                     
                     if ready_aircraft:
                         ready_list = [f"{atype}: {count}" for atype, count in ready_aircraft.items()]
@@ -244,7 +253,12 @@ def show_observation_summary_popup(desktop):
                         lines.append(f"  Just Landed: {', '.join(landed_list)}")
                 
                 lines.append("")  # Empty line for spacing
-    
+        if aircraft_count:
+            lines.append("=== TOTAL AIRCRAFT SUMMARY ===")
+            for atype, count in aircraft_count.items():
+                lines.append(f"{atype}: {count}")   
+
+
     # Add title at the beginning
     title = "OBSERVATION REPORT"
     if config.DISABLE_FOG_OF_WAR_FOR_TESTING:
@@ -322,7 +336,16 @@ def show_observation_summary_popup(desktop):
         close_text = font.render("Press ESC or Click to Close", True, (200, 200, 200))
         close_rect = close_text.get_rect(centerx=popup_width // 2, bottom=popup_height - 4)
         popup_surface.blit(close_text, close_rect)
-    
+
+        # Display total aircraft count by type at the end
+        total_lines = [f"{atype}: {count}" for atype, count in aircraft_count.items()]
+        if total_lines:
+            popup_surface.blit(font.render("=== TOTAL AIRCRAFT ===", True, (255, 255, 0)), (margin, y))
+            y += line_height
+            for line in total_lines:
+                popup_surface.blit(font.render(line, True, (255, 255, 255)), (margin, y))
+                y += line_height
+
     # Initial draw
     draw_popup_content()
     screen.blit(background, (0, 0))
