@@ -1056,8 +1056,6 @@ class JapaneseShipFactory:
                 ship = Carrier(name, "CV", "operational", 1, 4, 2, 6)
             case "Soryu" | "Hiryu":
                 ship = Carrier(name, "CV", "operational", 1, 4, 2, 5)
-            case "Shokaku":
-                ship = Carrier(name, "CV", "operational", 1, 3, 2, 4)
             case "Zuikaku" | "Shokaku":
 
                 air_ops_config = AirOperationsConfiguration(
