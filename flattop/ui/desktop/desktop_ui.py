@@ -291,11 +291,25 @@ class DesktopUI:
         dragging_map = False
         last_mouse_pos = None
 
-        clock = pygame.time.Clock()
-        
+        clock = pygame.time.Clock()        
         while running:
             clock.tick(30)  # Limit to 30 FPS
-            self.draw()
+            
+            # Draw instruction text at the bottom of the screen
+            font = pygame.font.SysFont(None, 32)
+            instruction_text = "Click and drag your TaskForces to reposition them. Press ESC to start the game."
+            text_surface = font.render(instruction_text, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, 30))
+            
+            # Draw a semi-transparent background for better readability
+            bg_rect = text_rect.inflate(20, 10)
+            bg_surface = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
+            bg_surface.fill((0, 0, 0, 180))
+            self.screen.blit(bg_surface, bg_rect.topleft)
+            self.screen.blit(text_surface, text_rect)
+            pygame.display.flip()
+            
+            self.draw()           
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
