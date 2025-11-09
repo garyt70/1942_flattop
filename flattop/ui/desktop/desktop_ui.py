@@ -591,11 +591,19 @@ class DesktopUI:
                 else:
                     can_display = ((isinstance(piece.game_model, (TaskForce, AirFormation))) and piece.observed_condition > 0) or isinstance(piece.game_model, (Base))
                 #skip rendering opponent pieces that have not been observed
-                if piece.side == self.computer_opponent.side and not can_display:
+                is_opponent = piece.side == self.computer_opponent.side
+                if is_opponent and not can_display:
                     continue
                 color = COLOR_JAPANESE_PIECE if piece.side == "Japanese" else COLOR_ALLIED_PIECE
+
                 if isinstance(piece.game_model, AirFormation):
-                    image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0)
+                    af:AirFormation = piece.game_model
+                    if af.range_remaining <= af.max_range // 2 and not is_opponent:
+                        image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0, range_condition="half")
+                    elif af.range_remaining <= af.max_range // 4 and not is_opponent:
+                        image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0, range_condition="low")
+                    else:
+                        image = PieceImageFactory.airformation_image(color, observed=piece.observed_condition > 0)
                 elif isinstance(piece.game_model, Base):
                     image = PieceImageFactory.base_image(color)
                 elif isinstance(piece.game_model, TaskForce):

@@ -506,6 +506,18 @@ class AirFormation:
         return min_range
 
     @property
+    def max_range(self):
+        """
+        Returns the maximum range for the AirFormation,
+        which is the highest minium range among all aircraft in the formation.
+        Returns 0 if there are no aircraft.
+        """
+        max_range = 0
+        if self.aircraft:
+            max_range = min(ac.range_factor for ac in self.aircraft)
+        return max_range
+
+    @property
     def can_attack(self):
         """
         loop through the aircraft in the formation and check if any of them can attack.

@@ -21,8 +21,12 @@ class PieceImageFactory:
     """
 
     @staticmethod
-    def airformation_image(color, size=HEX_SIZE, observed=False):
+    def airformation_image(color, size=HEX_SIZE, observed=False, range_condition="normal"):
         # Circle with a simple "plane" icon (horizontal line and tail)
+        # If range_condition is "half", draw a amber semicircle at the bottom to indicate reduced range
+        # if range_condition is "low", draw a red circle at the bottom with exclamation mark to indicate low range
+        
+        # Draw the main piece first
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
         center = (size // 2, size // 2)
         radius = size // 1.5 #3
@@ -30,12 +34,39 @@ class PieceImageFactory:
         # Draw a simple plane: a line with a tail
         pygame.draw.line(surf, (255, 255, 255), (center[0] - radius//2, center[1]), (center[0] + radius//2, center[1]), 2)
         pygame.draw.line(surf, (255, 255, 255), (center[0], center[1]), (center[0], center[1] + radius//2), 2)
+        # Draw range condition indicators as 4 boxes at the bottom
+        box_size = radius // 4
+        box_spacing = 2
+        total_width = (box_size * 4) + (box_spacing * 3)
+        start_x = center[0] - total_width // 2
+        start_y = center[1] + radius // 1.5
+        
+        # Determine how many boxes to fill based on range condition
+        filled_boxes = 4  # default "normal"
+        if range_condition == "half":
+            filled_boxes = 2
+        elif range_condition == "low":
+            filled_boxes = 1
+        
+        # Draw 4 boxes
+        for i in range(4):
+            box_x = start_x + i * (box_size + box_spacing)
+            box_rect = pygame.Rect(box_x, start_y, box_size, box_size)
+            
+            if i < filled_boxes:
+                # Filled box
+                pygame.draw.rect(surf, (0, 0, 0), box_rect)
+            else:
+                # Empty box (just outline)
+                pygame.draw.rect(surf, (255, 255, 255), box_rect, 1)
+                
         if observed:
             #draw a smaill circle coloured orange at the top right corner of the image
             pygame.draw.circle(surf, (255, 165, 0), (size - 5, 5), 5)
             # draw a small white border around the orange circle
             pygame.draw.circle(surf, (255, 255, 255), (size - 5, 5), 5, 1)
         return surf
+
 
     @staticmethod
     def base_image(color, size=HEX_SIZE):
