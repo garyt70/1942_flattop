@@ -106,6 +106,7 @@ Text from rule book
         self.can_observe = True
         self.observed_condition = 0
         self.has_radar = False  # Indicates if this Task Force has radar capabilities
+        self.attacked_this_turn = False
 
     def add_ship(self, ship):
         if not isinstance(ship, Ship):
@@ -178,6 +179,7 @@ Text from rule book
         This can include resetting observed conditions, etc.
         """
         self.observed_condition = 0
+        self.attacked_this_turn = False
         # Reset any other state as needed
         carrier_list = self.get_carriers()
         cv:Carrier
@@ -871,15 +873,18 @@ class AircraftType(Enum):
 
 class Ship:
     
-    def __init__(self, name, type, status, gunnery_factor=0, anti_air_factor=0, move_factor=2, damage_factor=1):
+    def __init__(self, name, type, status, gunnery_factor=0, anti_air_factor=0, move_factor=2, damage_factor=1, torpedo_factor=0):
         self.name = name
         self.type = type
         self.status = status
         self.attack_factor = gunnery_factor
+        self.torpedo_factor = torpedo_factor
         self.anti_air_factor = anti_air_factor
         self.move_factor = move_factor  # Default move factor for ships
         self.damage_factor = damage_factor
         self.damage = 0
+        self.attacked_this_turn = False
+        self.surface_combat_exhausted = False
 
     def __repr__(self):
         return f"Ship(name={self.name}, type={self.type}, status={self.status}, damage={self.damage}" \
@@ -895,11 +900,11 @@ class Carrier(Ship):
         status (str): The status of the carrier (e.g., "operational", "damaged").
     """
     
-    def __init__(self, name, type, status, attack_factor=0, anti_air_factor=0, move_factor=2, damage_factor=4):
+    def __init__(self, name, type, status, attack_factor=0, anti_air_factor=0, move_factor=2, damage_factor=4, torpedo_factor=0):
         #a carrier is in effect a ship with a base  
         self.base = Base(name=f"{name} Base")
         self.has_radar = False  # Carriers do not have radar by default 
-        super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor)
+        super().__init__(name, "CV", status, attack_factor, anti_air_factor, move_factor, damage_factor, torpedo_factor)
         
         
 

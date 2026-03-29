@@ -90,10 +90,13 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                     "type": s.type,
                     "status": s.status,
                     "attack_factor": s.attack_factor,
+                    "torpedo_factor": getattr(s, "torpedo_factor", 0),
                     "anti_air_factor": s.anti_air_factor,
                     "move_factor": s.move_factor,
                     "damage_factor": s.damage_factor,
-                    "damage": s.damage
+                    "damage": s.damage,
+                    "attacked_this_turn": getattr(s, "attacked_this_turn", False),
+                    "surface_combat_exhausted": getattr(s, "surface_combat_exhausted", False),
                 }
                 # If ship is a Carrier, serialize its base
                 from flattop.operations_chart_models import Carrier
@@ -106,7 +109,8 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                 "name": getattr(gm, "name", None),
                 "side": getattr(gm, "side", None),
                 "ships": ships_data,
-                "observed_condition": getattr(gm, "observed_condition", 0)
+                "observed_condition": getattr(gm, "observed_condition", 0),
+                "attacked_this_turn": getattr(gm, "attacked_this_turn", False)
             }
         elif isinstance(gm, Base):
             return {
@@ -387,21 +391,27 @@ def load_game_state(filename):
                     s.get("attack_factor", 0),
                     s.get("anti_air_factor", 0),
                     s.get("move_factor", 2),
-                    s.get("damage_factor", 1)
+                    s.get("damage_factor", 1),
+                    s.get("torpedo_factor", 0)
                 )
                 if "base" in s and s["base"]:
                     carrier.base = deserialize_base(s["base"])
                 carrier.damage = s.get("damage", 0)
+                carrier.attacked_this_turn = s.get("attacked_this_turn", False)
+                carrier.surface_combat_exhausted = s.get("surface_combat_exhausted", False)
                 tf.ships.append(carrier)
             else:
                 ship = Ship(
                     s.get("name"), s.get("type"), s.get("status"),
                     s.get("attack_factor", 0), s.get("anti_air_factor", 0),
-                    s.get("move_factor", 2), s.get("damage_factor", 1)
+                    s.get("move_factor", 2), s.get("damage_factor", 1), s.get("torpedo_factor", 0)
                 )
                 ship.damage = s.get("damage", 0)
+                ship.attacked_this_turn = s.get("attacked_this_turn", False)
+                ship.surface_combat_exhausted = s.get("surface_combat_exhausted", False)
                 tf.ships.append(ship)
         tf.observed_condition = tfd.get("observed_condition", 0)
+        tf.attacked_this_turn = tfd.get("attacked_this_turn", False)
         return tf
 
     def deserialize_base(bd):

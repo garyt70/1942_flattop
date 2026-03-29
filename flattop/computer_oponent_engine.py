@@ -46,6 +46,7 @@ from flattop.aircombat_engine import (
     resolve_air_to_ship_combat,
     resolve_air_to_base_combat
 )
+from flattop.surface_combat_engine import resolve_surface_combat
 from flattop.game_engine import get_actionable_pieces, perform_observation_for_piece, perform_observation_for_side
 from flattop.weather_model import WeatherManager
 
@@ -469,8 +470,7 @@ class ComputerOpponent:
         # 1. Arm aircraft with AP if TaskForce is observed and launch them to attack
         taskforce_targets = [p for p in observed_enemy_pieces if isinstance(p.game_model, TaskForce)]
         if taskforce_targets:
-            
-            for base_piece in bases:
+            for base_piece in base_pieces:
                 base:Base = base_piece.game_model
                 ready = list(base.air_operations_tracker.ready)
                 if ready:
@@ -1187,6 +1187,15 @@ class ComputerOpponent:
         if enemy_base_pieces:
             result_computer_base_air_attack = resolve_air_to_base_combat(computer_bombers, enemy_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
+        result_surface_combat = None
+        if computer_taskforce_p and enemy_taskforce_p:
+            result_surface_combat = resolve_surface_combat(
+                computer_taskforce_p.game_model,
+                enemy_taskforce_p.game_model,
+                clouds=in_clouds,
+                night=at_night,
+            )
+
         # First, remove aircraft with count 0 from all air formations in the hex
         for af_piece in hex_airformations + [p for p in hex_enemies if isinstance(p.game_model, AirFormation)]:
             af = af_piece.game_model
@@ -1198,6 +1207,12 @@ class ComputerOpponent:
             if not af.aircraft and af_piece in self.board.pieces:
                 self.board.pieces.remove(af_piece)
 
+        # Clean up any task forces that have no ships after surface or air attacks.
+        for tf_piece in [p for p in list(self.board.pieces) if isinstance(p.game_model, TaskForce)]:
+            if len(tf_piece.game_model.ships) == 0:
+                logger.info(f"Removing destroyed task force {tf_piece.name} from board.")
+                self.board.pieces.remove(tf_piece)
+
 
         combat_results = {
             "result_attacker_a2a": result_computer_a2a,
@@ -1205,6 +1220,7 @@ class ComputerOpponent:
             "result_base_anti_aircraft": result_base_anti_aircraft,
             "result_attacker_ship_air_attack": result_computer_ship_air_attack,
             "result_attacker_base_air_attack": result_computer_base_air_attack,
+            "result_surface_combat": result_surface_combat,
             "pre_combat_count_attacker_interceptors": pre_combat_count_computer_interceptors,
             "pre_combat_count_attacker_bombers": pre_combat_count_computer_bombers,
             "pre_combat_count_attacker_escorts": pre_combat_count_computer_escorts,

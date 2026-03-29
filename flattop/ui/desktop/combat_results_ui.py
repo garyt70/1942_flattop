@@ -91,6 +91,8 @@ class CombatResultsList:
                 summary += " - Base Combat"
             if "ship" in result:
                 summary += " - Ship Combat"
+            if "surface" in result:
+                summary += " - Surface Combat"
                 
             self.draw_text(summary, self.PADDING, i * self.ITEM_HEIGHT + 10)
 
@@ -143,8 +145,9 @@ class CombatResultsList:
                                 aa.append(combat_result.get("result_base_anti_aircraft"))
                                 ship = combat_result.get("result_attacker_ship_air_attack")
                                 base = combat_result.get("result_attacker_base_air_attack")
+                                surface = combat_result.get("result_surface_combat")
 
-                                result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
+                                result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship, "surface": surface}
                                 detail_view = CombatResultsScreen(
                                     result_data,
                                     self.screen,
@@ -243,6 +246,10 @@ class CombatResultsScreen:
                 ship = self.combat_results.get("ship", {})
                 ship_summary = self._make_ship_summary(ship)
                 self.draw_summary(y, "Ship", ship_summary)
+                y += self.SUMMARY_HEIGHT
+                surface = self.combat_results.get("surface", {})
+                surface_summary = self._make_surface_summary(surface)
+                self.draw_summary(y, "Surface", surface_summary)
                 y += self.SUMMARY_HEIGHT + self.PADDING
 
                 # --- Details ---
@@ -253,6 +260,8 @@ class CombatResultsScreen:
                 y = self._draw_base_details(y, base)
                 y += self.PADDING
                 y = self._draw_ship_details(y, ship)
+                y += self.PADDING
+                y = self._draw_surface_details(y, surface)
 
                 # Update max scroll based on final y position
                 self.max_scroll = max(0, y - self.height + self.SUMMARY_HEIGHT)
@@ -418,6 +427,33 @@ class CombatResultsScreen:
                                 y += self.DETAIL_LINE_HEIGHT
                         for line in self._eliminated_to_lines(ship.get("eliminated", {}) if ship else {}):
                                 self.draw_text(line, self.PADDING * 2, y)
+                                y += self.DETAIL_LINE_HEIGHT
+                return y
+
+        def _make_surface_summary(self, surface):
+                if not surface:
+                        return "No surface combat."
+                attacker_sunk = len(surface.get("attacker", {}).get("sunk_ships", []))
+                defender_sunk = len(surface.get("defender", {}).get("sunk_ships", []))
+                return f"Sunk by attacker: {attacker_sunk}, sunk by defender: {defender_sunk}"
+
+        def _draw_surface_details(self, y, surface):
+                self.draw_text("Surface Combat Details:", self.PADDING, y)
+                y += self.DETAIL_LINE_HEIGHT
+                if not surface:
+                        self.draw_text("No surface combat.", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        return y
+                for side_key in ("attacker", "defender"):
+                        report = surface.get(side_key, {})
+                        self.draw_text(f"{side_key.title()} fire:", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        for line in report.get("story_line", []):
+                                self.draw_text(line, self.PADDING * 3, y)
+                                y += self.DETAIL_LINE_HEIGHT
+                        sunk = report.get("sunk_ships", [])
+                        if sunk:
+                                self.draw_text(f"Sunk: {', '.join(sunk)}", self.PADDING * 3, y)
                                 y += self.DETAIL_LINE_HEIGHT
                 return y
 

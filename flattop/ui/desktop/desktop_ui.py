@@ -11,11 +11,13 @@ from flattop.operations_chart_models import Ship, Aircraft, Carrier, AirFormatio
 from flattop.ui.desktop.base_ui import BaseUIDisplay, AircraftDisplay
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.bomber_allocation_ui import BomberAllocationUI
+from flattop.ui.desktop.surface_allocation_ui import SurfaceAllocationUI
 from flattop.ui.desktop.combat_results_ui import CombatResultsList, CombatResultsScreen
 from flattop.ui.desktop.desktop_popup import Dashboard, draw_dashboard, draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
+from flattop.surface_combat_engine import resolve_surface_combat
 
 from flattop.computer_oponent_engine import ComputerOpponent
 
@@ -195,6 +197,28 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     if defending_base_pieces:
         result_attacking_base_air_attack = resolve_air_to_base_combat(attacking_bombers, defending_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
 
+    result_surface_combat = None
+    attacking_taskforce_pieces = [
+        p for p in board.pieces
+        if isinstance(p.game_model, TaskForce) and p.side == attacking_side and p.position == piece.position
+    ]
+    if isinstance(piece.game_model, TaskForce) and attacking_taskforce_pieces and defending_taskforce_p:
+        surface_ui = SurfaceAllocationUI(
+            screen,
+            attacking_taskforce_pieces[0].game_model.ships,
+            defending_taskforce_p.game_model.ships,
+        )
+        allocation = surface_ui.handle_events()
+        if allocation is None:
+            allocation = {}
+        result_surface_combat = resolve_surface_combat(
+            attacking_taskforce_pieces[0].game_model,
+            defending_taskforce_p.game_model,
+            clouds=in_clouds,
+            night=at_night,
+            attacker_target_allocation=allocation,
+        )
+
     # First, remove aircraft with count 0 from all air formations in the hex
     for af_piece in hex_airformations:
         af = af_piece.game_model
@@ -206,12 +230,18 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         if not af.aircraft and af_piece in board.pieces:
             board.pieces.remove(af_piece)
 
+    # Remove task force pieces that have no ships after combat resolution.
+    for tf_piece in [p for p in list(board.pieces) if isinstance(p.game_model, TaskForce)]:
+        if len(tf_piece.game_model.ships) == 0:
+            board.pieces.remove(tf_piece)
+
     combat_results = {
         "result_attacker_a2a": result_attacking_a2a,
         "result_tf_anti_aircraft": result_tf_anti_aircraft,
         "result_base_anti_aircraft": result_base_anti_aircraft,
         "result_attacker_ship_air_attack": result_attacking_ship_air_attack,
         "result_attacker_base_air_attack": result_attacking_base_air_attack,
+        "result_surface_combat": result_surface_combat,
         "pre_combat_count_attacker_interceptors": pre_combat_count_attacking_interceptors,
         "pre_combat_count_attacker_bombers": pre_combat_count_attacking_bombers,
         "pre_combat_count_attacker_escorts": pre_combat_count_attacking_escorts,
@@ -892,6 +922,18 @@ class DesktopUI:
                 ]
                 if enemy_airformations or enemy_taskforces or enemy_base:
                     menu_options.append("Combat")
+        # If the piece is a TaskForce, show Combat option when there is an enemy TaskForce in the same hex
+        if isinstance(piece.game_model, TaskForce):
+            if "Combat" in self.turn_manager.current_phase:
+                enemy_taskforces = [
+                    p for p in self.board.pieces
+                    if isinstance(p.game_model, TaskForce)
+                    and p.position == piece.position
+                    and p.side != piece.side
+                ]
+                if enemy_taskforces:
+                    menu_options.append("Combat")
+
         # airformation and plane move phase then enable move option
         if piece.can_move and not piece.has_moved:
             if isinstance(piece.game_model, AirFormation) and self.turn_manager.current_phase in ["Plane Movement"]:
@@ -992,9 +1034,10 @@ class DesktopUI:
         aa.append(results.get("result_base_anti_aircraft"))
         ship = results.get("result_attacker_ship_air_attack")
         base = results.get("result_attacker_base_air_attack")
+        surface = results.get("result_surface_combat")
 
 
-        result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship}
+        result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship, "surface": surface}
         ui = CombatResultsScreen(result_data, self.screen)
         ui.draw_results()
         ui.run()
