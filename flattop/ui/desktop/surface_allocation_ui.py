@@ -162,13 +162,11 @@ class SurfaceAllocationUI:
             and not getattr(s, "torpedo_factor_used", False)
             for s in self.def_ships
         )
-        if step := 6:
-            if att_has_torp:
-                step = 7
-            if def_has_torp:
-                step = max(step, 8) if att_has_torp else 7
-        return step
-
+        if def_has_torp:
+            return 8
+        if att_has_torp:
+            return 7
+        return 6
     # ── Drawing ───────────────────────────────────────────────────────────────
 
     def _draw(self):
