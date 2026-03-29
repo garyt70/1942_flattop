@@ -137,23 +137,29 @@ def perform_land_piece_action(piece:Piece, board:HexBoardModel, hex:Hex):
                 # and removes the AirFormation piece from the board
                 # the aircraft are added to the Base's air operations chart will have a Just Landed status
     
-    # Find the Base in the same hex as the AirFormation
-    base_piece:Piece = next(
-        (p for p in board.pieces if isinstance(p.game_model, (Base, TaskForce)) and p.position == hex),
-        None
-    )
+    # Find a friendly landing target in the same hex.
+    # Prefer a Base in the hex, otherwise use a friendly TaskForce carrier deck.
+    landing_targets = [
+        p for p in board.pieces
+        if p.side == piece.side
+        and isinstance(p.game_model, (Base, TaskForce))
+        and p.position == hex
+    ]
+
     base:Base = None
-    if base_piece:
-        if isinstance(base_piece.game_model, Base):
-            base = base_piece.game_model
-            # Ensure the Base has an air operations tracker
-        if isinstance(base_piece.game_model, TaskForce):
-            tf:TaskForce = base_piece.game_model
-            #loop through the ships to ensure there is a carrier. If there is a carrier, then set the base to the carrier's air operations chart
-            for ship in tf.ships:  
-                if isinstance(ship, Carrier):
-                    base = ship.base
-                    break 
+    for target in landing_targets:
+        if isinstance(target.game_model, Base):
+            base = target.game_model
+            break
+
+    if base is None:
+        for target in landing_targets:
+            if isinstance(target.game_model, TaskForce):
+                tf:TaskForce = target.game_model
+                carriers = tf.get_carriers()
+                if len(carriers) > 0:
+                    base = carriers[0].base
+                    break
         
     if base:
         # Add aircraft to the Base's air operations chart
