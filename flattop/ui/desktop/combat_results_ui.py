@@ -433,28 +433,134 @@ class CombatResultsScreen:
         def _make_surface_summary(self, surface):
                 if not surface:
                         return "No surface combat."
-                attacker_sunk = len(surface.get("attacker", {}).get("sunk_ships", []))
-                defender_sunk = len(surface.get("defender", {}).get("sunk_ships", []))
-                return f"Sunk by attacker: {attacker_sunk}, sunk by defender: {defender_sunk}"
+                bht = surface.get("bht", "?")
+                att_destroyed = surface.get("attacker_destroyed", surface.get("attacker", {}).get("sunk_ships", []))
+                def_destroyed = surface.get("defender_destroyed", surface.get("defender", {}).get("sunk_ships", []))
+
+                if isinstance(att_destroyed, bool):
+                        att_sunk = 1 if att_destroyed else 0
+                elif isinstance(att_destroyed, (list, tuple, set, dict)):
+                        att_sunk = len(att_destroyed)
+                else:
+                        att_sunk = 0
+
+                if isinstance(def_destroyed, bool):
+                        def_sunk = 1 if def_destroyed else 0
+                elif isinstance(def_destroyed, (list, tuple, set, dict)):
+                        def_sunk = len(def_destroyed)
+                else:
+                        def_sunk = 0
+
+                return f"BHT {bht} | Att sunk: {att_sunk}, Def sunk: {def_sunk}"
 
         def _draw_surface_details(self, y, surface):
+                def _as_entries(value):
+                        if value is None:
+                                return []
+                        if isinstance(value, dict):
+                                return [value]
+                        if isinstance(value, (list, tuple)):
+                                return [v for v in value if isinstance(v, dict)]
+                        return []
+
                 self.draw_text("Surface Combat Details:", self.PADDING, y)
                 y += self.DETAIL_LINE_HEIGHT
                 if not surface:
                         self.draw_text("No surface combat.", self.PADDING * 2, y)
                         y += self.DETAIL_LINE_HEIGHT
                         return y
-                for side_key in ("attacker", "defender"):
-                        report = surface.get(side_key, {})
-                        self.draw_text(f"{side_key.title()} fire:", self.PADDING * 2, y)
+
+                # Header line: BHT and dice
+                bht = surface.get("bht")
+                att_die = surface.get("attacker_die")
+                def_die = surface.get("defender_die")
+                if bht is not None:
+                        dice_str = f"  (Att die {att_die} + Def die {def_die})" if att_die and def_die else ""
+                        self.draw_text(f"BHT = {bht}{dice_str}", self.PADDING * 2, y)
                         y += self.DETAIL_LINE_HEIGHT
-                        for line in report.get("story_line", []):
-                                self.draw_text(line, self.PADDING * 3, y)
+
+                # Gunnery phase
+                self.draw_text("Gunnery Phase:", self.PADDING * 2, y)
+                y += self.DETAIL_LINE_HEIGHT
+                for side_key, gunnery_key in (("Attacker", "attacker_gunnery"), ("Defender", "defender_gunnery")):
+                        phase_list = _as_entries(surface.get(gunnery_key))
+                        if not phase_list:
+                                # Fall back to legacy story_line
+                                legacy = surface.get("attacker" if side_key == "Attacker" else "defender", {})
+                                phase_list = [{"story_line": legacy.get("story_line", []),
+                                               "sunk_ships": legacy.get("sunk_ships", [])}]
+                        for entry in phase_list:
+                                hits = entry.get("hits", 0)
+                                if isinstance(hits, dict):
+                                        hits = sum(hits.values())
+                                target = entry.get("target_name", "")
+                                story = entry.get("story_line", [])
+                                sunk = entry.get("sunk", entry.get("sunk_ships", []))
+                                label = f"{side_key}: {target} — {hits} hit(s)" if target else f"{side_key}: {hits} hit(s)"
+                                self.draw_text(label, self.PADDING * 3, y)
                                 y += self.DETAIL_LINE_HEIGHT
-                        sunk = report.get("sunk_ships", [])
-                        if sunk:
-                                self.draw_text(f"Sunk: {', '.join(sunk)}", self.PADDING * 3, y)
+                                for line in story:
+                                        self.draw_text(line, self.PADDING * 4, y, color=(200, 200, 180))
+                                        y += self.DETAIL_LINE_HEIGHT
+                                if sunk:
+                                        self.draw_text(f"Sunk: {', '.join(sunk)}", self.PADDING * 4, y, color=(255, 100, 100))
+                                        y += self.DETAIL_LINE_HEIGHT
+
+                # Torpedo phase
+                has_torpedo = surface.get("attacker_torpedo") or surface.get("defender_torpedo")
+                if has_torpedo:
+                        self.draw_text("Torpedo Phase:", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        for side_key, torp_key in (("Attacker", "attacker_torpedo"), ("Defender", "defender_torpedo")):
+                                for entry in _as_entries(surface.get(torp_key)):
+                                        hits = entry.get("hits", 0)
+                                        if isinstance(hits, dict):
+                                                hits = sum(hits.values())
+                                        target = entry.get("target_name", "")
+                                        sunk = entry.get("sunk", entry.get("sunk_ships", []))
+                                        label = f"{side_key}: {target} — {hits} hit(s)" if target else f"{side_key}: {hits} hit(s)"
+                                        self.draw_text(label, self.PADDING * 3, y)
+                                        y += self.DETAIL_LINE_HEIGHT
+                                        if sunk:
+                                                self.draw_text(f"Sunk: {', '.join(sunk)}", self.PADDING * 4, y, color=(255, 100, 100))
+                                                y += self.DETAIL_LINE_HEIGHT
+
+                # Breakthrough phase
+                bt = surface.get("breakthrough")
+                if bt:
+                        self.draw_text("Breakthrough:", self.PADDING * 2, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        bt_side = bt.get("side", "?")
+                        bt_hits = bt.get("hits", 0)
+                        bt_sunk = bt.get("sunk", [])
+                        self.draw_text(f"{bt_side} breakthrough — {bt_hits} hit(s)", self.PADDING * 3, y)
+                        y += self.DETAIL_LINE_HEIGHT
+                        if bt_sunk:
+                                self.draw_text(f"Sunk: {', '.join(bt_sunk)}", self.PADDING * 4, y, color=(255, 100, 100))
                                 y += self.DETAIL_LINE_HEIGHT
+
+                # Final totals
+                att_destroyed = surface.get("attacker_destroyed", [])
+                def_destroyed = surface.get("defender_destroyed", [])
+
+                if isinstance(att_destroyed, bool):
+                        att_lost_text = "all ships" if att_destroyed else "none"
+                elif isinstance(att_destroyed, (list, tuple, set)):
+                        att_lost_text = ", ".join(att_destroyed) or "none"
+                else:
+                        att_lost_text = "none"
+
+                if isinstance(def_destroyed, bool):
+                        def_lost_text = "all ships" if def_destroyed else "none"
+                elif isinstance(def_destroyed, (list, tuple, set)):
+                        def_lost_text = ", ".join(def_destroyed) or "none"
+                else:
+                        def_lost_text = "none"
+
+                self.draw_text(f"Attacker lost: {att_lost_text}", self.PADDING * 2, y)
+                y += self.DETAIL_LINE_HEIGHT
+                self.draw_text(f"Defender lost: {def_lost_text}", self.PADDING * 2, y)
+                y += self.DETAIL_LINE_HEIGHT
                 return y
 
         def _aircombat_result_to_lines(self, result):

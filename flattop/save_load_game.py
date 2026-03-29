@@ -91,6 +91,8 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                     "status": s.status,
                     "attack_factor": s.attack_factor,
                     "torpedo_factor": getattr(s, "torpedo_factor", 0),
+                    "torpedo_factor_used": getattr(s, "torpedo_factor_used", False),
+                    "ammunition_factor": getattr(s, "ammunition_factor", 20),
                     "anti_air_factor": s.anti_air_factor,
                     "move_factor": s.move_factor,
                     "damage_factor": s.damage_factor,
@@ -392,11 +394,13 @@ def load_game_state(filename):
                     s.get("anti_air_factor", 0),
                     s.get("move_factor", 2),
                     s.get("damage_factor", 1),
-                    s.get("torpedo_factor", 0)
+                    s.get("torpedo_factor", 0),
+                    s.get("ammunition_factor", 20)
                 )
                 if "base" in s and s["base"]:
                     carrier.base = deserialize_base(s["base"])
                 carrier.damage = s.get("damage", 0)
+                carrier.torpedo_factor_used = s.get("torpedo_factor_used", False)
                 carrier.attacked_this_turn = s.get("attacked_this_turn", False)
                 carrier.surface_combat_exhausted = s.get("surface_combat_exhausted", False)
                 tf.ships.append(carrier)
@@ -404,9 +408,11 @@ def load_game_state(filename):
                 ship = Ship(
                     s.get("name"), s.get("type"), s.get("status"),
                     s.get("attack_factor", 0), s.get("anti_air_factor", 0),
-                    s.get("move_factor", 2), s.get("damage_factor", 1), s.get("torpedo_factor", 0)
+                    s.get("move_factor", 2), s.get("damage_factor", 1),
+                    s.get("torpedo_factor", 0), s.get("ammunition_factor", 20)
                 )
                 ship.damage = s.get("damage", 0)
+                ship.torpedo_factor_used = s.get("torpedo_factor_used", False)
                 ship.attacked_this_turn = s.get("attacked_this_turn", False)
                 ship.surface_combat_exhausted = s.get("surface_combat_exhausted", False)
                 tf.ships.append(ship)

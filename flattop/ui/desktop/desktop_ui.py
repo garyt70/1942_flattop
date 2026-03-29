@@ -203,21 +203,31 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         if isinstance(p.game_model, TaskForce) and p.side == attacking_side and p.position == piece.position
     ]
     if isinstance(piece.game_model, TaskForce) and attacking_taskforce_pieces and defending_taskforce_p:
+        att_tf = attacking_taskforce_pieces[0].game_model
+        def_tf = defending_taskforce_p.game_model
         surface_ui = SurfaceAllocationUI(
             screen,
-            attacking_taskforce_pieces[0].game_model.ships,
-            defending_taskforce_p.game_model.ships,
+            att_tf.ships,
+            def_tf.ships,
+            attacker_side=getattr(att_tf, "side", "Attacker"),
+            defender_side=getattr(def_tf, "side", "Defender"),
         )
-        allocation = surface_ui.handle_events()
-        if allocation is None:
-            allocation = {}
-        result_surface_combat = resolve_surface_combat(
-            attacking_taskforce_pieces[0].game_model,
-            defending_taskforce_p.game_model,
-            clouds=in_clouds,
-            night=at_night,
-            attacker_target_allocation=allocation,
-        )
+        inputs = surface_ui.handle_events()
+        if inputs is not None:
+            result_surface_combat = resolve_surface_combat(
+                att_tf,
+                def_tf,
+                clouds=in_clouds,
+                night=at_night,
+                attacker_positions=inputs.attacker_positions,
+                defender_positions=inputs.defender_positions,
+                attacker_die=inputs.attacker_die,
+                defender_die=inputs.defender_die,
+                attacker_gunnery_targets=inputs.attacker_gunnery_targets,
+                defender_gunnery_targets=inputs.defender_gunnery_targets,
+                attacker_torpedo_targets=inputs.attacker_torpedo_targets,
+                defender_torpedo_targets=inputs.defender_torpedo_targets,
+            )
 
     # First, remove aircraft with count 0 from all air formations in the hex
     for af_piece in hex_airformations:
