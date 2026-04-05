@@ -2,6 +2,11 @@ import pygame
 import sys
 
 from flattop.operations_chart_models import Aircraft, Ship
+from flattop.ui.desktop.ui_theme import (
+    MARGIN, THEME_BG, THEME_BTN_BG, THEME_BTN_DANGER, THEME_BTN_DISABLED,
+    THEME_BTN_TEXT, THEME_PANEL, THEME_SEPARATOR, THEME_TEXT, THEME_TEXT_DIM,
+    THEME_TEXT_HEADER, get_font,
+)
 
 class BomberAllocationUI:
     """
@@ -21,15 +26,15 @@ class BomberAllocationUI:
             [0 for _ in range(len(bombers))]
             for _ in range(len(ships))
         ]
-        self.font = pygame.font.SysFont(None, 24)
-        self.header_font = pygame.font.SysFont(None, 20, bold=True)
-        self.margin = 16
+        self.font = get_font(24)
+        self.header_font = get_font(20, bold=True)
+        self.margin = MARGIN
         self.cell_size = 60
         self.button_size = 24
         self.running = True
 
     def draw(self):
-        self.screen.fill((30, 30, 30))
+        self.screen.fill(THEME_BG)
         margin = self.margin
         cell_width = 120
         cell_height = 50
@@ -41,7 +46,7 @@ class BomberAllocationUI:
         grid_start_y = margin + header_height
         
         # Draw title
-        title_surf = self.header_font.render("Bomber Allocation", True, (255, 255, 255))
+        title_surf = self.header_font.render("Bomber Allocation", True, THEME_TEXT_HEADER)
         self.screen.blit(title_surf, (margin, margin // 2))
 
         # Draw column headers (aircraft types)
@@ -49,7 +54,7 @@ class BomberAllocationUI:
         header_y = margin + 30
         
         # Draw "Ships" header
-        ships_header = self.header_font.render("Ships", True, (255, 255, 200))
+        ships_header = self.header_font.render("Ships", True, THEME_TEXT)
         self.screen.blit(ships_header, (grid_start_x + 10, header_y))
         
         # Draw aircraft type headers
@@ -61,7 +66,7 @@ class BomberAllocationUI:
             x = grid_start_x + (j + 1) * cell_width
             
             # Aircraft type name
-            surf = self.header_font.render(label, True, (200, 200, 255))
+            surf = self.header_font.render(label, True, THEME_TEXT_HEADER)
             self.screen.blit(surf, (x + 10, header_y))
             
             # Available count
@@ -76,15 +81,15 @@ class BomberAllocationUI:
         for i in range(len(self.ships) + 1):  # +1 for header row
             y = grid_start_y + i * cell_height
             # Horizontal lines
-            pygame.draw.line(self.screen, (100, 100, 100), 
-                           (grid_start_x, y), 
+            pygame.draw.line(self.screen, THEME_SEPARATOR,
+                           (grid_start_x, y),
                            (grid_start_x + (len(self.bombers) + 1) * cell_width, y))
 
         for j in range(len(self.bombers) + 2):  # +1 for ship column, +1 for end line
             x = grid_start_x + j * cell_width
             # Vertical lines
-            pygame.draw.line(self.screen, (100, 100, 100), 
-                           (x, grid_start_y), 
+            pygame.draw.line(self.screen, THEME_SEPARATOR,
+                           (x, grid_start_y),
                            (x, grid_start_y + len(self.ships) * cell_height))
 
         # Draw ship names and allocation data
@@ -94,8 +99,8 @@ class BomberAllocationUI:
             # Ship name in first column
             ship_label = f"{ship.name}"
             status_label = f"({ship.status})"
-            ship_surf = self.font.render(ship_label, True, (255, 255, 200))
-            status_surf = self.font.render(status_label, True, (200, 200, 150))
+            ship_surf = self.font.render(ship_label, True, THEME_TEXT)
+            status_surf = self.font.render(status_label, True, THEME_TEXT_DIM)
             self.screen.blit(ship_surf, (grid_start_x + 10, y + 10))
             self.screen.blit(status_surf, (grid_start_x + 10, y + 25))
 
@@ -105,18 +110,18 @@ class BomberAllocationUI:
                 
                 # Cell background
                 cell_rect = pygame.Rect(x + 2, y + 2, cell_width - 4, cell_height - 4)
-                pygame.draw.rect(self.screen, (50, 50, 50), cell_rect)
+                pygame.draw.rect(self.screen, THEME_PANEL, cell_rect)
                 
                 # Allocation number (centered)
                 alloc = self.allocation[i][j]
-                alloc_surf = self.font.render(str(alloc), True, (255, 255, 255))
+                alloc_surf = self.font.render(str(alloc), True, THEME_BTN_TEXT)
                 alloc_rect = alloc_surf.get_rect()
                 alloc_rect.center = (x + cell_width // 2, y + cell_height // 2 - 5)
                 self.screen.blit(alloc_surf, alloc_rect)
                 
                 # + button (top right)
                 plus_rect = pygame.Rect(x + cell_width - btn - 5, y + 5, btn, btn)
-                color = (0, 200, 0) if self.get_total_allocated(j) < bomber.count else (100, 100, 100)
+                color = THEME_BTN_BG if self.get_total_allocated(j) < bomber.count else THEME_BTN_DISABLED
                 pygame.draw.rect(self.screen, color, plus_rect)
                 plus_surf = self.font.render("+", True, (255, 255, 255))
                 plus_text_rect = plus_surf.get_rect()
@@ -125,7 +130,7 @@ class BomberAllocationUI:
                 
                 # - button (bottom right)
                 minus_rect = pygame.Rect(x + cell_width - btn - 5, y + cell_height - btn - 5, btn, btn)
-                color = (200, 0, 0) if alloc > 0 else (100, 100, 100)
+                color = THEME_BTN_DANGER if alloc > 0 else THEME_BTN_DISABLED
                 pygame.draw.rect(self.screen, color, minus_rect)
                 minus_surf = self.font.render("-", True, (255, 255, 255))
                 minus_text_rect = minus_surf.get_rect()
@@ -140,8 +145,8 @@ class BomberAllocationUI:
 
         # Draw "Done" button
         done_rect = pygame.Rect(self.screen.get_width() - 120, self.screen.get_height() - 60, 100, 40)
-        pygame.draw.rect(self.screen, (0, 120, 255), done_rect)
-        done_surf = self.header_font.render("Done", True, (255, 255, 255))
+        pygame.draw.rect(self.screen, THEME_BTN_BG, done_rect)
+        done_surf = self.header_font.render("Done", True, THEME_BTN_TEXT)
         self.screen.blit(done_surf, (done_rect.x + 10, done_rect.y + 5))
         self.done_rect = done_rect
 

@@ -296,11 +296,12 @@ class Base:
                         air_formation.add_aircraft(ac_to_add)
                         r.count -= to_move
                         allowed -= to_move
+                        moved += to_move
                         if r.count <=0:
                             self.air_operations_tracker.ready.remove(r)
                         if allowed <= 0:
                             break
-                        moved += to_move
+                        
                 if allowed <= 0:
                     break
             
