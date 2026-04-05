@@ -17,6 +17,7 @@ from flattop.ui.desktop.combat_results_ui import CombatResultsList, CombatResult
 from flattop.ui.desktop.desktop_popup import Dashboard, draw_dashboard, draw_game_model_popup, draw_piece_selection_popup, draw_turn_info_popup, show_observation_report_popup, show_turn_change_popup
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
+from flattop.ui.desktop.ui_theme import MARGIN, PADDING, THEME_BG, THEME_BORDER, THEME_PANEL, THEME_TEXT, get_font
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
 from flattop.surface_combat_engine import resolve_surface_combat
 
@@ -965,20 +966,28 @@ class DesktopUI:
         menu_options.extend(["Details", "Cancel"])
 
 
-        font = pygame.font.SysFont(None, 28)
-        margin = 10
-        option_height = font.get_height() + margin
-        menu_width = max(font.size(opt)[0] for opt in menu_options) + 2 * margin
-        menu_height = option_height * len(menu_options) + margin
+        font = get_font(28)
+        option_height = font.get_height() + PADDING
+        menu_width = max(font.size(opt)[0] for opt in menu_options) + 2 * MARGIN
+        menu_height = option_height * len(menu_options) + PADDING
         mouse_x, mouse_y = pos
         menu_rect = pygame.Rect(mouse_x, mouse_y, menu_width, menu_height)
 
+        # Keep menu fully on screen when opened near edges.
+        screen_rect = self.screen.get_rect()
+        menu_rect.clamp_ip(screen_rect)
+
         # Draw menu
-        pygame.draw.rect(self.screen, (60, 60, 60), menu_rect)
-        pygame.draw.rect(self.screen, (200, 200, 200), menu_rect, 2)
+        pygame.draw.rect(self.screen, THEME_PANEL, menu_rect)
+        pygame.draw.rect(self.screen, THEME_BORDER, menu_rect, 2)
         for i, opt in enumerate(menu_options):
-            opt_surf = font.render(opt, True, (255, 255, 255))
-            self.screen.blit(opt_surf, (menu_rect.left + margin, menu_rect.top + margin + i * option_height))
+            opt_surf = font.render(opt, True, THEME_TEXT)
+            self.screen.blit(opt_surf, (menu_rect.left + MARGIN, menu_rect.top + PADDING + i * option_height))
+
+            # Separator between menu options for themed popup consistency.
+            if i < len(menu_options) - 1:
+                y = menu_rect.top + PADDING + (i + 1) * option_height - (PADDING // 2)
+                pygame.draw.line(self.screen, THEME_BG, (menu_rect.left + PADDING, y), (menu_rect.right - PADDING, y), 1)
         pygame.display.flip()
 
         # Wait for user selection
@@ -991,7 +1000,7 @@ class DesktopUI:
                 elif menu_event.type == pygame.MOUSEBUTTONDOWN:
                     mx2, my2 = menu_event.pos
                     if menu_rect.collidepoint(mx2, my2):
-                        idx = (my2 - menu_rect.top - margin) // option_height
+                        idx = (my2 - menu_rect.top - MARGIN) // option_height
                         if 0 <= idx < len(menu_options):
                             selected = menu_options[idx]
                             break
@@ -1115,10 +1124,9 @@ class DesktopUI:
     def _show_file_selection_popup(self, files):
         # Simple pygame popup for file selection
         font = pygame.font.SysFont(None, 28)
-        margin = 10
-        option_height = font.get_height() + margin
-        menu_width = max(font.size(f)[0] for f in files) + 2 * margin
-        menu_height = option_height * len(files) + margin
+        option_height = font.get_height() + PADDING
+        menu_width = max(font.size(f)[0] for f in files) + 2 * PADDING
+        menu_height = option_height * len(files) + PADDING
         screen = self.screen
         screen_w, screen_h = screen.get_size()
         menu_rect = pygame.Rect((screen_w - menu_width) // 2, (screen_h - menu_height) // 2, menu_width, menu_height)
@@ -1126,7 +1134,7 @@ class DesktopUI:
         pygame.draw.rect(screen, (200, 200, 200), menu_rect, 2)
         for i, fname in enumerate(files):
             surf = font.render(fname, True, (255, 255, 255))
-            screen.blit(surf, (menu_rect.left + margin, menu_rect.top + margin + i * option_height))
+            screen.blit(surf, (menu_rect.left + PADDING, menu_rect.top + PADDING + i * option_height))
         pygame.display.flip()
         selected = None
         while selected is None:
@@ -1137,7 +1145,7 @@ class DesktopUI:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
                     if menu_rect.collidepoint(mx, my):
-                        idx = (my - menu_rect.top - margin) // option_height
+                        idx = (my - menu_rect.top - PADDING) // option_height
                         if 0 <= idx < len(files):
                             selected = files[idx]
                             break
