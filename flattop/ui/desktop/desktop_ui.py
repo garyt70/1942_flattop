@@ -28,13 +28,7 @@ from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 FEATURE_FLAG_TESTING = config.DISABLE_FOG_OF_WAR_FOR_TESTING
 
 
-def get_save_files_sorted(save_dir):
-    files = [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
-    return sorted(
-        files,
-        key=lambda filename: os.path.getmtime(os.path.join(save_dir, filename)),
-        reverse=True,
-    )
+
 
 
 # Import color and size constants from config
@@ -1082,7 +1076,13 @@ class DesktopUI:
     
         perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
     
-    
+    def get_save_files_sorted(save_dir):
+        files = [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
+        return sorted(
+            files,
+            key=lambda filename: os.path.getmtime(os.path.join(save_dir, filename)),
+            reverse=True,
+        )
 
     def save_game(self):
         from flattop.save_load_game import save_game_state
