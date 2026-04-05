@@ -6,14 +6,13 @@ All overlays are 64x64, white line-art on transparent background.
 They are blitted on top of procedurally-drawn colored base shapes at runtime.
 """
 import os
-import sys
 
 import pygame
 
-pygame.init()
-# Need a display surface only to allow image.save; use off-screen
+ #Need a display surface only to allow image.save; use off-screen
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+pygame.init()
 pygame.display.set_mode((1, 1))
 
 SIZE = 64
