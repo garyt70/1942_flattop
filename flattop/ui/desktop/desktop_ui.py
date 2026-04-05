@@ -1,5 +1,6 @@
 from asyncio import Task
 from turtle import pos
+import os
 import pygame
 import sys
 import math
@@ -25,6 +26,15 @@ import flattop.ui.desktop.desktop_config as config
 from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
 FEATURE_FLAG_TESTING = config.DISABLE_FOG_OF_WAR_FOR_TESTING
+
+
+def get_save_files_sorted(save_dir):
+    files = [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
+    return sorted(
+        files,
+        key=lambda filename: os.path.getmtime(os.path.join(save_dir, filename)),
+        reverse=True,
+    )
 
 
 # Import color and size constants from config
@@ -1079,14 +1089,13 @@ class DesktopUI:
         save_game_state(self.board, self.turn_manager, self.weather_manager)
 
     def load_game(self):
-        import os
         from flattop.save_load_game import load_game_state
         home_dir = os.path.expanduser("~")
         save_dir = os.path.join(home_dir, "flattop_1942")
         if not os.path.exists(save_dir):
             print("No save directory found.")
             return
-        files = [f for f in os.listdir(save_dir) if f.endswith(".json")]
+        files = get_save_files_sorted(save_dir)
         if not files:
             print("No save files found.")
             return

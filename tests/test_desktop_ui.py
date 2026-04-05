@@ -1,11 +1,12 @@
 import unittest
+from unittest.mock import patch
 import pygame
 import sys
 import math
 
 from flattop.hex_board_game_model import HexBoardModel, Hex, Piece, get_distance
 from flattop.operations_chart_models import AirFormation
-from flattop.ui.desktop.desktop_ui import DesktopUI, PieceImageFactory, HEX_SIZE, HEX_COLOR, HEX_BORDER
+from flattop.ui.desktop.desktop_ui import DesktopUI, PieceImageFactory, HEX_SIZE, HEX_COLOR, HEX_BORDER, get_save_files_sorted
 
 class DummyPiece(Piece):
     def __init__(self, q, r, side="Allied", can_move=True, movement_factor=1):
@@ -71,6 +72,20 @@ class TestDesktopUI(unittest.TestCase):
         self.board.move_piece(self.piece, new_hex)
         self.assertEqual(self.piece.position.q, 3)
         self.assertEqual(self.piece.position.r, 3)
+
+    @patch("flattop.ui.desktop.desktop_ui.os.path.getmtime")
+    @patch("flattop.ui.desktop.desktop_ui.os.listdir")
+    def test_get_save_files_sorted_newest_first(self, mock_listdir, mock_getmtime):
+        mock_listdir.return_value = ["save_older.json", "notes.txt", "save_newer.json"]
+        mock_getmtime.side_effect = lambda path: {
+            "/tmp/flattop_1942/save_older.json": 100,
+            "/tmp/flattop_1942/save_newer.json": 200,
+        }[path]
+
+        self.assertEqual(
+            get_save_files_sorted("/tmp/flattop_1942"),
+            ["save_newer.json", "save_older.json"],
+        )
 
 
 class TestGetDistance(unittest.TestCase):
