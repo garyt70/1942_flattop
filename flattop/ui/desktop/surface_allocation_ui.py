@@ -7,17 +7,21 @@ from flattop.surface_combat_engine import (
     POSITION_GUNNERY, POSITION_TORPEDO, POSITION_SCREEN,
     assign_default_positions,
 )
+from flattop.ui.desktop.ui_theme import (
+    THEME_BG, THEME_PANEL, THEME_TEXT, THEME_TEXT_DIM, THEME_TEXT_HEADER,
+    THEME_BTN_BG, THEME_BTN_DANGER, get_font,
+)
 
 # ── Colour palette ────────────────────────────────────────────────────────────
-_BG          = (28, 28, 32)
-_PANEL       = (40, 40, 52)
-_ROW_ALT     = (46, 46, 58)
-_HEADER      = (180, 180, 220)
-_TEXT        = (240, 240, 200)
-_DIM         = (160, 160, 170)
-_BTN_GREEN   = (40, 130, 70)
-_BTN_RED     = (110, 55, 55)
-_BTN_BLUE    = (50, 90, 160)
+_BG          = THEME_BG
+_PANEL       = THEME_PANEL
+_ROW_ALT     = (46, 46, 58)        # Slightly lighter for alternating rows
+_HEADER      = THEME_TEXT_HEADER
+_TEXT        = THEME_TEXT
+_DIM         = THEME_TEXT_DIM
+_BTN_GREEN   = THEME_BTN_BG
+_BTN_RED     = THEME_BTN_DANGER
+_BTN_BLUE    = (50, 90, 160)       # Die selection blue – no theme equivalent
 _BTN_HOVER   = (80, 160, 100)
 _WHITE       = (255, 255, 255)
 _GOLD        = (255, 210, 60)
@@ -61,7 +65,7 @@ class SurfaceAllocationUI:
     Returns a SurfaceCombatInputs or None on Cancel.
     """
 
-    MARGIN    = 18
+    MARGIN    = 16
     ROW_H     = 44
     BTN_W     = 120
     BTN_H     = 38
@@ -80,9 +84,9 @@ class SurfaceAllocationUI:
         self.att_label    = attacker_side
         self.def_label    = defender_side
 
-        self.font_sm  = pygame.font.SysFont(None, 22)
-        self.font_md  = pygame.font.SysFont(None, 26)
-        self.font_hd  = pygame.font.SysFont(None, 30, bold=True)
+        self.font_sm  = get_font(22)
+        self.font_md  = get_font(26)
+        self.font_hd  = get_font(30, bold=True)
 
         self._step         = 1
         self._result       = SurfaceCombatInputs()

@@ -6,34 +6,48 @@ import pygame
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
 
 from flattop.operations_chart_models import Base, AirOperationsTracker, AirOperationsConfiguration, Aircraft, AircraftOperationsStatus, AircraftCombatData, AircraftFactory, AircraftType, AirOperationsChart, AirFormation
+from flattop.ui.desktop.ui_theme import (
+    MARGIN,
+    PADDING,
+    THEME_BG,
+    THEME_BORDER,
+    THEME_BTN_BG,
+    THEME_BTN_DANGER,
+    THEME_BTN_TEXT,
+    THEME_PANEL,
+    THEME_SEPARATOR,
+    THEME_TEXT,
+    THEME_TEXT_HEADER,
+    get_font,
+)
 
 # Color constants
-COLOR_WHITE = (255, 255, 255)
-COLOR_BLACK = (0, 0, 0)
-COLOR_GRAY = (220, 220, 220)
-COLOR_YELLOW = (200, 200, 0)
-COLOR_GREEN = (0, 200, 0)
-COLOR_DARK_GREEN = (0, 100, 200)
-COLOR_BG = (50, 50, 50)
-COLOR_BORDER = (200, 200, 200)
-COLOR_BTN_TEXT = (0, 0, 0)
-COLOR_BTN_BG = (200, 200, 0)
-COLOR_BTN_BORDER = (255, 255, 255)
-COLOR_BTN_CLOSE_BG = (200, 200, 0)
-COLOR_BTN_CLOSE_BORDER = (255, 255, 255)
-COLOR_BTN_CLOSE_TEXT = (0, 0, 0)
-COLOR_BTN_READY_FACTOR_BG = (200, 200, 0)
-COLOR_BTN_READY_FACTOR_BORDER = (255, 255, 255)
-COLOR_BTN_READY_FACTOR_TEXT = (0, 0, 0)
-COLOR_FONT_HEADER = (255, 255, 255)
-COLOR_FONT_HEADER_BOLD = (255, 255, 0)
-COLOR_FONT_AIRCRAFT = (180, 220, 255)
-COLOR_FONT_COUNT = (255, 255, 0)
-COLOR_FONT_COMBAT = (255, 255, 255)
-COLOR_FONT_MOVE = (255, 255, 255)
-COLOR_FONT_RANGE = (255, 255, 255)
-COLOR_FONT_ARMAMENT = (255, 255, 255)
-COLOR_FONT_BG = (50, 50, 50)
+COLOR_WHITE = THEME_TEXT
+COLOR_BLACK = THEME_BG
+COLOR_GRAY = THEME_PANEL
+COLOR_YELLOW = THEME_TEXT_HEADER
+COLOR_GREEN = THEME_BTN_BG
+COLOR_DARK_GREEN = THEME_SEPARATOR
+COLOR_BG = THEME_BG
+COLOR_BORDER = THEME_BORDER
+COLOR_BTN_TEXT = THEME_BTN_TEXT
+COLOR_BTN_BG = THEME_BTN_BG
+COLOR_BTN_BORDER = THEME_BORDER
+COLOR_BTN_CLOSE_BG = THEME_BTN_DANGER
+COLOR_BTN_CLOSE_BORDER = THEME_BORDER
+COLOR_BTN_CLOSE_TEXT = THEME_BTN_TEXT
+COLOR_BTN_READY_FACTOR_BG = THEME_BTN_BG
+COLOR_BTN_READY_FACTOR_BORDER = THEME_BORDER
+COLOR_BTN_READY_FACTOR_TEXT = THEME_BTN_TEXT
+COLOR_FONT_HEADER = THEME_TEXT
+COLOR_FONT_HEADER_BOLD = THEME_TEXT_HEADER
+COLOR_FONT_AIRCRAFT = THEME_TEXT
+COLOR_FONT_COUNT = THEME_TEXT_HEADER
+COLOR_FONT_COMBAT = THEME_TEXT
+COLOR_FONT_MOVE = THEME_TEXT
+COLOR_FONT_RANGE = THEME_TEXT
+COLOR_FONT_ARMAMENT = THEME_TEXT
+COLOR_FONT_BG = THEME_BG
 
 class AircraftOperationChartCommandWidget:
     def __init__(self, surface, x, y, aircraft:Aircraft):
@@ -408,7 +422,7 @@ class AirOperationsTrackerDisplay:
         self.config = config
         self.surface = surface
         self.pos = pos
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = get_font(24)
         self.ready_btn_list = []
         self.just_landed_btn_list = []
         self.readying_btn_list = []
@@ -467,7 +481,7 @@ class AirOperationsConfigurationDisplay:
         self.base = base
         self.surface = surface
         self.pos = pos
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = get_font(24)
 
     def draw(self, pos=(10, 10)):
         self.pos = pos
@@ -566,8 +580,8 @@ class BaseUIDisplay:
                         # which is really where the available ready/launch factor is affected. The lauch factor is only affected when an airformation is created.
                         self.temp_launch_factor += 1
                         #redraw the launch factor
-                        self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor + self.temp_launch_factor})", 
-                                                                True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_LAUNCH_FACTOR_BOX)
+                        self.surface.blit(get_font(26).render(f"Used LF({self.base.used_launch_factor + self.temp_launch_factor})", 
+                                                                True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_LAUNCH_FACTOR_BOX)
                         pygame.display.flip()
                     break
 
@@ -579,8 +593,8 @@ class BaseUIDisplay:
                         self.temp_ready_factor += 1
                         #redraw the ready factor value
                         self.surface.blit(
-                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
-                                                                    True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
+                            get_font(24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
+                                                True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
                         pygame.display.flip()
                     break
             #see if any of the readying button have been clicked
@@ -590,8 +604,8 @@ class BaseUIDisplay:
                         self.temp_ready_factor += 1
                         #redraw the ready factor value
                         self.surface.blit(
-                                pygame.font.SysFont(None, 24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
-                                                                    True, (255, 255, 255),(50, 50, 50)), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
+                            get_font(24).render(f"({self.base.used_ready_factor + self.temp_ready_factor})", 
+                                                True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
                         pygame.display.flip()
                     break
 
@@ -635,16 +649,16 @@ class BaseUIDisplay:
     def draw(self):
 
         win_width, win_height = self.surface.get_size()
-        margin = 10
+        margin = MARGIN
 
         # Draw a popup background for the takforce details
-        font = pygame.font.SysFont(None, 24)
-        header_font = pygame.font.SysFont(None, 28, bold=True)
-        popup_width = int(win_width - margin)
-        popup_height = int(win_height - margin)
+        font = get_font(24)
+        header_font = get_font(30, bold=True)
+        popup_width = int(win_width - (2 * margin))
+        popup_height = int(win_height - (2 * margin))
         popup_rect = pygame.Rect(
-            10,
-            10,
+            margin,
+            margin,
             popup_width,
             popup_height
         )
@@ -652,28 +666,35 @@ class BaseUIDisplay:
         pygame.draw.rect(self.surface, COLOR_BORDER, popup_rect, 2)
 
         #draw title
-        title_text = header_font.render(f"{self.base.name} Air Operations -  (Damage {self.base.damage})", True, COLOR_FONT_HEADER, COLOR_FONT_BG)
-        title_rect = title_text.get_rect(center=(popup_rect.centerx, popup_rect.top + 20))
+        title_text = header_font.render(f"{self.base.name} Air Operations", True, COLOR_FONT_HEADER_BOLD)
+        title_rect = title_text.get_rect(center=(popup_rect.centerx, popup_rect.top + margin + 8))
         self.surface.blit(title_text, title_rect)
+        damage_text = font.render(f"Damage: {self.base.damage}", True, COLOR_FONT_HEADER)
+        damage_rect = damage_text.get_rect(center=(popup_rect.centerx, title_rect.bottom + PADDING + 8))
+        self.surface.blit(damage_text, damage_rect)
+        separator_y = damage_rect.bottom + PADDING
+        pygame.draw.line(self.surface, THEME_SEPARATOR, (popup_rect.left + margin, separator_y), (popup_rect.right - margin, separator_y), 1)
 
         # Draw the header text
         self.config_display.draw(pos=BaseUIDisplay.POS_HEADER_BOX)
         self.tracker_display.draw(pos=BaseUIDisplay.POS_DETAILS_BOX)
-        self.surface.blit(pygame.font.SysFont(None, 26).render(f"({self.base.used_ready_factor})", 
+        self.surface.blit(get_font(26).render(f"({self.base.used_ready_factor})", 
                                                                  True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_READY_FACTOR_BOX)
-        self.surface.blit(pygame.font.SysFont(None, 26).render(f"Used LF({self.base.used_launch_factor})", 
+        self.surface.blit(get_font(26).render(f"Used LF({self.base.used_launch_factor})", 
                                                                  True, COLOR_FONT_HEADER, COLOR_FONT_BG), BaseUIDisplay.POS_USED_LAUNCH_FACTOR_BOX)
         #self.surface.blit(self.font.render("LF (Max)", True, COLOR_YELLOW), (x + 800, y))
         self.ready_btn_list = self.tracker_display.ready_btn_list
         self.just_landed_btn_list = self.tracker_display.just_landed_btn_list
 
+        button_bar_top = popup_rect.bottom - 64
+        pygame.draw.line(self.surface, THEME_SEPARATOR, (popup_rect.left + margin, button_bar_top - PADDING), (popup_rect.right - margin, button_bar_top - PADDING), 1)
 
          # Draw the "Create Air Formation" button
-        font = pygame.font.SysFont(None, 28)
+        font = get_font(28)
         button_text = "Create Air Formation"
         btn_surf = font.render(button_text, True, COLOR_BTN_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
-        btn_x, btn_y = popup_rect.x, popup_height - btn_height - 30
+        btn_x, btn_y = popup_rect.left + margin, button_bar_top
         self.create_af_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
         pygame.draw.rect(self.surface, COLOR_BTN_BG, self.create_af_button_rect)
         pygame.draw.rect(self.surface, COLOR_BTN_BORDER, self.create_af_button_rect, 2)
@@ -683,7 +704,7 @@ class BaseUIDisplay:
         btn_text = "Action Ready Factor"
         btn_surf = font.render(btn_text, True, COLOR_BTN_READY_FACTOR_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
-        btn_x, btn_y = popup_rect.x + 220, popup_height - btn_height - 30
+        btn_x, btn_y = self.create_af_button_rect.right + PADDING, button_bar_top
         self.action_ready_factor_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
         pygame.draw.rect(self.surface, COLOR_BTN_READY_FACTOR_BG, self.action_ready_factor_button_rect)
         pygame.draw.rect(self.surface, COLOR_BTN_READY_FACTOR_BORDER, self.action_ready_factor_button_rect, 2)
@@ -693,7 +714,7 @@ class BaseUIDisplay:
         btn_text = "Close"
         btn_surf = font.render(btn_text, True, COLOR_BTN_CLOSE_TEXT)
         btn_width, btn_height = btn_surf.get_width() + 24, btn_surf.get_height() + 12
-        btn_x, btn_y = popup_rect.x + 620, popup_height - btn_height - 30
+        btn_x, btn_y = popup_rect.right - margin - btn_width, button_bar_top
         self.close_button_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
         pygame.draw.rect(self.surface, COLOR_BTN_CLOSE_BG, self.close_button_rect)
         pygame.draw.rect(self.surface, COLOR_BTN_CLOSE_BORDER, self.close_button_rect, 2)

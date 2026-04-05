@@ -8,6 +8,24 @@ from flattop.operations_chart_models import AirFormation, Base, TaskForce, Carri
 from flattop.ui.desktop.airformation_ui import AirFormationUI
 from flattop.ui.desktop.base_ui import BaseUIDisplay
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
+from flattop.ui.desktop.ui_theme import (
+    LINE_EXTRA,
+    MARGIN,
+    PADDING,
+    SCROLLBAR_WIDTH,
+    THEME_BG,
+    THEME_BORDER,
+    THEME_BTN_BG,
+    THEME_BTN_DISABLED,
+    THEME_BTN_TEXT,
+    THEME_PANEL,
+    THEME_SEPARATOR,
+    THEME_TEXT,
+    THEME_TEXT_DIM,
+    THEME_TEXT_HEADER,
+    ScrollBar,
+    get_font,
+)
 from flattop.weather_model import CloudMarker
 from flattop.game_engine import perform_turn_start_actions
 
@@ -21,8 +39,9 @@ def show_observation_report_popup(desktop, report, pos=None):
     """
     screen = desktop.screen
     win_width, win_height = screen.get_size()
-    margin = 16
-    font = pygame.font.SysFont(None, 24)
+    margin = MARGIN
+    font = get_font(22)
+    title_font = get_font(28, bold=True)
 
     # Prepare lines for display
     lines = []
@@ -40,9 +59,10 @@ def show_observation_report_popup(desktop, report, pos=None):
             else:
                 lines.append(f"{key}: {value}")
 
-    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
-    popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
-    popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+    title_surf = title_font.render("Observation Report", True, THEME_TEXT_HEADER)
+    text_surfaces = [font.render(line, True, THEME_TEXT) for line in lines]
+    popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+    popup_height = title_surf.get_height() + sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 3) * PADDING
 
     # Default to center if no pos
     if pos is None:
@@ -62,16 +82,21 @@ def show_observation_report_popup(desktop, report, pos=None):
         )
 
     # Draw popup background and border
-    pygame.draw.rect(screen, (50, 50, 50), popup_rect)
-    pygame.draw.rect(screen, (200, 200, 200), popup_rect, 2)
+    pygame.draw.rect(screen, THEME_BG, popup_rect)
+    pygame.draw.rect(screen, THEME_BORDER, popup_rect, 2)
+
+    title_rect = title_surf.get_rect(centerx=popup_rect.centerx, top=popup_rect.top + margin)
+    screen.blit(title_surf, title_rect)
+    separator_y = title_rect.bottom + PADDING
+    pygame.draw.line(screen, THEME_SEPARATOR, (popup_rect.left + margin, separator_y), (popup_rect.right - margin, separator_y), 1)
 
     # Render each line of text
-    y = popup_rect.top + margin
+    y = separator_y + PADDING
     for ts in text_surfaces:
         text_rect = ts.get_rect()
         text_rect.topleft = (popup_rect.left + margin, y)
         screen.blit(ts, text_rect)
-        y += ts.get_height() + margin // 2
+        y += ts.get_height() + PADDING
 
     pygame.display.flip()
 
@@ -100,10 +125,9 @@ def show_observation_summary_popup(desktop):
     """
     screen = desktop.screen
     win_width, win_height = screen.get_size()
-    margin = 16
-    font = pygame.font.SysFont(None, 20)
-    title_font = pygame.font.SysFont(None, 28, bold=True)
-    header_font = pygame.font.SysFont(None, 22, bold=True)
+    margin = MARGIN
+    font = get_font(20)
+    title_font = get_font(28, bold=True)
     
     # Get current player's side
     computer_player_side = desktop.computer_opponent.side
@@ -265,17 +289,17 @@ def show_observation_summary_popup(desktop):
         title += " (TESTING MODE - All Opponent Pieces)"
     
     # Render all text
-    title_surf = title_font.render(title, True, (255, 255, 0))
-    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+    title_surf = title_font.render(title, True, THEME_TEXT_HEADER)
+    text_surfaces = [font.render(line, True, THEME_TEXT) for line in lines]
     
     # Calculate popup size with scrolling support
-    popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+    popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin + SCROLLBAR_WIDTH + PADDING
     popup_width = min(popup_width, win_width - 2 * margin)  # Don't exceed screen width
     
     max_visible_lines = 25  # Maximum number of lines to show at once
     visible_lines = min(len(text_surfaces), max_visible_lines)
-    line_height = font.get_height() + 4
-    popup_height = title_surf.get_height() + visible_lines * line_height + 3 * margin
+    line_height = font.get_height() + LINE_EXTRA
+    popup_height = title_surf.get_height() + visible_lines * line_height + (4 * margin)
     popup_height = min(popup_height, win_height - 2 * margin)  # Don't exceed screen height
     
     # Center the popup
@@ -286,7 +310,17 @@ def show_observation_summary_popup(desktop):
         popup_height
     )
     
-    scroll_offset = 0
+    content_start_y = margin + title_surf.get_height() + margin
+    content_bottom = popup_height - margin - font.get_height() - PADDING
+    viewport_height = max(line_height, content_bottom - content_start_y)
+    content_height = max(len(text_surfaces) * line_height, viewport_height)
+    max_scroll = max(0, content_height - viewport_height)
+    scroll_y = 0
+    scrollbar = ScrollBar(
+        popup_width - margin - SCROLLBAR_WIDTH,
+        content_start_y,
+        viewport_height,
+    )
     
     # Create a background surface to avoid redrawing the entire game board
     background = screen.copy()
@@ -297,10 +331,10 @@ def show_observation_summary_popup(desktop):
     def draw_popup_content():
         """Helper function to draw the popup content efficiently"""
         # Clear popup surface
-        popup_surface.fill((40, 40, 50))
+        popup_surface.fill(THEME_BG)
         
         # Draw border on popup surface
-        pygame.draw.rect(popup_surface, (200, 200, 200), popup_surface.get_rect(), 2)
+        pygame.draw.rect(popup_surface, THEME_BORDER, popup_surface.get_rect(), 2)
         
         # Draw title
         y = margin
@@ -309,42 +343,44 @@ def show_observation_summary_popup(desktop):
         y += title_surf.get_height() + margin // 2
         
         # Draw separator line
-        pygame.draw.line(popup_surface, (150, 150, 150), 
-                       (margin, y),
-                       (popup_width - margin, y), 1)
+        pygame.draw.line(
+            popup_surface,
+            THEME_SEPARATOR,
+            (margin, y),
+            (popup_width - margin, y),
+            1,
+        )
         y += margin // 2
         
-        # Draw visible lines with scrolling
-        content_start_y = y
-        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-            ts = text_surfaces[i]
-            text_rect = ts.get_rect()
-            text_rect.topleft = (margin, y)
-            popup_surface.blit(ts, text_rect)
-            y += line_height
-        
-        # Draw scroll indicators if needed
-        indicator_y = popup_height - margin - font.get_height()
-        if scroll_offset > 0:
-            up_arrow = font.render("▲ Scroll Up", True, (255, 255, 0))
-            popup_surface.blit(up_arrow, (margin, indicator_y))
-        if scroll_offset + visible_lines < len(text_surfaces):
-            down_arrow = font.render("▼ Scroll Down", True, (255, 255, 0))
-            popup_surface.blit(down_arrow, (popup_width - margin - down_arrow.get_width(), indicator_y))
+        # Draw the content viewport
+        viewport_rect = pygame.Rect(
+            margin,
+            content_start_y,
+            popup_width - (2 * margin) - SCROLLBAR_WIDTH - PADDING,
+            viewport_height,
+        )
+        pygame.draw.rect(popup_surface, THEME_PANEL, viewport_rect)
+        pygame.draw.rect(popup_surface, THEME_SEPARATOR, viewport_rect, 1)
+
+        content_surface = pygame.Surface((viewport_rect.width, content_height))
+        content_surface.fill(THEME_PANEL)
+        line_y = 0
+        for ts in text_surfaces:
+            content_surface.blit(ts, (PADDING, line_y))
+            line_y += line_height
+
+        popup_surface.blit(
+            content_surface,
+            viewport_rect.topleft,
+            pygame.Rect(0, scroll_y, viewport_rect.width, viewport_height),
+        )
+
+        scrollbar.draw(popup_surface, scroll_y, content_height, viewport_height)
         
         # Draw close instruction
-        close_text = font.render("Press ESC or Click to Close", True, (200, 200, 200))
+        close_text = font.render("Press ESC or Click to Close", True, THEME_TEXT_DIM)
         close_rect = close_text.get_rect(centerx=popup_width // 2, bottom=popup_height - 4)
         popup_surface.blit(close_text, close_rect)
-
-        # Display total aircraft count by type at the end
-        total_lines = [f"{atype}: {count}" for atype, count in aircraft_count.items()]
-        if total_lines:
-            popup_surface.blit(font.render("=== TOTAL AIRCRAFT ===", True, (255, 255, 0)), (margin, y))
-            y += line_height
-            for line in total_lines:
-                popup_surface.blit(font.render(line, True, (255, 255, 255)), (margin, y))
-                y += line_height
 
     # Initial draw
     draw_popup_content()
@@ -362,15 +398,15 @@ def show_observation_summary_popup(desktop):
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 break
-            elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
-                scroll_offset += 1
+            elif event.key == pygame.K_DOWN and scroll_y < max_scroll:
+                scroll_y = min(max_scroll, scroll_y + line_height)
                 # Redraw only the popup
                 draw_popup_content()
                 screen.blit(background, (0, 0))
                 screen.blit(popup_surface, popup_rect.topleft)
                 pygame.display.update(popup_rect)
-            elif event.key == pygame.K_UP and scroll_offset > 0:
-                scroll_offset -= 1
+            elif event.key == pygame.K_UP and scroll_y > 0:
+                scroll_y = max(0, scroll_y - line_height)
                 # Redraw only the popup
                 draw_popup_content()
                 screen.blit(background, (0, 0))
@@ -378,28 +414,42 @@ def show_observation_summary_popup(desktop):
                 pygame.display.update(popup_rect)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click
-                break
-            elif event.button == 4:  # Scroll up
-                if scroll_offset > 0:
-                    scroll_offset -= 1
-                    # Redraw only the popup
+                new_scroll_y = scrollbar.handle_event(event, scroll_y, max_scroll, popup_rect.topleft)
+                if new_scroll_y != scroll_y:
+                    scroll_y = new_scroll_y
                     draw_popup_content()
                     screen.blit(background, (0, 0))
                     screen.blit(popup_surface, popup_rect.topleft)
                     pygame.display.update(popup_rect)
-            elif event.button == 5:  # Scroll down
-                if scroll_offset + visible_lines < len(text_surfaces):
-                    scroll_offset += 1
-                    # Redraw only the popup
+                elif scrollbar.hit_test(event.pos, popup_rect.topleft):
                     draw_popup_content()
                     screen.blit(background, (0, 0))
                     screen.blit(popup_surface, popup_rect.topleft)
                     pygame.display.update(popup_rect)
+                else:
+                    break
+            elif event.button in (4, 5):
+                wheel_event = pygame.event.Event(pygame.MOUSEWHEEL, {"y": 1 if event.button == 4 else -1})
+                new_scroll_y = scrollbar.handle_event(wheel_event, scroll_y, max_scroll, popup_rect.topleft)
+                if new_scroll_y != scroll_y:
+                    scroll_y = new_scroll_y
+                    draw_popup_content()
+                    screen.blit(background, (0, 0))
+                    screen.blit(popup_surface, popup_rect.topleft)
+                    pygame.display.update(popup_rect)
+        elif event.type in (pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.MOUSEWHEEL):
+            new_scroll_y = scrollbar.handle_event(event, scroll_y, max_scroll, popup_rect.topleft)
+            if new_scroll_y != scroll_y or event.type == pygame.MOUSEMOTION:
+                scroll_y = new_scroll_y
+                draw_popup_content()
+                screen.blit(background, (0, 0))
+                screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
 
 
 def draw_turn_info_popup(desktop):
     # Draws the current day, hour, phase, and initiative in the bottom right corner
-        font = pygame.font.SysFont(None, 28)
+        font = get_font(24, bold=True)
         day = desktop.turn_manager.current_day
         hour = desktop.turn_manager.current_hour
         phase = desktop.turn_manager.current_phase if hasattr(desktop.turn_manager, "current_phase") else ""
@@ -408,9 +458,9 @@ def draw_turn_info_popup(desktop):
         text = f"Day: {day}  Hour: {hour:02d}:00"
         phase_text = f"Phase: {phase}"
 
-        text_surf = font.render(text, True, (255, 255, 255))
-        phase_surf = font.render(phase_text, True, (255, 255, 0))
-        initiative_surf = font.render(initiative_text, True, (0, 255, 255)) if initiative_text else None
+        text_surf = font.render(text, True, THEME_TEXT)
+        phase_surf = font.render(phase_text, True, THEME_TEXT_HEADER)
+        initiative_surf = font.render(initiative_text, True, THEME_TEXT) if initiative_text else None
 
         text_rect = text_surf.get_rect()
         phase_rect = phase_surf.get_rect()
@@ -447,7 +497,8 @@ def draw_turn_info_popup(desktop):
         bg_rects.extend([bg_rect_phase, bg_rect_time])
 
         for bg_rect in bg_rects:
-            pygame.draw.rect(desktop.screen, (30, 30, 30, 180), bg_rect)
+            pygame.draw.rect(desktop.screen, THEME_BG, bg_rect)
+            pygame.draw.rect(desktop.screen, THEME_BORDER, bg_rect, 1)
 
         if initiative_surf:
             desktop.screen.blit(initiative_surf, initiative_rect)
@@ -532,13 +583,15 @@ def draw_game_model_popup(desktop, piece, pos):
         text= f"{piece}"
 
         # Prepare font
-        font = pygame.font.SysFont(None, 24)
+        font = get_font(22)
+        title_font = get_font(26, bold=True)
         lines = text.split('\n')
-        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        title_surf = title_font.render(str(getattr(piece, 'name', piece.__class__.__name__)), True, THEME_TEXT_HEADER)
+        text_surfaces = [font.render(line, True, THEME_TEXT) for line in lines]
 
         # Calculate popup size based on the widest line and total height
-        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
-        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+        popup_height = title_surf.get_height() + sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 3) * PADDING
 
         # Position popup at top right
         popup_rect = pygame.Rect(
@@ -549,16 +602,21 @@ def draw_game_model_popup(desktop, piece, pos):
         )
 
         # Draw popup background and border
-        pygame.draw.rect(desktop.screen, (50, 50, 50), popup_rect)
-        pygame.draw.rect(desktop.screen, (200, 200, 200), popup_rect, 2)
+        pygame.draw.rect(desktop.screen, THEME_BG, popup_rect)
+        pygame.draw.rect(desktop.screen, THEME_BORDER, popup_rect, 2)
+
+        title_rect = title_surf.get_rect(centerx=popup_rect.centerx, top=popup_rect.top + margin)
+        desktop.screen.blit(title_surf, title_rect)
+        separator_y = title_rect.bottom + PADDING
+        pygame.draw.line(desktop.screen, THEME_SEPARATOR, (popup_rect.left + margin, separator_y), (popup_rect.right - margin, separator_y), 1)
 
         # Render each line of text
-        y = popup_rect.top + margin
+        y = separator_y + PADDING
         for ts in text_surfaces:
             text_rect = ts.get_rect()
             text_rect.topleft = (popup_rect.left + margin, y)
             desktop.screen.blit(ts, text_rect)
-            y += ts.get_height() + margin // 2
+            y += ts.get_height() + PADDING
 
     pygame.display.flip()
 
@@ -587,8 +645,9 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_s
         win_width, win_height = surface.get_size()
         if pos is None:
             pos = (win_width // 2, win_height // 2)
-        margin = 10
-        font = pygame.font.SysFont(None, 24)
+        margin = MARGIN
+        font = get_font(22)
+        title_font = get_font(26, bold=True)
         
         lines = []
         row = 1
@@ -602,9 +661,10 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_s
         if not lines or len(lines) == 0:
             return None
         
-        text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
-        popup_width = max(ts.get_width() for ts in text_surfaces) + 2 * margin
-        popup_height = sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 1) * margin // 2
+        title_surf = title_font.render("Select Piece", True, THEME_TEXT_HEADER)
+        text_surfaces = [font.render(line, True, THEME_TEXT) for line in lines]
+        popup_width = max([title_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+        popup_height = title_surf.get_height() + sum(ts.get_height() for ts in text_surfaces) + (len(text_surfaces) + 3) * PADDING
         x, y = pos if pos else (win_width // 2 - popup_width // 2, win_height // 2 - popup_height // 2)
         popup_rect = pygame.Rect(
             x,
@@ -612,14 +672,18 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_s
             popup_width,
             popup_height
         )
-        pygame.draw.rect(surface, (50, 50, 50), popup_rect)
-        pygame.draw.rect(surface, (200, 200, 200), popup_rect, 2)
-        y = popup_rect.top + margin
+        pygame.draw.rect(surface, THEME_BG, popup_rect)
+        pygame.draw.rect(surface, THEME_BORDER, popup_rect, 2)
+        title_rect = title_surf.get_rect(centerx=popup_rect.centerx, top=popup_rect.top + margin)
+        surface.blit(title_surf, title_rect)
+        separator_y = title_rect.bottom + PADDING
+        pygame.draw.line(surface, THEME_SEPARATOR, (popup_rect.left + margin, separator_y), (popup_rect.right - margin, separator_y), 1)
+        y = separator_y + PADDING
         for ts in text_surfaces:
             text_rect = ts.get_rect()
             text_rect.topleft = (popup_rect.left + margin, y)
             surface.blit(ts, text_rect)
-            y += ts.get_height() + margin // 2
+            y += ts.get_height() + PADDING
         pygame.display.flip()
 
         # Wait for user to click on a line or press a number key
@@ -636,8 +700,8 @@ def draw_piece_selection_popup(surface, pieces:list[Piece], pos=None, opponent_s
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
                     if popup_rect.collidepoint(mx, my):
-                        rel_y = my - popup_rect.top - margin
-                        line_height = text_surfaces[0].get_height() + margin // 2
+                        rel_y = my - (separator_y + PADDING)
+                        line_height = text_surfaces[0].get_height() + PADDING
                         idx = rel_y // line_height
                         if 0 <= idx < len(pieces_for_menu):
                             return pieces_for_menu[idx]
@@ -648,9 +712,9 @@ def show_turn_change_popup(desktop_ui):
     # Display a scrollable popup listing all pieces that can move but have not moved yet,
     # and allow the user to advance the phase or turn only if all phases are complete.
     win_width, win_height = desktop_ui.screen.get_size()
-    margin = 16
-    font = pygame.font.SysFont(None, 24)
-    header_font = pygame.font.SysFont(None, 28, bold=True)
+    margin = MARGIN
+    font = get_font(24)
+    header_font = get_font(28, bold=True)
 
     # Get current phase and phase list from TurnManager
     current_phase = desktop_ui.turn_manager.current_phase
@@ -666,18 +730,18 @@ def show_turn_change_popup(desktop_ui):
     if not lines:
         lines = ["No pieces can act this phase."]
 
-    text_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
-    header_surf = header_font.render(f"Phase: {current_phase}", True, (255, 255, 0))
+    text_surfaces = [font.render(line, True, THEME_TEXT) for line in lines]
+    header_surf = header_font.render(f"Phase: {current_phase}", True, THEME_TEXT_HEADER)
     # Button text depends on whether this is the last phase
     if phase_idx == len(phase_list) - 1:
         next_phase_text = "Advance Turn"
     else:
         next_phase_text = f"Advance Phase ({phase_list[phase_idx+1]})"
-    next_phase_surf = header_font.render(next_phase_text, True, (0, 255, 0))
+    next_phase_surf = header_font.render(next_phase_text, True, THEME_BTN_TEXT)
 
-    popup_width = max([header_surf.get_width(), next_phase_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin
+    popup_width = max([header_surf.get_width(), next_phase_surf.get_width()] + [ts.get_width() for ts in text_surfaces]) + 2 * margin + SCROLLBAR_WIDTH + PADDING
     visible_lines = min(10, len(text_surfaces))
-    line_height = font.get_height() + 4
+    line_height = font.get_height() + LINE_EXTRA
     popup_height = header_surf.get_height() + next_phase_surf.get_height() + visible_lines * line_height + 5 * margin
     popup_rect = pygame.Rect(
         win_width // 2 - popup_width // 2,
@@ -685,7 +749,16 @@ def show_turn_change_popup(desktop_ui):
         popup_width,
         popup_height
     )
-    scroll_offset = 0
+    content_start_y = margin + header_surf.get_height() + margin // 2 + next_phase_surf.get_height() + margin // 2
+    viewport_height = popup_height - content_start_y - margin
+    content_height = max(len(text_surfaces) * line_height, viewport_height)
+    max_scroll = max(0, content_height - viewport_height)
+    scroll_y = 0
+    scrollbar = ScrollBar(
+        popup_width - margin - SCROLLBAR_WIDTH,
+        content_start_y,
+        viewport_height,
+    )
 
     # Create a background surface to avoid redrawing the entire game board
     background = desktop_ui.screen.copy()
@@ -696,10 +769,10 @@ def show_turn_change_popup(desktop_ui):
     def draw_popup_content():
         """Helper function to draw the popup content efficiently"""
         # Clear popup surface
-        popup_surface.fill((50, 50, 50))
+        popup_surface.fill(THEME_BG)
         
         # Draw border
-        pygame.draw.rect(popup_surface, (200, 200, 200), popup_surface.get_rect(), 2)
+        pygame.draw.rect(popup_surface, THEME_BORDER, popup_surface.get_rect(), 2)
         
         # Draw header
         y = margin
@@ -709,28 +782,35 @@ def show_turn_change_popup(desktop_ui):
         # Draw Advance Phase/Turn button (disabled if unmoved pieces remain)
         next_phase_rect = next_phase_surf.get_rect(topleft=(margin, y))
         if unmoved:
-            pygame.draw.rect(popup_surface, (80, 80, 80), next_phase_rect.inflate(12, 8))  # Disabled look
+            pygame.draw.rect(popup_surface, THEME_BTN_DISABLED, next_phase_rect.inflate(12, 8))
             popup_surface.blit(next_phase_surf, next_phase_rect.topleft)
         else:
-            pygame.draw.rect(popup_surface, (30, 80, 30), next_phase_rect.inflate(12, 8))
+            pygame.draw.rect(popup_surface, THEME_BTN_BG, next_phase_rect.inflate(12, 8))
             popup_surface.blit(next_phase_surf, next_phase_rect.topleft)
         y += next_phase_rect.height + margin // 2
 
-        # Draw visible lines with scrolling
-        for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-            ts = text_surfaces[i]
-            text_rect = ts.get_rect()
-            text_rect.topleft = (margin, y)
-            popup_surface.blit(ts, text_rect)
-            y += line_height
+        viewport_rect = pygame.Rect(
+            margin,
+            content_start_y,
+            popup_width - (2 * margin) - SCROLLBAR_WIDTH - PADDING,
+            viewport_height,
+        )
+        pygame.draw.rect(popup_surface, THEME_PANEL, viewport_rect)
+        pygame.draw.rect(popup_surface, THEME_SEPARATOR, viewport_rect, 1)
 
-        # Draw scroll indicators if needed
-        if scroll_offset > 0:
-            up_arrow = font.render("^", True, (255, 255, 255))
-            popup_surface.blit(up_arrow, (popup_width - margin - up_arrow.get_width(), margin))
-        if scroll_offset + visible_lines < len(text_surfaces):
-            down_arrow = font.render("v", True, (255, 255, 255))
-            popup_surface.blit(down_arrow, (popup_width - margin - down_arrow.get_width(), popup_height - margin - down_arrow.get_height()))
+        content_surface = pygame.Surface((viewport_rect.width, content_height))
+        content_surface.fill(THEME_PANEL)
+        line_y = 0
+        for ts in text_surfaces:
+            content_surface.blit(ts, (PADDING, line_y))
+            line_y += line_height
+
+        popup_surface.blit(
+            content_surface,
+            viewport_rect.topleft,
+            pygame.Rect(0, scroll_y, viewport_rect.width, viewport_height),
+        )
+        scrollbar.draw(popup_surface, scroll_y, content_height, viewport_height)
     
     # Store button rect relative to popup
     next_phase_rect = next_phase_surf.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2))
@@ -750,27 +830,35 @@ def show_turn_change_popup(desktop_ui):
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 return
-            elif event.key == pygame.K_DOWN and scroll_offset + visible_lines < len(text_surfaces):
-                scroll_offset += 1
+            elif event.key == pygame.K_DOWN and scroll_y < max_scroll:
+                scroll_y = min(max_scroll, scroll_y + line_height)
                 # Redraw only the popup
                 draw_popup_content()
                 desktop_ui.screen.blit(background, (0, 0))
                 desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
                 pygame.display.update(popup_rect)
-            elif event.key == pygame.K_UP and scroll_offset > 0:
-                scroll_offset -= 1
+            elif event.key == pygame.K_UP and scroll_y > 0:
+                scroll_y = max(0, scroll_y - line_height)
                 # Redraw only the popup
                 draw_popup_content()
                 desktop_ui.screen.blit(background, (0, 0))
                 desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
                 pygame.display.update(popup_rect)
             elif pygame.K_1 <= event.key <= pygame.K_9:
-                idx = event.key - pygame.K_1 + scroll_offset
+                idx = event.key - pygame.K_1 + (scroll_y // line_height)
                 if 0 <= idx < len(unmoved):
                     desktop_ui.show_piece_menu(unmoved[idx], (popup_rect.left + margin, popup_rect.top + margin))
                     return
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
+            new_scroll_y = scrollbar.handle_event(event, scroll_y, max_scroll, popup_rect.topleft)
+            if new_scroll_y != scroll_y:
+                scroll_y = new_scroll_y
+                draw_popup_content()
+                desktop_ui.screen.blit(background, (0, 0))
+                desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
+                continue
             # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
             if next_phase_rect.collidepoint(mx, my):
                 # Advance to next phase, this will also handle turn change if at last phase
@@ -796,31 +884,30 @@ def show_turn_change_popup(desktop_ui):
                         desktop_ui.show_combat_results(desktop_ui.turn_manager.last_combat_result, event.pos)
                 return
             # Check if click is on a piece line
-            for i in range(scroll_offset, min(scroll_offset + visible_lines, len(text_surfaces))):
-                ts = text_surfaces[i]
-                text_rect = ts.get_rect(topleft=(popup_rect.left + margin, popup_rect.top + margin + header_surf.get_height() + margin // 2 + next_phase_rect.height + margin // 2 + (i - scroll_offset) * line_height))
+            first_visible_index = scroll_y // line_height
+            visible_count = max(1, viewport_height // line_height)
+            for i in range(first_visible_index, min(first_visible_index + visible_count + 1, len(text_surfaces))):
+                row_y = popup_rect.top + content_start_y + ((i * line_height) - scroll_y)
+                text_rect = pygame.Rect(
+                    popup_rect.left + margin,
+                    row_y,
+                    popup_width - (2 * margin) - SCROLLBAR_WIDTH - PADDING,
+                    line_height,
+                )
                 if text_rect.collidepoint(mx, my) and len(unmoved) > 1:
                     desktop_ui.show_piece_menu(unmoved[i], event.pos)
                     return
-            # Scroll up/down if click on arrows
-            if scroll_offset > 0:
-                up_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.top + margin, 20, 20)
-                if up_arrow_rect.collidepoint(mx, my):
-                    scroll_offset -= 1
-                    # Redraw only the popup
-                    draw_popup_content()
-                    desktop_ui.screen.blit(background, (0, 0))
-                    desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
-                    pygame.display.update(popup_rect)
-            if scroll_offset + visible_lines < len(text_surfaces):
-                down_arrow_rect = pygame.Rect(popup_rect.right - margin - 20, popup_rect.bottom - margin - 20, 20, 20)
-                if down_arrow_rect.collidepoint(mx, my):
-                    scroll_offset += 1
-                    # Redraw only the popup
-                    draw_popup_content()
-                    desktop_ui.screen.blit(background, (0, 0))
-                    desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
-                    pygame.display.update(popup_rect)
+        elif event.type in (pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.MOUSEWHEEL):
+            if event.type == pygame.MOUSEWHEEL:
+                new_scroll_y = scrollbar.handle_event(event, scroll_y, max_scroll, popup_rect.topleft)
+            else:
+                new_scroll_y = scrollbar.handle_event(event, scroll_y, max_scroll, popup_rect.topleft)
+            if new_scroll_y != scroll_y or event.type == pygame.MOUSEMOTION:
+                scroll_y = new_scroll_y
+                draw_popup_content()
+                desktop_ui.screen.blit(background, (0, 0))
+                desktop_ui.screen.blit(popup_surface, popup_rect.topleft)
+                pygame.display.update(popup_rect)
 
 """
 Desktop UI dashboard

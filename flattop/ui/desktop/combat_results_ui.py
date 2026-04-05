@@ -5,15 +5,29 @@ import pygame
 import sys
 
 from flattop.aircombat_engine import AirCombatResult
+from flattop.ui.desktop.ui_theme import (
+        PADDING,
+        SCROLLBAR_WIDTH,
+        THEME_BG,
+        THEME_BORDER,
+        THEME_BTN_DANGER,
+        THEME_BTN_DANGER_HOVER,
+        THEME_PANEL,
+        THEME_SCROLLBAR_TRACK,
+        THEME_SEPARATOR,
+        THEME_TEXT,
+        THEME_TEXT_HEADER,
+        ScrollBar,
+        get_font,
+)
 
 class CombatResultsList:
     """Displays a scrollable list of combat results that can be clicked to show details"""
-    
-    BG_COLOR = (30, 30, 30)
-    TEXT_COLOR = (230, 230, 230)
-    HOVER_COLOR = (60, 60, 80)
-    SELECTED_COLOR = (80, 80, 100)
-    PADDING = 12
+    BG_COLOR = THEME_BG
+    TEXT_COLOR = THEME_TEXT
+    HOVER_COLOR = THEME_PANEL
+    SELECTED_COLOR = THEME_PANEL
+    PADDING = PADDING
     ITEM_HEIGHT = 40
     FONT_SIZE = 22
     FONT_NAME = None
@@ -22,164 +36,173 @@ class CombatResultsList:
     def __init__(self, turn_results, screen=None, width=900, height=700):
         """
         Args:
-            turn_results: List of combat results from TurnManager
-            screen: Existing pygame screen or None to create new one
-            width: Screen width
-            height: Screen height
+                turn_results: List of combat results from TurnManager
+                screen: Existing pygame screen or None to create new one
+                width: Screen width
+                height: Screen height
         """
         self.external_screen = screen is not None
         if screen is None:
-            pygame.init()
-            self.screen = pygame.display.set_mode((width, height))
-            pygame.display.set_caption("Combat Results List")
+                pygame.init()
+                self.screen = pygame.display.set_mode((width, height))
+                pygame.display.set_caption("Combat Results List")
         else:
-            self.screen = screen
+                self.screen = screen
 
-        self.font = pygame.font.Font(self.FONT_NAME, self.FONT_SIZE)
+        self.font = get_font(self.FONT_SIZE)
         self.turn_results = turn_results
         self.width = width
         self.height = height
+        self.header_height = self.CLOSE_BUTTON_SIZE[1] + (2 * self.PADDING)
+        self.viewport_height = self.height - self.header_height
         self.scroll_y = 0
-        self.max_scroll = max(0, len(turn_results) * self.ITEM_HEIGHT - height)
-        self.content_surface = pygame.Surface((width, max(height, len(turn_results) * self.ITEM_HEIGHT)))
+        self.viewport_width = width - SCROLLBAR_WIDTH - (2 * self.PADDING)
+        self.content_height = max(self.viewport_height, len(turn_results) * self.ITEM_HEIGHT)
+        self.max_scroll = max(0, self.content_height - self.viewport_height)
+        self.content_surface = pygame.Surface((self.viewport_width, self.content_height))
         self.close_button = pygame.Rect(
-            width - self.CLOSE_BUTTON_SIZE[0] - self.PADDING,
-            self.PADDING,
-            self.CLOSE_BUTTON_SIZE[0],
-            self.CLOSE_BUTTON_SIZE[1]
+                width - self.CLOSE_BUTTON_SIZE[0] - self.PADDING,
+                (self.header_height - self.CLOSE_BUTTON_SIZE[1]) // 2,
+                self.CLOSE_BUTTON_SIZE[0],
+                self.CLOSE_BUTTON_SIZE[1],
         )
         self.hover_index = -1
+        self.scrollbar = ScrollBar(width - SCROLLBAR_WIDTH - self.PADDING, self.header_height, self.viewport_height)
 
     def draw_text(self, text, x, y, color=None, surface=None):
-        color = color or self.TEXT_COLOR
-        text_surface = self.font.render(text, True, color)
-        if surface is None:
-            surface = self.content_surface
-        surface.blit(text_surface, (x, y))
+            color = color or self.TEXT_COLOR
+            text_surface = self.font.render(text, True, color)
+            if surface is None:
+                    surface = self.content_surface
+            surface.blit(text_surface, (x, y))
 
     def draw_close_button(self):
         mouse_pos = pygame.mouse.get_pos()
-        button_color = self.HOVER_COLOR if self.close_button.collidepoint(mouse_pos) else self.BG_COLOR
+        button_color = THEME_BTN_DANGER_HOVER if self.close_button.collidepoint(mouse_pos) else THEME_BTN_DANGER
         pygame.draw.rect(self.screen, button_color, self.close_button)
+        pygame.draw.rect(self.screen, THEME_BORDER, self.close_button, 1)
         close_text = self.font.render("Close", True, self.TEXT_COLOR)
         text_rect = close_text.get_rect(center=self.close_button.center)
         self.screen.blit(close_text, text_rect)
 
-    def draw_list(self):
-        self.content_surface.fill(self.BG_COLOR)
-        
-        # Draw each combat result as a list item
-        for i, result in enumerate(self.turn_results):
-            item_rect = pygame.Rect(0, i * self.ITEM_HEIGHT, self.width, self.ITEM_HEIGHT)
-            
-            # Highlight if mouse is hovering
-            if i == self.hover_index:
-                pygame.draw.rect(self.content_surface, self.HOVER_COLOR, item_rect)
-            else:
-                pygame.draw.rect(self.content_surface, self.BG_COLOR, item_rect)
-                
-            # Draw border
-            pygame.draw.rect(self.content_surface, self.TEXT_COLOR, item_rect, 1)
-            
-            # Create summary text
-            summary = f"Combat #{i+1}"
-            if "air_to_air" in result:
-                summary += " - Air Combat"
-            if "anti_aircraft" in result:
-                summary += " - AA Combat"
-            if "base" in result:
-                summary += " - Base Combat"
-            if "ship" in result:
-                summary += " - Ship Combat"
-            if "surface" in result:
-                summary += " - Surface Combat"
-                
-            self.draw_text(summary, self.PADDING, i * self.ITEM_HEIGHT + 10)
-
-        # Draw the visible portion to the screen
-        self.screen.fill(self.BG_COLOR)
-        visible_region = pygame.Rect(0, self.scroll_y, self.width, self.height)
-        self.screen.blit(self.content_surface, (0, 0), visible_region)
-        
-        # Draw close button on top
+    def draw_header(self, title):
+        header_rect = pygame.Rect(0, 0, self.width, self.header_height)
+        pygame.draw.rect(self.screen, THEME_PANEL, header_rect)
+        pygame.draw.line(self.screen, THEME_SEPARATOR, (0, self.header_height - 1), (self.width, self.header_height - 1), 1)
+        title_surf = get_font(self.FONT_SIZE + 2, bold=True).render(title, True, THEME_TEXT_HEADER)
+        self.screen.blit(title_surf, (self.PADDING, self.PADDING))
         self.draw_close_button()
 
+    def draw_list(self):
+        self.content_surface.fill(self.BG_COLOR)
+
+        for i, result in enumerate(self.turn_results):
+                item_rect = pygame.Rect(0, i * self.ITEM_HEIGHT, self.viewport_width, self.ITEM_HEIGHT)
+                if i == self.hover_index:
+                        pygame.draw.rect(self.content_surface, self.HOVER_COLOR, item_rect)
+                else:
+                        pygame.draw.rect(self.content_surface, self.BG_COLOR, item_rect)
+                pygame.draw.rect(self.content_surface, THEME_BORDER, item_rect, 1)
+
+                summary = f"Combat #{i+1}"
+                if "air_to_air" in result:
+                        summary += " - Air Combat"
+                if "anti_aircraft" in result:
+                        summary += " - AA Combat"
+                if "base" in result:
+                        summary += " - Base Combat"
+                if "ship" in result:
+                        summary += " - Ship Combat"
+                if "surface" in result:
+                        summary += " - Surface Combat"
+
+                self.draw_text(summary, self.PADDING, i * self.ITEM_HEIGHT + 10)
+                self.screen.fill(self.BG_COLOR)
+                self.draw_header("Combat Results")
+                visible_region = pygame.Rect(0, self.scroll_y, self.viewport_width, self.viewport_height)
+                self.screen.blit(self.content_surface, (self.PADDING, self.header_height), visible_region)
+                self.scrollbar.draw(self.screen, self.scroll_y, self.content_height, self.viewport_height)
+
     def handle_scroll(self, event):
-        if event.type == pygame.MOUSEWHEEL:
-            self.scroll_y = max(0, min(self.scroll_y - event.y * 20, self.max_scroll))
+            self.scroll_y = self.scrollbar.handle_event(event, self.scroll_y, self.max_scroll)
 
     def get_clicked_index(self, mouse_pos):
-        """Convert mouse position to list item index"""
-        y = mouse_pos[1] + self.scroll_y
-        index = y // self.ITEM_HEIGHT
-        if 0 <= index < len(self.turn_results):
-            return index
-        return -1
+            """Convert mouse position to list item index"""
+            if mouse_pos[0] >= self.viewport_width + self.PADDING or mouse_pos[1] < self.header_height:
+                    return -1
+            y = (mouse_pos[1] - self.header_height) + self.scroll_y
+            index = y // self.ITEM_HEIGHT
+            if 0 <= index < len(self.turn_results):
+                    return index
+            return -1
 
     def update_hover(self, mouse_pos):
-        """Update hover highlighting based on mouse position"""
-        self.hover_index = self.get_clicked_index(mouse_pos)
+            """Update hover highlighting based on mouse position"""
+            self.hover_index = self.get_clicked_index(mouse_pos)
 
     def run(self):
-        clock = pygame.time.Clock()
-        running = True
-        
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left click
-                        if self.close_button.collidepoint(event.pos):
-                            running = False
-                        else:
-                            clicked_index = self.get_clicked_index(event.pos)
-                            if clicked_index >= 0:
-                                # Show detailed view for clicked combat result.  Combat result history is a list of tuples.
-                                combat_result = self.turn_results[clicked_index][1]
-                                
-                                a2a = combat_result.get("result_attacker_a2a")
-                                aa = []
-                                aa.append(combat_result.get("result_tf_anti_aircraft"))
-                                aa.append(combat_result.get("result_base_anti_aircraft"))
-                                ship = combat_result.get("result_attacker_ship_air_attack")
-                                base = combat_result.get("result_attacker_base_air_attack")
-                                surface = combat_result.get("result_surface_combat")
+            clock = pygame.time.Clock()
+            running = True
 
-                                result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship, "surface": surface}
-                                detail_view = CombatResultsScreen(
-                                    result_data,
-                                    self.screen,
-                                    self.width,
-                                    self.height
-                                )
-                                detail_view.run()
-                                
-                self.handle_scroll(event)
-                
-            # Update hover state
-            mouse_pos = pygame.mouse.get_pos()
-            self.update_hover(mouse_pos)
-            
-            self.draw_list()
-            pygame.display.flip()
-            clock.tick(30)
+            while running:
+                    for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                    running = False
 
-        if not self.external_screen:
-            pygame.quit()
-            sys.exit()
+                            elif event.type == pygame.MOUSEBUTTONDOWN:
+                                    if event.button == 1:
+                                            if self.close_button.collidepoint(event.pos):
+                                                    running = False
+                                            else:
+                                                    clicked_index = self.get_clicked_index(event.pos)
+                                                    if clicked_index >= 0:
+                                                            combat_result = self.turn_results[clicked_index][1]
+                                                            a2a = combat_result.get("result_attacker_a2a")
+                                                            aa = [
+                                                                    combat_result.get("result_tf_anti_aircraft"),
+                                                                    combat_result.get("result_base_anti_aircraft"),
+                                                            ]
+                                                            ship = combat_result.get("result_attacker_ship_air_attack")
+                                                            base = combat_result.get("result_attacker_base_air_attack")
+                                                            surface = combat_result.get("result_surface_combat")
+
+                                                            result_data = {
+                                                                    "air_to_air": a2a,
+                                                                    "anti_aircraft": aa,
+                                                                    "base": base,
+                                                                    "ship": ship,
+                                                                    "surface": surface,
+                                                            }
+                                                            detail_view = CombatResultsScreen(
+                                                                    result_data,
+                                                                    self.screen,
+                                                                    self.width,
+                                                                    self.height,
+                                                            )
+                                                            detail_view.run()
+
+                            self.handle_scroll(event)
+
+                    mouse_pos = pygame.mouse.get_pos()
+                    self.update_hover(mouse_pos)
+                    self.draw_list()
+                    pygame.display.flip()
+                    clock.tick(30)
+
+            if not self.external_screen:
+                    pygame.quit()
+                    sys.exit()
 
 # Keep existing CombatResultsScreen class
 class CombatResultsScreen:
 
-        BG_COLOR = (30, 30, 30)
-        TEXT_COLOR = (230, 230, 230)
-        SUMMARY_BG = (50, 50, 80)
-        DETAIL_BG = (40, 40, 40)
-        BUTTON_BG = (180, 30, 30)
-        BUTTON_HOVER = (220, 40, 40)
-        PADDING = 12
+        BG_COLOR = THEME_BG
+        TEXT_COLOR = THEME_TEXT
+        SUMMARY_BG = THEME_PANEL
+        DETAIL_BG = THEME_BG
+        BUTTON_BG = THEME_BTN_DANGER
+        BUTTON_HOVER = THEME_BTN_DANGER_HOVER
+        PADDING = PADDING
         SUMMARY_HEIGHT = 38
         DETAIL_LINE_HEIGHT = 26
         FONT_SIZE = 22
@@ -194,19 +217,23 @@ class CombatResultsScreen:
                         pygame.display.set_caption("Combat Results")
                 else:
                         self.screen = screen
-                self.font = pygame.font.Font(self.FONT_NAME, self.FONT_SIZE)
+                self.font = get_font(self.FONT_SIZE)
                 self.combat_results = combat_results_dict
                 self.width = width
                 self.height = height
+                self.header_height = self.CLOSE_BUTTON_SIZE[1] + (2 * self.PADDING)
+                self.viewport_height = self.height - self.header_height
                 self.scroll_y = 0
                 self.max_scroll = 0
-                self.content_surface = pygame.Surface((width, height * 2))  # Larger surface for scrolling
+                self.viewport_width = width - SCROLLBAR_WIDTH - (2 * self.PADDING)
+                self.content_surface = pygame.Surface((self.viewport_width, max(self.viewport_height * 2, self.viewport_height)))
                 self.close_button = pygame.Rect(
                         width - self.CLOSE_BUTTON_SIZE[0] - self.PADDING,
-                        self.PADDING,
+                        (self.header_height - self.CLOSE_BUTTON_SIZE[1]) // 2,
                         self.CLOSE_BUTTON_SIZE[0],
                         self.CLOSE_BUTTON_SIZE[1]
                 )
+                self.scrollbar = ScrollBar(width - SCROLLBAR_WIDTH - self.PADDING, self.header_height, self.viewport_height)
 
         def draw_text(self, text, x, y, color=None, surface=None):
                 color = color or self.TEXT_COLOR
@@ -219,13 +246,23 @@ class CombatResultsScreen:
                 mouse_pos = pygame.mouse.get_pos()
                 button_color = self.BUTTON_HOVER if self.close_button.collidepoint(mouse_pos) else self.BUTTON_BG
                 pygame.draw.rect(self.screen, button_color, self.close_button)
+                pygame.draw.rect(self.screen, THEME_BORDER, self.close_button, 1)
                 close_text = self.font.render("Close", True, self.TEXT_COLOR)
                 text_rect = close_text.get_rect(center=self.close_button.center)
                 self.screen.blit(close_text, text_rect)
 
+        def draw_header(self, title):
+                header_rect = pygame.Rect(0, 0, self.width, self.header_height)
+                pygame.draw.rect(self.screen, THEME_PANEL, header_rect)
+                pygame.draw.line(self.screen, THEME_SEPARATOR, (0, self.header_height - 1), (self.width, self.header_height - 1), 1)
+                title_surf = get_font(self.FONT_SIZE + 2, bold=True).render(title, True, THEME_TEXT_HEADER)
+                self.screen.blit(title_surf, (self.PADDING, self.PADDING))
+                self.draw_close_button()
+
         def draw_summary(self, y, label, summary):
-                pygame.draw.rect(self.content_surface, self.SUMMARY_BG, (0, y, self.width, self.SUMMARY_HEIGHT))
-                self.draw_text(f"{label}: {summary}", self.PADDING, y + 7)
+                pygame.draw.rect(self.content_surface, self.SUMMARY_BG, (0, y, self.viewport_width, self.SUMMARY_HEIGHT))
+                pygame.draw.rect(self.content_surface, THEME_SEPARATOR, (0, y, self.viewport_width, self.SUMMARY_HEIGHT), 1)
+                self.draw_text(f"{label}: {summary}", self.PADDING, y + 7, color=THEME_TEXT_HEADER)
 
         def draw_results(self):
                 self.content_surface.fill(self.BG_COLOR)
@@ -264,19 +301,17 @@ class CombatResultsScreen:
                 y = self._draw_surface_details(y, surface)
 
                 # Update max scroll based on final y position
-                self.max_scroll = max(0, y - self.height + self.SUMMARY_HEIGHT)
+                self.max_scroll = max(0, y - self.viewport_height)
 
                 # Draw the visible portion to the screen
                 self.screen.fill(self.BG_COLOR)
-                visible_region = pygame.Rect(0, self.scroll_y, self.width, self.height)
-                self.screen.blit(self.content_surface, (0, 0), visible_region)
-
-                # Draw close button on top
-                self.draw_close_button()
+                self.draw_header("Combat Result Details")
+                visible_region = pygame.Rect(0, self.scroll_y, self.viewport_width, self.viewport_height)
+                self.screen.blit(self.content_surface, (self.PADDING, self.header_height), visible_region)
+                self.scrollbar.draw(self.screen, self.scroll_y, max(self.content_surface.get_height(), y), self.viewport_height)
 
         def handle_scroll(self, event):
-                if event.type == pygame.MOUSEWHEEL:
-                        self.scroll_y = max(0, min(self.scroll_y - event.y * 20, self.max_scroll))
+                self.scroll_y = self.scrollbar.handle_event(event, self.scroll_y, self.max_scroll)
 
         def _make_a2a_summary(self, a2a):
                 if not a2a:
