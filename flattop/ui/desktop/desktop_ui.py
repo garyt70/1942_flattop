@@ -1082,7 +1082,7 @@ class DesktopUI:
         save_game_state(self.board, self.turn_manager, self.weather_manager)
 
 
-    def get_save_files_sorted(save_dir):
+    def get_save_files_sorted(self,save_dir):
         files = [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
         return sorted(
             files,
