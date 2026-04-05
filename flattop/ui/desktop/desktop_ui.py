@@ -1000,7 +1000,7 @@ class DesktopUI:
                 elif menu_event.type == pygame.MOUSEBUTTONDOWN:
                     mx2, my2 = menu_event.pos
                     if menu_rect.collidepoint(mx2, my2):
-                        idx = (my2 - menu_rect.top - margin) // option_height
+                        idx = (my2 - menu_rect.top - MARGIN) // option_height
                         if 0 <= idx < len(menu_options):
                             selected = menu_options[idx]
                             break
@@ -1124,10 +1124,9 @@ class DesktopUI:
     def _show_file_selection_popup(self, files):
         # Simple pygame popup for file selection
         font = pygame.font.SysFont(None, 28)
-        margin = 10
-        option_height = font.get_height() + margin
-        menu_width = max(font.size(f)[0] for f in files) + 2 * margin
-        menu_height = option_height * len(files) + margin
+        option_height = font.get_height() + PADDING
+        menu_width = max(font.size(f)[0] for f in files) + 2 * PADDING
+        menu_height = option_height * len(files) + PADDING
         screen = self.screen
         screen_w, screen_h = screen.get_size()
         menu_rect = pygame.Rect((screen_w - menu_width) // 2, (screen_h - menu_height) // 2, menu_width, menu_height)
@@ -1135,7 +1134,7 @@ class DesktopUI:
         pygame.draw.rect(screen, (200, 200, 200), menu_rect, 2)
         for i, fname in enumerate(files):
             surf = font.render(fname, True, (255, 255, 255))
-            screen.blit(surf, (menu_rect.left + margin, menu_rect.top + margin + i * option_height))
+            screen.blit(surf, (menu_rect.left + PADDING, menu_rect.top + PADDING + i * option_height))
         pygame.display.flip()
         selected = None
         while selected is None:
@@ -1146,7 +1145,7 @@ class DesktopUI:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
                     if menu_rect.collidepoint(mx, my):
-                        idx = (my - menu_rect.top - margin) // option_height
+                        idx = (my - menu_rect.top - PADDING) // option_height
                         if 0 <= idx < len(files):
                             selected = files[idx]
                             break
