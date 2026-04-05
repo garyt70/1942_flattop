@@ -1075,7 +1075,13 @@ class DesktopUI:
         from flattop.game_engine import perform_observation_for_piece
     
         perform_observation_for_piece(piece, self.board, self.weather_manager, self.turn_manager)
-    
+
+
+    def save_game(self):
+        from flattop.save_load_game import save_game_state
+        save_game_state(self.board, self.turn_manager, self.weather_manager)
+
+
     def get_save_files_sorted(save_dir):
         files = [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
         return sorted(
@@ -1084,10 +1090,6 @@ class DesktopUI:
             reverse=True,
         )
 
-    def save_game(self):
-        from flattop.save_load_game import save_game_state
-        save_game_state(self.board, self.turn_manager, self.weather_manager)
-
     def load_game(self):
         from flattop.save_load_game import load_game_state
         home_dir = os.path.expanduser("~")
@@ -1095,7 +1097,7 @@ class DesktopUI:
         if not os.path.exists(save_dir):
             print("No save directory found.")
             return
-        files = get_save_files_sorted(save_dir)
+        files = self.get_save_files_sorted(save_dir)
         if not files:
             print("No save files found.")
             return
