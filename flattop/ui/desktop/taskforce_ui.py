@@ -8,13 +8,24 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 # Import necessary classes from the operations chart models
 from flattop.operations_chart_models import AirOperationsChart, TaskForce, Carrier, Base, Ship, AircraftType, AircraftOperationsStatus, AirOperationsConfiguration, AircraftFactory
 from flattop.ui.desktop.base_ui import BaseUIDisplay  # <-- Use BaseUIDisplay instead of BaseDialog
+from flattop.ui.desktop.ui_theme import (
+    LINE_EXTRA,
+    MARGIN,
+    PADDING,
+    SCROLLBAR_WIDTH,
+    THEME_BG,
+    THEME_BORDER,
+    THEME_PANEL,
+    THEME_SEPARATOR,
+    THEME_TEXT,
+    THEME_TEXT_HEADER,
+    ScrollBar,
+    get_font,
+)
 
 pygame.init()
-FONT = pygame.font.SysFont(None, 32)
-SMALL_FONT = pygame.font.SysFont(None, 24)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (220, 220, 220)
+FONT = get_font(32, bold=True)
+SMALL_FONT = get_font(24)
 CARRIER_SYMBOL = "🛩️"
 
 class TaskForceScreen:
@@ -24,16 +35,19 @@ class TaskForceScreen:
         self.base_dialog = None  # This will now be a BaseUIDisplay
         self.screen = None
         self.air_ops_chart : AirOperationsChart = None
+        self.scroll_y = 0
+        self.max_scroll = 0
+        self.scrollbar = None
+        self.list_rect = None
 
     def draw(self, surface):
         self.surface = surface
 
         win_width, win_height = self.surface.get_size()
-        margin = 10
+        margin = MARGIN
+        row_height = SMALL_FONT.get_height() + LINE_EXTRA + 4
 
         # Draw a popup background for the takforce details
-        font = pygame.font.SysFont(None, 24)
-        header_font = pygame.font.SysFont(None, 28, bold=True)
         popup_width = int(win_width * 0.9)
         popup_height = int(win_height * 0.9)
         popup_rect = pygame.Rect(
@@ -42,34 +56,48 @@ class TaskForceScreen:
             popup_width,
             popup_height
         )
-        pygame.draw.rect(self.surface, (50, 50, 50), popup_rect)
-        pygame.draw.rect(self.surface, (200, 200, 200), popup_rect, 2)
+        pygame.draw.rect(self.surface, THEME_BG, popup_rect)
+        pygame.draw.rect(self.surface, THEME_BORDER, popup_rect, 2)
 
-        y = 20
-        title = FONT.render(f"TaskForce: {self.taskforce.name}", True, WHITE)
-        surface.blit(title, (20, y))
-        y += 40
-        ships_label = SMALL_FONT.render(f"Ships: {len(self.taskforce.ships)}", True, WHITE)
-        surface.blit(ships_label, (20, y))
-        y += 40
+        y = popup_rect.top + margin
+        title = FONT.render(f"TaskForce: {self.taskforce.name}", True, THEME_TEXT_HEADER)
+        surface.blit(title, (popup_rect.left + margin, y))
+        y += title.get_height() + PADDING
+        ships_label = SMALL_FONT.render(f"Ships: {len(self.taskforce.ships)}", True, THEME_TEXT)
+        surface.blit(ships_label, (popup_rect.left + margin, y))
+        y += ships_label.get_height() + margin
 
         # Table headers
         headers = ["Name", "Type", "Attack", "AA", "Move", "Damage", "Air Ops"]
         col_widths = [140, 80, 60, 60, 60, 60, 120]
-        x_positions = [40]
+        x_positions = [popup_rect.left + margin + PADDING]
         for w in col_widths[:-1]:
             x_positions.append(x_positions[-1] + w)
         header_y = y
         for i, header in enumerate(headers):
-            txt = SMALL_FONT.render(header, True, WHITE)
+            txt = SMALL_FONT.render(header, True, THEME_TEXT_HEADER)
             surface.blit(txt, (x_positions[i], header_y))
-        y += 30
-        pygame.draw.line(surface, BLACK, (40, y), (40 + sum(col_widths), y), 2)
-        y += 5
+        y += SMALL_FONT.get_height() + PADDING
+        pygame.draw.line(surface, THEME_SEPARATOR, (popup_rect.left + margin, y), (popup_rect.right - margin, y), 2)
+        y += PADDING
+
+        list_height = popup_rect.bottom - y - margin
+        list_width = popup_rect.width - (2 * margin) - SCROLLBAR_WIDTH - PADDING
+        self.list_rect = pygame.Rect(popup_rect.left + margin, y, list_width, list_height)
+        pygame.draw.rect(surface, THEME_PANEL, self.list_rect)
+        pygame.draw.rect(surface, THEME_SEPARATOR, self.list_rect, 1)
+
+        rows_height = len(self.taskforce.ships) * row_height
+        self.max_scroll = max(0, rows_height - self.list_rect.height)
+        self.scroll_y = max(0, min(self.scroll_y, self.max_scroll))
+        self.scrollbar = ScrollBar(self.list_rect.right + PADDING, self.list_rect.top, self.list_rect.height)
+
+        list_surface = pygame.Surface((self.list_rect.width, max(self.list_rect.height, rows_height)))
+        list_surface.fill(THEME_PANEL)
 
         self.carrier_buttons.clear()
         ship:Ship
-        for ship in self.taskforce.ships:
+        for row_index, ship in enumerate(self.taskforce.ships):
             # Get ship properties, fallback to "N/A" if not present
             name = ship.name
             ship_type = ship.type
@@ -81,26 +109,37 @@ class TaskForceScreen:
             is_carrier = isinstance(ship, Carrier)
             
             row = [name, ship_type, str(attack), str(defense), str(move), str(damage), air_ops]
+            row_y = row_index * row_height
             for i, value in enumerate(row):
-                txt = SMALL_FONT.render(value, True, WHITE)
-                surface.blit(txt, (x_positions[i], y))
+                txt = SMALL_FONT.render(value, True, THEME_TEXT)
+                local_x = x_positions[i] - self.list_rect.left
+                list_surface.blit(txt, (local_x, row_y))
             # Draw base symbol as clickable if carrier has base
             if is_carrier and ship.base:
                 # Use a font that supports Unicode for the carrier symbol
                 unicode_font = pygame.font.SysFont("Segoe UI Emoji", 24)  # Common font for emoji support
-                symbol = unicode_font.render(CARRIER_SYMBOL, True, WHITE)
-                rect = symbol.get_rect(topleft=(x_positions[6], y))
-                surface.blit(symbol, rect.topleft)
+                symbol = unicode_font.render(CARRIER_SYMBOL, True, THEME_TEXT)
+                local_x = x_positions[6] - self.list_rect.left
+                rect = symbol.get_rect(topleft=(local_x, row_y))
+                list_surface.blit(symbol, rect.topleft)
                 self.carrier_buttons.append((rect, ship.base))
-            y += 32
+        surface.blit(
+            list_surface,
+            self.list_rect.topleft,
+            pygame.Rect(0, self.scroll_y, self.list_rect.width, self.list_rect.height),
+        )
+        self.scrollbar.draw(surface, self.scroll_y, max(self.list_rect.height, rows_height), self.list_rect.height)
 
        
 
     def handle_event(self, event):
+        if self.scrollbar:
+            self.scroll_y = self.scrollbar.handle_event(event, self.scroll_y, self.max_scroll)
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = event.pos
             for rect, base in self.carrier_buttons:
-                if rect.collidepoint(pos):
+                absolute_rect = rect.move(self.list_rect.left, self.list_rect.top - self.scroll_y)
+                if absolute_rect.collidepoint(pos):
                     self.base_dialog = BaseUIDisplay(base, self.surface)  
                     self.base_dialog.air_op_chart = self.air_ops_chart
                     self.base_dialog.draw()  # Show the base dialog
