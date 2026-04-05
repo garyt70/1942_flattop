@@ -29,6 +29,7 @@ def _load_overlay(name: str, size: int):
         return _overlay_cache[key]
     path = os.path.join(_ASSETS_DIR, name)
     try:
+        #assume pygame is initialized and can load images
         raw = pygame.image.load(path).convert_alpha()
         scaled = pygame.transform.smoothscale(raw, (size, size))
         _overlay_cache[key] = scaled
