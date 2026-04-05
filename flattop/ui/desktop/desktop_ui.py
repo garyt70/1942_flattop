@@ -967,10 +967,9 @@ class DesktopUI:
 
 
         font = get_font(28)
-        margin = PADDING
-        option_height = font.get_height() + margin
+        option_height = font.get_height() + PADDING
         menu_width = max(font.size(opt)[0] for opt in menu_options) + 2 * MARGIN
-        menu_height = option_height * len(menu_options) + margin
+        menu_height = option_height * len(menu_options) + PADDING
         mouse_x, mouse_y = pos
         menu_rect = pygame.Rect(mouse_x, mouse_y, menu_width, menu_height)
 
@@ -983,12 +982,12 @@ class DesktopUI:
         pygame.draw.rect(self.screen, THEME_BORDER, menu_rect, 2)
         for i, opt in enumerate(menu_options):
             opt_surf = font.render(opt, True, THEME_TEXT)
-            self.screen.blit(opt_surf, (menu_rect.left + MARGIN, menu_rect.top + margin + i * option_height))
+            self.screen.blit(opt_surf, (menu_rect.left + MARGIN, menu_rect.top + PADDING + i * option_height))
 
             # Separator between menu options for themed popup consistency.
             if i < len(menu_options) - 1:
-                y = menu_rect.top + margin + (i + 1) * option_height - (margin // 2)
-                pygame.draw.line(self.screen, THEME_BG, (menu_rect.left + margin, y), (menu_rect.right - margin, y), 1)
+                y = menu_rect.top + PADDING + (i + 1) * option_height - (PADDING // 2)
+                pygame.draw.line(self.screen, THEME_BG, (menu_rect.left + PADDING, y), (menu_rect.right - PADDING, y), 1)
         pygame.display.flip()
 
         # Wait for user selection
