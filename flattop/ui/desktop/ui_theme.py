@@ -99,6 +99,8 @@ class ScrollBar:
         self._last_scroll_y = 0
         self._last_content_height = 1
         self._last_viewport_height = 1
+        # Keep track of last local mouse position for hover effect in draw()
+        self._last_local_mouse: tuple = (-1, -1)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -141,7 +143,6 @@ class ScrollBar:
 
         # Thumb — use hover colour if dragging or mouse is over it
         thumb = self._thumb_rect(scroll_y, content_height, viewport_height)
-        mouse_local = self._mouse_local((0, 0))  # will be updated in handle_event
         is_hover = self._dragging or thumb.collidepoint(self._last_local_mouse)
         colour = THEME_SCROLLBAR_THUMB_HOVER if is_hover else THEME_SCROLLBAR_THUMB
         pygame.draw.rect(surface, colour, thumb)
@@ -158,8 +159,7 @@ class ScrollBar:
         mx, my = pygame.mouse.get_pos()
         return (mx - surface_offset[0], my - surface_offset[1])
 
-    # Keep track of last local mouse position for hover effect in draw()
-    _last_local_mouse: tuple = (-1, -1)
+    
 
     def handle_event(self, event: pygame.event.Event, scroll_y: int,
                      max_scroll: int, surface_offset: tuple = (0, 0)) -> int:
@@ -177,7 +177,7 @@ class ScrollBar:
         """
         # Keep last local mouse for hover colouring in draw()
         lx, ly = self._mouse_local(surface_offset)
-        ScrollBar._last_local_mouse = (lx, ly)
+        self._last_local_mouse = (lx, ly)
 
         content_h = self._last_content_height
         viewport_h = self._last_viewport_height

@@ -90,9 +90,18 @@ class TaskForceScreen:
         rows_height = len(self.taskforce.ships) * row_height
         self.max_scroll = max(0, rows_height - self.list_rect.height)
         self.scroll_y = max(0, min(self.scroll_y, self.max_scroll))
-        self.scrollbar = ScrollBar(self.list_rect.right + PADDING, self.list_rect.top, self.list_rect.height)
-
-        list_surface = pygame.Surface((self.list_rect.width, max(self.list_rect.height, rows_height)))
+        
+        scrollbar_x = self.list_rect.right + PADDING  
+        scrollbar_y = self.list_rect.top  
+        scrollbar_height = self.list_rect.height  
+        scrollbar_geometry = (scrollbar_x, scrollbar_y, scrollbar_height)  
+        if (  
+            not hasattr(self, "scrollbar")  
+            or getattr(self, "_scrollbar_geometry", None) != scrollbar_geometry  
+        ):
+            self.scrollbar = ScrollBar(scrollbar_x, scrollbar_y, scrollbar_height)
+            self._scrollbar_geometry = scrollbar_geometry
+            list_surface = pygame.Surface((self.list_rect.width, max(self.list_rect.height, rows_height)))
         list_surface.fill(THEME_PANEL)
 
         self.carrier_buttons.clear()

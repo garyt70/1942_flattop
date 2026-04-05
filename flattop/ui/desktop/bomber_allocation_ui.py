@@ -123,7 +123,7 @@ class BomberAllocationUI:
                 plus_rect = pygame.Rect(x + cell_width - btn - 5, y + 5, btn, btn)
                 color = THEME_BTN_BG if self.get_total_allocated(j) < bomber.count else THEME_BTN_DISABLED
                 pygame.draw.rect(self.screen, color, plus_rect)
-                plus_surf = self.font.render("+", True, (255, 255, 255))
+                plus_surf = self.font.render("+", True, THEME_BTN_TEXT)
                 plus_text_rect = plus_surf.get_rect()
                 plus_text_rect.center = plus_rect.center
                 self.screen.blit(plus_surf, plus_text_rect)
@@ -132,7 +132,7 @@ class BomberAllocationUI:
                 minus_rect = pygame.Rect(x + cell_width - btn - 5, y + cell_height - btn - 5, btn, btn)
                 color = THEME_BTN_DANGER if alloc > 0 else THEME_BTN_DISABLED
                 pygame.draw.rect(self.screen, color, minus_rect)
-                minus_surf = self.font.render("-", True, (255, 255, 255))
+                minus_surf = self.font.render("-", True, THEME_BTN_TEXT)
                 minus_text_rect = minus_surf.get_rect()
                 minus_text_rect.center = minus_rect.center
                 self.screen.blit(minus_surf, minus_text_rect)
