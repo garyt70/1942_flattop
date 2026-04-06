@@ -726,7 +726,7 @@ class BaseUIDisplay:
 
 
     def _get_next_airformation_number(self):
-            return self.air_op_chart.get_empty_formation_number()
+        return self.air_op_chart.get_empty_formation_number()
     
 
 # Example usage:

@@ -1,5 +1,6 @@
 from enum import Enum
 from enum import Enum, auto
+import random
 
 """
 Requirements Overview:
@@ -50,7 +51,8 @@ class AirOperationsChart:
         for num, formation in self.air_formations.items():
             if not formation.aircraft:
                 return num
-        return None
+        
+        return random.choice(list(self.air_formations.keys()))  # If all are occupied, return a random number
 
     def get_all_empty_formation_numbers(self):
         """
