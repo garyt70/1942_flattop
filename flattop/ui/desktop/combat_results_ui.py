@@ -267,6 +267,13 @@ class CombatResultsScreen:
         def draw_results(self):
                 self.content_surface.fill(self.BG_COLOR)
                 y = 0
+                
+                # --- Victory Points Summary (if available) ---
+                vp_data = self.combat_results.get("victory_points")
+                if vp_data:
+                        y = self._draw_victory_points_summary(y, vp_data)
+                        y += self.PADDING
+                
                 # --- Summaries ---
                 a2a = self.combat_results.get("air_to_air", {})
                 a2a_summary = self._make_a2a_summary(a2a)
@@ -312,6 +319,43 @@ class CombatResultsScreen:
 
         def handle_scroll(self, event):
                 self.scroll_y = self.scrollbar.handle_event(event, self.scroll_y, self.max_scroll)
+        
+        def _draw_victory_points_summary(self, y, vp_data):
+                """Draw victory points summary box."""
+                # Draw a prominent box for victory points
+                box_height = self.SUMMARY_HEIGHT * 3
+                pygame.draw.rect(self.content_surface, (50, 70, 90), (0, y, self.viewport_width, box_height))
+                pygame.draw.rect(self.content_surface, THEME_SEPARATOR, (0, y, self.viewport_width, box_height), 2)
+                
+                # Title
+                title_font = get_font(self.FONT_SIZE + 4, bold=True)
+                title_surf = title_font.render("VICTORY POINTS", True, (255, 215, 0))  # Gold color
+                title_rect = title_surf.get_rect(centerx=self.viewport_width // 2, top=y + self.PADDING)
+                self.content_surface.blit(title_surf, title_rect)
+                y_inner = y + self.PADDING + title_surf.get_height() + 5
+                
+                # Allied points
+                allied_points = vp_data.get("allied_points", 0)
+                allied_text = f"Allied: {allied_points} VP"
+                allied_surf = self.font.render(allied_text, True, (100, 200, 255))  # Blue-ish
+                self.content_surface.blit(allied_surf, (self.PADDING * 2, y_inner))
+                
+                # Japanese points
+                japanese_points = vp_data.get("japanese_points", 0)
+                japanese_text = f"Japanese: {japanese_points} VP"
+                japanese_surf = self.font.render(japanese_text, True, (255, 150, 150))  # Red-ish
+                self.content_surface.blit(japanese_surf, (self.viewport_width // 2 + self.PADDING, y_inner))
+                y_inner += self.font.get_height() + 5
+                
+                # Point difference and leader
+                point_diff = vp_data.get("point_difference", abs(allied_points - japanese_points))
+                leader = vp_data.get("leader", "Tied")
+                diff_text = f"Difference: {point_diff} VP  |  Leader: {leader}"
+                diff_surf = self.font.render(diff_text, True, THEME_TEXT_HEADER)
+                diff_rect = diff_surf.get_rect(centerx=self.viewport_width // 2, top=y_inner)
+                self.content_surface.blit(diff_surf, diff_rect)
+                
+                return y + box_height
 
         def _make_a2a_summary(self, a2a):
                 if not a2a:

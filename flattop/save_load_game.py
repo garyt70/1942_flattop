@@ -227,6 +227,12 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                 crh.append((key, serialize_combat_result(val)))
             else:
                 crh.append(entry)
+        
+        # Serialize victory points if present
+        vp_data = None
+        if hasattr(tm, 'victory_points') and tm.victory_points:
+            vp_data = tm.victory_points.to_dict()
+        
         return {
             "total_days": tm.total_days,
             "current_day": tm.current_day,
@@ -235,6 +241,7 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
             "current_phase_index": tm.current_phase_index,
             "side_with_initiative": tm.side_with_initiative,
             "combat_results_history": crh,
+            "victory_points": vp_data,
         }
 
     def serialize_board(board):
@@ -319,6 +326,16 @@ def load_game_state(filename):
         else:
             crh.append(entry)
     turn_manager.combat_results_history = crh
+    
+    # Deserialize victory points
+    vp_data = tm_data.get("victory_points")
+    if vp_data:
+        from flattop.victory_points import VictoryPointsTracker
+        turn_manager.victory_points = VictoryPointsTracker.from_dict(vp_data)
+    elif not hasattr(turn_manager, 'victory_points') or turn_manager.victory_points is None:
+        # Create new tracker if none exists
+        from flattop.victory_points import VictoryPointsTracker
+        turn_manager.victory_points = VictoryPointsTracker()
 
     # --- Board ---
     board_data = data.get("board", {})

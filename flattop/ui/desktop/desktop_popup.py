@@ -992,6 +992,23 @@ class Dashboard:
                 y_offset += phase_surf.get_height() + 4
                 if initiative_surf:
                     screen.blit(initiative_surf, (x + 12, y_offset))
+            elif i == 2:
+                # Display Victory Points in Combat Results section
+                info_font = pygame.font.SysFont(None, 18)
+                vp_tracker = self.desktop.turn_manager.victory_points
+                allied_vp = vp_tracker.get_points("Allied")
+                japanese_vp = vp_tracker.get_points("Japanese")
+                
+                vp_title = info_font.render("Victory Points:", True, (255, 255, 0))
+                allied_text = info_font.render(f"Allied: {allied_vp}", True, (100, 200, 255))
+                japanese_text = info_font.render(f"Japanese: {japanese_vp}", True, (255, 150, 150))
+                
+                y_offset = win_height - dashboard_height + 40
+                screen.blit(vp_title, (x + 12, y_offset))
+                y_offset += vp_title.get_height() + 4
+                screen.blit(allied_text, (x + 12, y_offset))
+                y_offset += allied_text.get_height() + 4
+                screen.blit(japanese_text, (x + 12, y_offset))
             elif i == 3:
                 #the buttons should be the same size. black text and grey background with a black border
                 button_font = pygame.font.SysFont(None, 18)
@@ -1117,5 +1134,14 @@ def draw_dashboard(desktop) -> Dashboard:
 from flattop.ui.desktop.combat_results_ui import CombatResultsList
 def show_combat_results_list(desktop_ui):
     # Show the CombatResultsList popup (if available)
-    ui = CombatResultsList(desktop_ui.turn_manager.combat_results_history, desktop_ui.screen)
+    # Add victory points to each combat result for display
+    enriched_results = []
+    for key, result in desktop_ui.turn_manager.combat_results_history:
+        # Add victory points summary to the result
+        if isinstance(result, dict) and "victory_points" not in result:
+            vp_summary = desktop_ui.turn_manager.victory_points.get_point_summary()
+            result["victory_points"] = vp_summary
+        enriched_results.append((key, result))
+    
+    ui = CombatResultsList(enriched_results, desktop_ui.screen)
     ui.run()

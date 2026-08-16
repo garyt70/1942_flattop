@@ -18,7 +18,7 @@ from flattop.ui.desktop.desktop_popup import Dashboard, draw_dashboard, draw_gam
 from flattop.ui.desktop.taskforce_ui import TaskForceScreen
 from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.ui.desktop.ui_theme import MARGIN, PADDING, THEME_BG, THEME_BORDER, THEME_PANEL, THEME_TEXT, get_font
-from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat
+from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat, award_aircraft_elimination_vp, award_ship_sunk_vp
 from flattop.surface_combat_engine import resolve_surface_combat
 
 from flattop.computer_oponent_engine import ComputerOpponent
@@ -27,6 +27,150 @@ import flattop.ui.desktop.desktop_config as config
 from flattop.weather_model import WeatherManager, CloudMarker, WindDirection
 
 FEATURE_FLAG_TESTING = config.DISABLE_FOG_OF_WAR_FOR_TESTING
+
+
+def award_victory_points_from_combat(combat_results: dict, attacking_side: str, 
+                                     victory_points_tracker, turn_number: int):
+    """
+    Process combat results and award victory points for eliminated aircraft and sunk ships.
+    
+    Args:
+        combat_results: Dictionary containing all combat results
+        attacking_side: Side that initiated the combat ("Allied" or "Japanese")
+        victory_points_tracker: VictoryPointsTracker instance
+        turn_number: Current turn number
+    """
+    if not victory_points_tracker:
+        return
+    
+    defending_side = "Japanese" if attacking_side == "Allied" else "Allied"
+    
+    # Process air-to-air combat results
+    # In a2a: interceptors=attacker aircraft, escorts/bombers=defender aircraft
+    a2a_result = combat_results.get("result_attacker_a2a")
+    if a2a_result and isinstance(a2a_result, dict):
+        eliminated = a2a_result.get("eliminated", {})
+        
+        # Interceptor losses = attacker losses (defender gets points)
+        interceptor_losses = eliminated.get("interceptors", [])
+        if interceptor_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, interceptor_losses, attacking_side, turn_number
+            )
+        
+        # Escort losses = defender losses (attacker gets points)
+        escort_losses = eliminated.get("escorts", [])
+        if escort_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, escort_losses, defending_side, turn_number
+            )
+        
+        # Bomber losses = defender losses (attacker gets points)
+        bomber_losses = eliminated.get("bombers", [])
+        if bomber_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, bomber_losses, defending_side, turn_number
+            )
+    
+    # Process anti-aircraft combat results (TF)
+    # Anti-aircraft eliminates attacking bombers
+    tf_aa_result = combat_results.get("result_tf_anti_aircraft")
+    if tf_aa_result and isinstance(tf_aa_result, dict):
+        eliminated = tf_aa_result.get("eliminated", {})
+        bomber_losses = eliminated.get("bombers", [])
+        if bomber_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, bomber_losses, attacking_side, turn_number
+            )
+    
+    # Process anti-aircraft combat results (Base)
+    # Anti-aircraft eliminates attacking bombers
+    base_aa_result = combat_results.get("result_base_anti_aircraft")
+    if base_aa_result and isinstance(base_aa_result, dict):
+        eliminated = base_aa_result.get("eliminated", {})
+        bomber_losses = eliminated.get("bombers", [])
+        if bomber_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, bomber_losses, attacking_side, turn_number
+            )
+    
+    # Process air-to-ship combat results
+    # Includes both attacking bomber losses and aircraft on sunk/damaged carriers
+    ship_attack_results = combat_results.get("result_attacker_ship_air_attack")
+    if ship_attack_results:
+        if not isinstance(ship_attack_results, list):
+            ship_attack_results = [ship_attack_results]
+        
+        for result in ship_attack_results:
+            if isinstance(result, dict):
+                # Aircraft on sunk/damaged carriers (defender's aircraft, attacker gets points)
+                eliminated = result.get("eliminated", {})
+                aircraft_losses = eliminated.get("aircraft", [])
+                if aircraft_losses:
+                    award_aircraft_elimination_vp(
+                        victory_points_tracker, aircraft_losses, defending_side, turn_number
+                    )
+                
+                # Award points for sunk ships
+                if result.get("ship_was_sunk", False):
+                    ship = result.get("ship")
+                    if ship:
+                        award_ship_sunk_vp(
+                            victory_points_tracker, ship, defending_side, turn_number
+                        )
+    
+    # Process air-to-base combat results
+    # Aircraft eliminated are defender's aircraft at the base (attacker gets points)
+    base_attack_result = combat_results.get("result_attacker_base_air_attack")
+    if base_attack_result and isinstance(base_attack_result, dict):
+        eliminated = base_attack_result.get("eliminated", {})
+        aircraft_losses = eliminated.get("aircraft", [])
+        if aircraft_losses:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, aircraft_losses, defending_side, turn_number
+            )
+        
+        # TODO: Base damage VP awards (5 points per turn for damaged bases)
+        # This should be handled at end-of-turn processing, not during combat,
+        # since points are awarded each turn the base remains damaged with LF≤0
+    
+    # Process surface combat results
+    surface_result = combat_results.get("result_surface_combat")
+    if surface_result and isinstance(surface_result, dict):
+        # Check for sunk ships on both sides
+        att_sunk = surface_result.get("attacker_destroyed", [])
+        def_sunk = surface_result.get("defender_destroyed", [])
+        
+        # Defender gets points for attacker ships sunk
+        if att_sunk and isinstance(att_sunk, list):
+            for ship_name in att_sunk:
+                # Note: We need ship objects to get type and damage_factor
+                # This is a simplified version - ideally we'd track ship objects
+                pass  # TODO: Improve ship tracking for surface combat
+        
+        # Attacker gets points for defender ships sunk
+        if def_sunk and isinstance(def_sunk, list):
+            for ship_name in def_sunk:
+                # Note: We need ship objects to get type and damage_factor
+                pass  # TODO: Improve ship tracking for surface combat
+        
+        # Check for eliminated aircraft from sunk carriers
+        eliminated = surface_result.get("eliminated", {})
+        
+        # Aircraft on attacker's sunk ships (defender gets points)
+        attacker_aircraft = eliminated.get("attacker", [])
+        if attacker_aircraft:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, attacker_aircraft, attacking_side, turn_number
+            )
+        
+        # Aircraft on defender's sunk ships (attacker gets points)
+        defender_aircraft = eliminated.get("defender", [])
+        if defender_aircraft:
+            award_aircraft_elimination_vp(
+                victory_points_tracker, defender_aircraft, defending_side, turn_number
+            )
+
 
 
 
@@ -182,12 +326,17 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         # Resolve combat for each ship in the taskforce
         # and return the results
         results = []
+        sunk_ships = []  # Track sunk ships for victory points
         for ship, allocated_bombers in allocation.items():
             if allocated_bombers:
                 result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
-                results.append(result)
+                # Add ship information to result for victory points tracking
+                result["ship"] = ship
+                result["ship_was_sunk"] = ship.status == "Sunk"
                 if ship.status == "Sunk":
+                    sunk_ships.append(ship)
                     taskforce.ships.remove(ship)
+                results.append(result)
         return results
 
     
@@ -264,6 +413,11 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         "pre_combat_count_defender_bombers": pre_combat_count_defending_bombers,
         "pre_combat_count_defender_escorts": pre_combat_count_defending_escorts
     }
+    
+    # Award victory points based on combat results
+    award_victory_points_from_combat(
+        combat_results, attacking_side, turn_manager.victory_points, turn_manager.turn_number
+    )
 
     return combat_results
 

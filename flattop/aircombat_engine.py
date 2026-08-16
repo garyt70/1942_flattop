@@ -278,6 +278,57 @@ class AirCombatResult:
         return AirCombatResult(hits=d.get("hits", 0), story_line=d.get("story_line", []))
 
 
+def award_aircraft_elimination_vp(victory_points_tracker, aircraft_eliminated: list, 
+                                  owning_side: str, turn_number: int = None, 
+                                  unnecessary: bool = False):
+    """
+    Award victory points for eliminated aircraft.
+    
+    Args:
+        victory_points_tracker: VictoryPointsTracker instance
+        aircraft_eliminated: List of (aircraft_type, count) tuples
+        owning_side: Side that owned the eliminated aircraft
+        turn_number: Current turn number
+        unnecessary: True if loss was unnecessary (10 points vs 2)
+    """
+    if not victory_points_tracker or not aircraft_eliminated:
+        return
+    
+    # Opponent gets the points
+    opponent_side = "Japanese" if owning_side == "Allied" else "Allied"
+    
+    for aircraft_type, count in aircraft_eliminated:
+        if count > 0:
+            victory_points_tracker.award_aircraft_eliminated(
+                opponent_side, aircraft_type, count, unnecessary, turn_number
+            )
+
+
+def award_ship_sunk_vp(victory_points_tracker, ship, owning_side: str, turn_number: int = None):
+    """
+    Award victory points for a sunk ship.
+    
+    Args:
+        victory_points_tracker: VictoryPointsTracker instance
+        ship: Ship object that was sunk
+        owning_side: Side that owned the ship
+        turn_number: Current turn number
+    """
+    if not victory_points_tracker or not ship:
+        return
+    
+    # Opponent gets the points
+    opponent_side = "Japanese" if owning_side == "Allied" else "Allied"
+    
+    ship_name = getattr(ship, 'name', 'Unknown')
+    ship_type = getattr(ship, 'type', 'Unknown')
+    damage_factor = getattr(ship, 'damage_factor', 1)
+    
+    victory_points_tracker.award_ship_sunk(
+        opponent_side, ship_name, ship_type, damage_factor, turn_number
+    )
+
+
 
 def classify_aircraft(airformation_list):
     """

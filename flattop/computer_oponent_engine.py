@@ -44,7 +44,9 @@ from flattop.aircombat_engine import (
     resolve_taskforce_anti_aircraft_combat,
     resolve_base_anti_aircraft_combat,
     resolve_air_to_ship_combat,
-    resolve_air_to_base_combat
+    resolve_air_to_base_combat,
+    award_aircraft_elimination_vp,
+    award_ship_sunk_vp
 )
 from flattop.surface_combat_engine import resolve_surface_combat
 from flattop.game_engine import get_actionable_pieces, perform_observation_for_piece, perform_observation_for_side
@@ -433,7 +435,7 @@ class ComputerOpponent:
             to_aircraft.armament = best_armament
             to_aircraft.count = max_ready
             base.air_operations_tracker.set_operations_status(to_aircraft, AircraftOperationsStatus.READY, ac)
-            logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type} to ready at base {base.name}.")
+            logger.debug(f"Moving {to_aircraft.count} aircraft {to_aircraft.type.value} to ready at base {base.name}.")
         if base.used_ready_factor >= base.available_ready_factor:
             return
         # Move aircraft from just landed to readying based on available ready factors.
@@ -1156,9 +1158,12 @@ class ComputerOpponent:
             for ship, allocated_bombers in allocation.items():
                 if allocated_bombers:
                     result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
-                    results.append(result)
+                    # Add ship information to result for victory points tracking
+                    result["ship"] = ship
+                    result["ship_was_sunk"] = ship.status == "Sunk"
                     if ship.status == "Sunk":
                         taskforce.ships.remove(ship)
+                    results.append(result)
 
             for bomber in bombers:
                 # because the computer logic does a allocation of bombers to ships as a copy of the original bomber,
@@ -1228,6 +1233,14 @@ class ComputerOpponent:
             "pre_combat_count_defender_bombers": pre_combat_count_enemy_bombers,
             "pre_combat_count_defender_escorts": pre_combat_count_enemy_escorts
         }
+        
+        # Import the award function from desktop_ui
+        from flattop.ui.desktop.desktop_ui import award_victory_points_from_combat
+        
+        # Award victory points based on combat results
+        award_victory_points_from_combat(
+            combat_results, self.side, self.turn_manager.victory_points, self.turn_manager.turn_number
+        )
 
         return combat_results
     
@@ -1323,7 +1336,7 @@ class ComputerOpponent:
                 best = self._select_best_ready_aircraft(readying_aircraft, max_count=launch_factors_left)
                 if best:
                     for ac in best:
-                        logger.debug(f"Moving {ac.count} aircraft {ac.type} to ready at base {base.name}.")
+                        logger.debug(f"Moving {ac.count} aircraft {ac.type.value} to ready at base {base.name}.")
                         to_aircraft : Aircraft = ac.copy()
                         best_armament = self._select_best_armament(ac)  # default to AP as assuming searching for enemy ships
                         to_aircraft.armament = best_armament

@@ -551,8 +551,8 @@ def load_hexboard_model():
     Returns:
         HexBoardModel: An instance of the HexBoardModel class.
     """ 
-    #model = scenario_one_setup()  # Set up the scenario on the board model
-    model = scenario_two_setup()  # Set up the scenario on the board model
+    model = scenario_one_setup()  # Set up the scenario on the board model
+    #model = scenario_two_setup()  # Set up the scenario on the board model
     return model
 
 

@@ -385,6 +385,10 @@ class TurnManager:
         self._decide_initiative("Allied", "Japanese")  # Default players, can be set later
         self.combat_results_history = []  # Store combat results for later reference
         self._last_combat_result = None
+        
+        # Victory Points tracking
+        from flattop.victory_points import VictoryPointsTracker
+        self.victory_points = VictoryPointsTracker()
 
     def add_combat_result(self, key, combat_result):
         self.combat_results_history.append((key, combat_result))
