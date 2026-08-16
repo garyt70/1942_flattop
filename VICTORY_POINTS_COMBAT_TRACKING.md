@@ -101,10 +101,11 @@ This document explains where and how victory points are awarded during combat re
 **VP tracking location**: `award_victory_points_from_combat()` in desktop_ui.py
 - Aircraft losses → attacker gets 2 VP per aircraft (defender's base aircraft)
 
-**Base damage VP tracking**: NOT YET IMPLEMENTED
+**Base damage VP tracking**: ✅ IMPLEMENTED
 - Per game rules, damaged bases with LF≤0 award 5 VP per turn
-- This should be checked at end-of-turn processing (not during combat)
-- TODO: Implement in turn manager end-of-turn logic
+- Implemented in `TurnManager._award_base_damage_victory_points()` called from `next_turn(board)`
+- Awards VP at end of each turn for bases with `available_launch_factor_min ≤ 0` and `damage > 0`
+- See [tests/test_base_damage_vp.py](tests/test_base_damage_vp.py) for comprehensive tests
 
 **Example result structure**:
 ```python
@@ -163,7 +164,7 @@ The computer opponent in `computer_oponent_engine.py` uses the same `award_victo
    - The `owning_side` parameter in award functions indicates which side LOST the units
    - The helper functions internally award points to the opponent
 4. **Ship sinking requires ship object**: Air-to-ship and surface combat must include ship objects in results for proper VP calculation
-5. **Base damage VPs are end-of-turn**: Damaged bases award 5 VP per turn while LF≤0, checked at turn end (not yet implemented)
+5. **Base damage VPs are end-of-turn**: Damaged bases award 5 VP per turn while LF≤0, checked at turn end ✅ IMPLEMENTED
 
 ## Testing
 
@@ -172,8 +173,104 @@ All VP tracking is tested in `tests/test_victory_points.py`:
 - Ship sinking (all ship types)
 - Ship damage
 - Base damage
+- Base damage per-turn VP awards (7 additional tests in test_base_damage_vp.py)
 - Automatic victory conditions
 - Winner determination
 - Serialization/deserialization
 
-All tests pass ✓
+All tests pass ✓ (17 total tests)
+
+## Base Damage Victory Points (End-of-Turn)
+
+Base damage victory points are awarded differently from combat VP. They are checked and awarded at the **end of each turn**, not during combat.
+
+### Implementation
+
+**Location**: [hex_board_game_model.py](flattop/hex_board_game_model.py)
+
+**Key Methods**:
+- `TurnManager.next_turn(board)` - Main turn advancement method
+- `TurnManager._award_base_damage_victory_points(board)` - VP checking and award
+
+### How It Works
+
+```python
+def next_turn(self, board=None):
+    # Award VP for damaged bases BEFORE incrementing turn
+    if board and hasattr(self, 'victory_points'):
+        self._award_base_damage_victory_points(board)
+    
+    # Then increment turn counter
+    self.current_hour += 1
+    self.turn_number += 1
+    # ... rest of turn advancement
+
+def _award_base_damage_victory_points(self, board):
+    # Get all base pieces
+    base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base)]
+    
+    for piece in base_pieces:
+        base = piece.game_model
+        base_side = piece.side
+        
+        # Check if base is damaged with LF ≤ 0
+        if base.available_launch_factor_min <= 0 and base.damage > 0:
+            # Award 5 VP to the opposing side
+            opposing_side = "Japanese" if base_side == "Allied" else "Allied"
+            self.victory_points.award_base_damaged(
+                opposing_side, base.name, self.turn_number
+            )
+```
+
+### Game Rules Reference
+
+From game_requirements.txt Section 25.6:
+> "A player receives 5 VPs each turn (beginning on the turn after the base was damaged) for each enemy base with a Landing Factor of zero or less."
+
+### Landing Factor Calculation
+
+A base's landing factor is calculated as:
+```python
+available_launch_factor_min = launch_factor_min - damage
+```
+
+So a base with:
+- `launch_factor_min = 5`
+- `damage = 6`
+
+Has `available_launch_factor_min = -1` (≤ 0), so it awards 5 VP per turn.
+
+### When VP Are Awarded
+
+1. **During Combat**: Base is attacked, `base.damage` is increased
+2. **End of Turn**: `next_turn(board)` is called (or `next_phase(board)` wraps around)
+3. **VP Check**: All bases are checked for LF ≤ 0
+4. **VP Award**: Opposing side gets 5 VP per damaged base
+5. **Next Turn**: Turn counter increments
+
+This means VP awards happen **at the boundary between turns**, recorded with the current turn number before incrementing.
+
+### Integration Points
+
+Base damage VP tracking is triggered from:
+
+1. **UI Turn Change**: `desktop_popup.py:show_turn_change_popup()`
+   ```python
+   desktop_ui.turn_manager.next_phase(desktop_ui.board)
+   ```
+
+2. **Direct Turn Advance**: Any code calling `turn_manager.next_turn(board)`
+
+### Testing
+
+See [tests/test_base_damage_vp.py](tests/test_base_damage_vp.py) for comprehensive tests:
+- `test_base_damage_awards_vp_per_turn` - Basic VP award test
+- `test_undamaged_base_no_vp` - No VP for undamaged bases
+- `test_damaged_base_with_positive_lf_no_vp` - No VP if LF > 0
+- `test_multiple_damaged_bases_award_vp` - Multiple bases each award 5 VP
+- `test_japanese_base_damage_awards_allied_vp` - Correct side attribution
+- `test_next_phase_triggers_base_vp_at_turn_end` - Phase advancement integration
+- `test_no_board_parameter_no_crash` - Graceful handling of missing board
+
+All 7 tests passing ✓
+

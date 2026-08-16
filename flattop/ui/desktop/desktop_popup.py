@@ -862,7 +862,7 @@ def show_turn_change_popup(desktop_ui):
             # Check if click is on Advance Phase/Turn button (only if no unmoved pieces)
             if next_phase_rect.collidepoint(mx, my):
                 # Advance to next phase, this will also handle turn change if at last phase
-                desktop_ui.turn_manager.next_phase()
+                desktop_ui.turn_manager.next_phase(desktop_ui.board)
                 match desktop_ui.turn_manager.current_phase_index:
                     case 0:
                         print("Starting a new turn")

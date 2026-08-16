@@ -408,19 +408,29 @@ class TurnManager:
             return "Setup Taskforce(s)"
         return self.PHASES[self.current_phase_index]
 
-    def next_phase(self):
+    def next_phase(self, board=None):
         """
         Advances to the next phase. If at the end of the phase list, advances to the next turn.
+        
+        Args:
+            board (HexBoardModel, optional): The game board to pass to next_turn for VP awards
         """
         self.current_phase_index += 1
         if self.current_phase_index >= len(self.PHASES):
             self.current_phase_index = 0
-            self.next_turn()
+            self.next_turn(board)
 
-    def next_turn(self):
+    def next_turn(self, board=None):
         """
         Advances the game by one turn (one hour).
+        
+        Args:
+            board (HexBoardModel, optional): The game board to check for base damage VP awards
         """
+        # Award victory points for damaged bases before advancing turn
+        if board and hasattr(self, 'victory_points'):
+            self._award_base_damage_victory_points(board)
+        
         self.current_hour += 1
         self.turn_number += 1
         if self.current_hour >= 24:
@@ -429,6 +439,38 @@ class TurnManager:
         self.current_phase_index = 0
         self.side_with_initiative = None  # Reset initiative at the start of a new turn
         self._decide_initiative("Allied", "Japanese")  # Reset initiative for new turn
+    
+    def _award_base_damage_victory_points(self, board):
+        """
+        Award 5 victory points per turn for each damaged base with LF≤0.
+        
+        Per game rules section 25.6: "A player receives 5 VPs each turn 
+        (beginning on the turn after the base was damaged) for each enemy 
+        base with a Landing Factor of zero or less."
+        
+        Args:
+            board (HexBoardModel): The game board containing all pieces
+        """
+        if not board or not hasattr(self, 'victory_points'):
+            return
+        
+        from flattop.operations_chart_models import Base
+        
+        # Get all base pieces on the board
+        base_pieces = [p for p in board.pieces if isinstance(p.game_model, Base)]
+        
+        for piece in base_pieces:
+            base = piece.game_model
+            base_side = piece.side
+            
+            # Check if base is damaged with LF ≤ 0
+            # available_launch_factor_min = launch_factor_min - damage
+            if base.available_launch_factor_min <= 0 and base.damage > 0:
+                # Award 5 VP to the opposing side
+                opposing_side = "Japanese" if base_side == "Allied" else "Allied"
+                self.victory_points.award_base_damaged(
+                    opposing_side, base.name, self.turn_number
+                )
 
     def _decide_initiative(self, player1, player2):
         """
@@ -519,5 +561,5 @@ if __name__ == "__main__":
         board.reset_pieces_for_new_turn()
         print(f"Turn {turn_manager.turn_number}: Day {turn_manager.current_day}, Hour {turn_manager.current_hour}")
         # ... game logic here ...
-        turn_manager.next_turn()
+        turn_manager.next_turn(board)
     print("Game over!")
