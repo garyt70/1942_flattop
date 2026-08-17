@@ -1,7 +1,21 @@
 import os
 import json
 import datetime
+from dataclasses import asdict, is_dataclass
 from flattop.operations_chart_models import AirFormation,  Aircraft, Base, TaskForce, Carrier
+
+
+class GameStateEncoder(json.JSONEncoder):
+    """Custom JSON encoder for game state objects."""
+    def default(self, obj):
+        # Handle dataclass objects
+        if is_dataclass(obj):
+            return asdict(obj)
+        # Handle other non-serializable objects
+        if hasattr(obj, '__dict__'):
+            return obj.__dict__
+        return super().default(obj)
+
 
 def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="save"):
     """
@@ -183,6 +197,84 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
                 })
         return result
 
+    def serialize_combat_result_object(obj):
+        """Serialize combat result dataclass objects with special handling for ship objects."""
+        if obj is None:
+            return None
+        # If already a dict, return as is
+        if isinstance(obj, dict):
+            return obj
+        # If it's a dataclass from combat_results module
+        if hasattr(obj, "__dataclass_fields__"):
+            from flattop.combat_results import (
+                AirToAirCombatResult, AntiAircraftCombatResult, 
+                AirToShipCombatResult, AirToBaseCombatResult,
+                SurfaceCombatResult, BattleResults
+            )
+            
+            # Handle ship objects in AirToShipCombatResult - build dict manually
+            if isinstance(obj, AirToShipCombatResult):
+                return {
+                    "attacker_side": obj.attacker_side,
+                    "defender_side": obj.defender_side,
+                    "ships_hit": [
+                        {"name": getattr(s, "name", ""), "type": getattr(s, "type", "")} 
+                        for s in obj.ships_hit
+                    ],
+                    "ships_sunk": [
+                        {"name": getattr(s, "name", ""), "type": getattr(s, "type", ""), 
+                         "damage_factor": getattr(s, "damage_factor", 1)} 
+                        for s in obj.ships_sunk
+                    ],
+                    "carrier_aircraft_lost": obj.carrier_aircraft_lost,
+                    "story_lines": obj.story_lines,
+                    "summary": obj.summary
+                }
+            
+            # Handle ship objects in SurfaceCombatResult - build dict manually
+            elif isinstance(obj, SurfaceCombatResult):
+                return {
+                    "attacker_side": obj.attacker_side,
+                    "defender_side": obj.defender_side,
+                    "attacker_ships_sunk": [
+                        {"name": getattr(s, "name", ""), "type": getattr(s, "type", ""),
+                         "damage_factor": getattr(s, "damage_factor", 1)} 
+                        for s in obj.attacker_ships_sunk
+                    ],
+                    "defender_ships_sunk": [
+                        {"name": getattr(s, "name", ""), "type": getattr(s, "type", ""),
+                         "damage_factor": getattr(s, "damage_factor", 1)} 
+                        for s in obj.defender_ships_sunk
+                    ],
+                    "attacker_carrier_aircraft_lost": obj.attacker_carrier_aircraft_lost,
+                    "defender_carrier_aircraft_lost": obj.defender_carrier_aircraft_lost,
+                    "bht": obj.bht,
+                    "attacker_die": obj.attacker_die,
+                    "defender_die": obj.defender_die,
+                    "story_lines": obj.story_lines,
+                    "summary": obj.summary
+                }
+            
+            # Handle nested combat results in BattleResults - build dict manually
+            elif isinstance(obj, BattleResults):
+                return {
+                    "attacker_side": obj.attacker_side,
+                    "defender_side": obj.defender_side,
+                    "air_to_air": serialize_combat_result_object(obj.air_to_air) if obj.air_to_air else None,
+                    "taskforce_anti_aircraft": serialize_combat_result_object(obj.taskforce_anti_aircraft) if obj.taskforce_anti_aircraft else None,
+                    "base_anti_aircraft": serialize_combat_result_object(obj.base_anti_aircraft) if obj.base_anti_aircraft else None,
+                    "air_to_ship": [serialize_combat_result_object(r) for r in obj.air_to_ship] if obj.air_to_ship else None,
+                    "air_to_base": serialize_combat_result_object(obj.air_to_base) if obj.air_to_base else None,
+                    "surface_combat": serialize_combat_result_object(obj.surface_combat) if obj.surface_combat else None,
+                    "pre_combat_counts": obj.pre_combat_counts
+                }
+            
+            # For other combat result types (no ship objects), use asdict safely
+            else:
+                return asdict(obj)
+        
+        return obj
+
     def serialize_aircombat_result(obj):
         # Accepts AirCombatResult or dict or None
         if obj is None:
@@ -190,7 +282,10 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
         # If already a dict (from previous serialization), return as is
         if isinstance(obj, dict):
             return obj
-        # If AirCombatResult, use to_dict
+        # If it's a combat result dataclass object, use special serialization
+        if hasattr(obj, "__dataclass_fields__"):
+            return serialize_combat_result_object(obj)
+        # If it has to_dict method (legacy support), use it
         if hasattr(obj, "to_dict"):
             return obj.to_dict()
         # Fallback: try to convert
@@ -231,7 +326,10 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
         # Serialize victory points if present
         vp_data = None
         if hasattr(tm, 'victory_points') and tm.victory_points:
-            vp_data = tm.victory_points.to_dict()
+            if hasattr(tm.victory_points, "__dataclass_fields__"):
+                vp_data = asdict(tm.victory_points)
+            elif hasattr(tm.victory_points, 'to_dict'):
+                vp_data = tm.victory_points.to_dict()
         
         return {
             "total_days": tm.total_days,
@@ -261,7 +359,7 @@ def save_game_state(board, turn_manager, weather_manager=None, filename_prefix="
         "weather": serialize_weather(weather_manager)
     }
     with open(save_path, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, cls=GameStateEncoder)
     return save_path
 
 
@@ -287,9 +385,64 @@ def load_game_state(filename):
     turn_manager.side_with_initiative = tm_data.get("side_with_initiative", None)
 
     # Deserialize AirCombatResult objects in combat_results_history
+    def deserialize_combat_result_object(obj):
+        """Deserialize combat result dataclass objects."""
+        if obj is None:
+            return None
+        if not isinstance(obj, dict):
+            return obj
+        
+        # Try to determine the type of combat result from the dict
+        from flattop.combat_results import (
+            AirToAirCombatResult, AntiAircraftCombatResult,
+            AirToShipCombatResult, AirToBaseCombatResult,
+            SurfaceCombatResult, BattleResults
+        )
+        
+        # Check if this is a BattleResults object
+        if "air_to_air" in obj or "taskforce_anti_aircraft" in obj or "surface_combat" in obj:
+            # Recursively deserialize nested combat results
+            if obj.get("air_to_air"):
+                obj["air_to_air"] = deserialize_combat_result_object(obj["air_to_air"])
+            if obj.get("taskforce_anti_aircraft"):
+                obj["taskforce_anti_aircraft"] = deserialize_combat_result_object(obj["taskforce_anti_aircraft"])
+            if obj.get("base_anti_aircraft"):
+                obj["base_anti_aircraft"] = deserialize_combat_result_object(obj["base_anti_aircraft"])
+            if obj.get("air_to_ship"):
+                obj["air_to_ship"] = [deserialize_combat_result_object(r) for r in obj["air_to_ship"]]
+            if obj.get("air_to_base"):
+                obj["air_to_base"] = deserialize_combat_result_object(obj["air_to_base"])
+            if obj.get("surface_combat"):
+                obj["surface_combat"] = deserialize_combat_result_object(obj["surface_combat"])
+            
+            return BattleResults(**obj)
+        
+        # Check for specific combat result types by their unique fields
+        if "interceptor_losses" in obj:
+            return AirToAirCombatResult(**obj)
+        elif "base_name" in obj and "base_aircraft_lost" in obj:
+            return AirToBaseCombatResult(**obj)
+        elif "ships_hit" in obj or "ships_sunk" in obj:
+            # Ship objects remain as simple dicts/lists (not fully reconstructed)
+            return AirToShipCombatResult(**obj)
+        elif "attacker_ships_sunk" in obj or "defender_ships_sunk" in obj:
+            # Ship objects remain as simple dicts/lists (not fully reconstructed)
+            return SurfaceCombatResult(**obj)
+        elif "bomber_losses" in obj and "defender_name" in obj:
+            return AntiAircraftCombatResult(**obj)
+        
+        # If no specific type matched, return the dict as is
+        return obj
+    
     def deserialize_aircombat_result(obj):
         if obj is None:
             return None
+        # Check if it's a combat_results dataclass type
+        if isinstance(obj, dict):
+            # Try combat result objects first
+            if any(key in obj for key in ["interceptor_losses", "bomber_losses", "ships_hit", "base_name", "attacker_ships_sunk"]):
+                return deserialize_combat_result_object(obj)
+        
         # If already AirCombatResult, return as is
         from flattop.aircombat_engine import AirCombatResult
         if isinstance(obj, AirCombatResult):
