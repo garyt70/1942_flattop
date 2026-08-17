@@ -277,3 +277,162 @@ class VictoryPointsTracker:
         tracker.point_history = data.get("point_history", [])
         tracker.transport_unload_count = data.get("transport_unload_count", {})
         return tracker
+
+
+def award_victory_points_from_typed_combat(
+    combat_result,  # CombatResult subclass instance
+    victory_points_tracker: VictoryPointsTracker,
+    turn_number: int = None
+):
+    """
+    Award victory points from a typed CombatResult object.
+    
+    This function uses the explicit attacker/defender sides in the combat result
+    to award points correctly:
+    - Defender gets points when attacker loses units
+    - Attacker gets points when defender loses units
+    
+    Args:
+        combat_result: Instance of CombatResult subclass (AirToAirCombatResult, etc.)
+        victory_points_tracker: VictoryPointsTracker instance
+        turn_number: Current turn number
+    """
+    if not victory_points_tracker or not combat_result:
+        return
+    
+    from flattop.combat_results import (
+        AirToAirCombatResult, AntiAircraftCombatResult, 
+        AirToShipCombatResult, AirToBaseCombatResult, 
+        SurfaceCombatResult, BattleResults
+    )
+    
+    if isinstance(combat_result, BattleResults):
+        # Process all combat phases in the battle
+        if combat_result.air_to_air:
+            award_victory_points_from_typed_combat(
+                combat_result.air_to_air, victory_points_tracker, turn_number
+            )
+        if combat_result.taskforce_anti_aircraft:
+            award_victory_points_from_typed_combat(
+                combat_result.taskforce_anti_aircraft, victory_points_tracker, turn_number
+            )
+        if combat_result.base_anti_aircraft:
+            award_victory_points_from_typed_combat(
+                combat_result.base_anti_aircraft, victory_points_tracker, turn_number
+            )
+        if combat_result.air_to_ship:
+            for result in combat_result.air_to_ship:
+                award_victory_points_from_typed_combat(
+                    result, victory_points_tracker, turn_number
+                )
+        if combat_result.air_to_base:
+            award_victory_points_from_typed_combat(
+                combat_result.air_to_base, victory_points_tracker, turn_number
+            )
+        if combat_result.surface_combat:
+            award_victory_points_from_typed_combat(
+                combat_result.surface_combat, victory_points_tracker, turn_number
+            )
+        return
+    
+    if isinstance(combat_result, AirToAirCombatResult):
+        # Defender gets points for attacker's interceptor losses
+        for aircraft_type, count in combat_result.interceptor_losses:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.defender_side, aircraft_type, count, 
+                    unnecessary=False, turn_number=turn_number
+                )
+        
+        # Attacker gets points for defender's escort losses
+        for aircraft_type, count in combat_result.escort_losses:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.attacker_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+        
+        # Attacker gets points for defender's bomber losses
+        for aircraft_type, count in combat_result.bomber_losses:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.attacker_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+    
+    elif isinstance(combat_result, AntiAircraftCombatResult):
+        # Defender gets points for attacker's bomber losses
+        for aircraft_type, count in combat_result.bomber_losses:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.defender_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+    
+    elif isinstance(combat_result, AirToShipCombatResult):
+        # Attacker gets points for defender's ships sunk
+        for ship in combat_result.ships_sunk:
+            ship_name = getattr(ship, 'name', 'Unknown')
+            ship_type = getattr(ship, 'type', 'Unknown')
+            damage_factor = getattr(ship, 'damage_factor', 1)
+            victory_points_tracker.award_ship_sunk(
+                combat_result.attacker_side, ship_name, ship_type, 
+                damage_factor, turn_number
+            )
+        
+        # Attacker gets points for defender's carrier aircraft lost
+        for aircraft_type, count in combat_result.carrier_aircraft_lost:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.attacker_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+    
+    elif isinstance(combat_result, AirToBaseCombatResult):
+        # Attacker gets points for defender's base aircraft lost
+        for aircraft_type, count in combat_result.base_aircraft_lost:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.attacker_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+        
+        # Note: Base damage VP (5 points per turn) is awarded at end-of-turn,
+        # not during combat, so we don't process base_damage here
+    
+    elif isinstance(combat_result, SurfaceCombatResult):
+        # Defender gets points for attacker's ships sunk
+        for ship in combat_result.attacker_ships_sunk:
+            ship_name = getattr(ship, 'name', 'Unknown')
+            ship_type = getattr(ship, 'type', 'Unknown')
+            damage_factor = getattr(ship, 'damage_factor', 1)
+            victory_points_tracker.award_ship_sunk(
+                combat_result.defender_side, ship_name, ship_type,
+                damage_factor, turn_number
+            )
+        
+        # Attacker gets points for defender's ships sunk
+        for ship in combat_result.defender_ships_sunk:
+            ship_name = getattr(ship, 'name', 'Unknown')
+            ship_type = getattr(ship, 'type', 'Unknown')
+            damage_factor = getattr(ship, 'damage_factor', 1)
+            victory_points_tracker.award_ship_sunk(
+                combat_result.attacker_side, ship_name, ship_type,
+                damage_factor, turn_number
+            )
+        
+        # Defender gets points for attacker's carrier aircraft lost
+        for aircraft_type, count in combat_result.attacker_carrier_aircraft_lost:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.defender_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )
+        
+        # Attacker gets points for defender's carrier aircraft lost
+        for aircraft_type, count in combat_result.defender_carrier_aircraft_lost:
+            if count > 0:
+                victory_points_tracker.award_aircraft_eliminated(
+                    combat_result.attacker_side, aircraft_type, count,
+                    unnecessary=False, turn_number=turn_number
+                )

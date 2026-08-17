@@ -481,13 +481,28 @@ def resolve_die_roll(result_number, die_roll):
 
 def resolve_air_to_air_combat(
     interceptors, escorts, bombers,
-    rf_expended=True, clouds=False, night=False
+    rf_expended=True, clouds=False, night=False,
+    attacker_side: str = None, defender_side: str = None
 ):
     """
     Resolve air-to-air combat according to rules 16.x and Combat Resolution 20.x.
-    interceptors, escorts, bombers: lists of Aircraft (same altitude).
-    Returns a dict with results.
+    
+    Args:
+        interceptors: list of Aircraft attacking (attacker's interceptors)
+        escorts: list of Aircraft defending (defender's escorts)
+        bombers: list of Aircraft defending (defender's bombers)
+        rf_expended: whether range factors are expended
+        clouds: combat in clouds (BHT modifier)
+        night: combat at night (BHT modifier)
+        attacker_side: "Allied" or "Japanese" - side with interceptors
+        defender_side: "Japanese" or "Allied" - side with escorts/bombers
+    
+    Returns:
+        AirToAirCombatResult with explicit attacker/defender sides, or dict for legacy
     """
+    from flattop.combat_results import AirToAirCombatResult
+    
+    # Legacy dict result for backward compatibility if sides not provided
     result = {
         "interceptor_hits_on_escorts": AirCombatResult(),
         "escort_hits_on_interceptors": AirCombatResult(),
@@ -605,19 +620,48 @@ def resolve_air_to_air_combat(
     remove_hits(escorts, hits_on_escorts, rf_expended)  
     remove_hits(bombers, hits_on_bombers, rf_expended)
     
+    # Return typed result if sides are provided, otherwise legacy dict
+    if attacker_side and defender_side:
+        typed_result = AirToAirCombatResult(
+            attacker_side=attacker_side,
+            defender_side=defender_side,
+            interceptor_losses=result["eliminated"]["interceptors"],
+            escort_losses=result["eliminated"]["escorts"],
+            bomber_losses=result["eliminated"]["bombers"],
+            story_lines=[],
+            summary=""
+        )
+        # Combine story lines from all sub-results
+        for sub_result in [result["interceptor_hits_on_escorts"], result["escort_hits_on_interceptors"],
+                          result["interceptor_hits_on_bombers"], result["bomber_hits_on_interceptors"]]:
+            if hasattr(sub_result, 'story_line'):
+                typed_result.story_lines.extend(sub_result.story_line)
+            if hasattr(sub_result, 'summary') and sub_result.summary:
+                if typed_result.summary:
+                    typed_result.summary += "; " + sub_result.summary
+                else:
+                    typed_result.summary = sub_result.summary
+        return typed_result
     
     return result
 
-def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None):
+def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modifiers=None, attacker_side: str = None):
     """
     Resolves anti-aircraft fire against bombers attacking ships.
+    
     Args:
         bombers: list of Aircraft objects attacking (after air-to-air combat)
-        taskforce: list of Ship objects being attacked
+        taskforce: TaskForce object being attacked
         aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
-    return
-        result: dict with results of AA fire, including hits and losses
+        attacker_side: "Allied" or "Japanese" - side with attacking bombers
+        
+    Returns:
+        AntiAircraftCombatResult with explicit attacker/defender sides, or dict for legacy
     """
+    from flattop.combat_results import AntiAircraftCombatResult
+    
+    defender_side = getattr(taskforce, 'side', None)
+    
     result = {"anti_aircraft": AirCombatResult(),
             "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
             }
@@ -663,18 +707,38 @@ def resolve_taskforce_anti_aircraft_combat(bombers, taskforce:TaskForce, aa_modi
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{taskforce.name} anti-aircraft fire destoryed {bombers_lost} bombers"
     logger.info(f"Total bombers lost: {bombers_lost}")
+    
+    # Return typed result if sides are provided, otherwise legacy dict
+    if attacker_side and defender_side:
+        typed_result = AntiAircraftCombatResult(
+            attacker_side=attacker_side,
+            defender_side=defender_side,
+            bomber_losses=result["eliminated"]["bombers"],
+            defender_name=taskforce.name,
+            story_lines=result["anti_aircraft"].story_line if hasattr(result["anti_aircraft"], 'story_line') else [],
+            summary=result["anti_aircraft"].summary if hasattr(result["anti_aircraft"], 'summary') else ""
+        )
+        return typed_result
+    
     return result
 
-def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
+def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None, attacker_side: str = None):
     """
-    Resolves anti-aircraft fire against bombers attacking ships.
+    Resolves anti-aircraft fire against bombers attacking a base.
+    
     Args:
         bombers: list of Aircraft objects attacking (after air-to-air combat)
-        taskforce: list of Ship objects being attacked
+        base: Base object being attacked
         aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
-    return
-        result: dict with results of AA fire, including hits and losses
+        attacker_side: "Allied" or "Japanese" - side with attacking bombers
+        
+    Returns:
+        AntiAircraftCombatResult with explicit attacker/defender sides, or dict for legacy
     """
+    from flattop.combat_results import AntiAircraftCombatResult
+    
+    defender_side = getattr(base, 'side', None)
+    
     result = {"anti_aircraft": AirCombatResult(),
             "eliminated": {"interceptors": [], "escorts": [], "bombers": []}
             }
@@ -718,6 +782,19 @@ def resolve_base_anti_aircraft_combat(bombers, base:Base, aa_modifiers=None):
     if bombers_lost > 0:
         result["anti_aircraft"].summary=f"{base.name} anti-aircraft fire destoryed {bombers_lost} bombers"
     logger.info(f"Total bombers lost: {bombers_lost}")
+    
+    # Return typed result if sides are provided, otherwise legacy dict
+    if attacker_side and defender_side:
+        typed_result = AntiAircraftCombatResult(
+            attacker_side=attacker_side,
+            defender_side=defender_side,
+            bomber_losses=result["eliminated"]["bombers"],
+            defender_name=base.name,
+            story_lines=result["anti_aircraft"].story_line if hasattr(result["anti_aircraft"], 'story_line') else [],
+            summary=result["anti_aircraft"].summary if hasattr(result["anti_aircraft"], 'summary') else ""
+        )
+        return typed_result
+    
     return result
 
 """
@@ -777,16 +854,20 @@ def _resolve_base_aircraft_hits(base:Base, total_hits:int, results:dict):
                 break
     return results
 
-def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, clouds=False, night=False ):
+def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, clouds=False, night=False, attacker_side=None, defender_side=None):
     """
     Resolves air attack combat, aircraft attacking ships.
     Args:
         bombers: list of Aircraft objects attacking (after air-to-air combat)
         ship: the ship being attacked
-        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+        clouds: weather modifier
+        night: time modifier
+        attacker_side: "Allied" or "Japanese" (if provided, returns AirToShipCombatResult)
+        defender_side: "Allied" or "Japanese"
     return
-        results: dict with results of AA fire, including hits and losses
+        results: AirToShipCombatResult if attacker_side provided, else dict for backward compatibility
     """
+    from flattop.combat_results import AirToShipCombatResult
     
     def get_a2s_bht(aircraft:Aircraft):
         # Returns the Basic Hit Table value for the aircraft, with modifiers 
@@ -881,24 +962,44 @@ def resolve_air_to_ship_combat(bombers:list[Aircraft], ship:Ship, clouds=False, 
             results = _resolve_base_aircraft_hits(ship.base, total_hits, results)
 
     summary_text = f"Ship {ship.name} took {total_hits} hits."
+    ships_sunk = []
+    ships_hit = []
+    
     if ship.status == "Sunk":
         summary_text += f" Ship {ship.name} is now sunk."
+        ships_sunk.append(ship.name)
+    elif total_hits > 0:
+        ships_hit.append(ship.name)
 
     results["bomber_hits"].summary = summary_text
 
+    # Return typed result if sides provided
+    if attacker_side and defender_side:
+        return AirToShipCombatResult(
+            attacker_side=attacker_side,
+            defender_side=defender_side,
+            ships_sunk=ships_sunk,
+            ships_hit=ships_hit,
+            carrier_aircraft_lost=results["eliminated"]["aircraft"],
+            story_lines=results["bomber_hits"].story_line,
+            summary=summary_text
+        )
+
     return results
 
-def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, clouds=False, night=False ):
+def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, clouds=False, night=False, attacker_side=None):
     """
     Resolves air attack combat, aircraft attacking base.
     Args:
         bombers: list of Aircraft objects attacking (after air-to-air combat)
-        ship: the ship being attacked
-        attack_type = "Level","Dive", "Torpedo"
-        aa_modifiers: dict of modifiers (e.g. {"clouds": True, "night": False})
+        base: the base being attacked
+        clouds: weather modifier
+        night: time modifier
+        attacker_side: "Allied" or "Japanese" (if provided, returns AirToBaseCombatResult)
     return
-        results: dict with results of AA fire, including hits and losses
+        results: AirToBaseCombatResult if attacker_side provided, else dict for backward compatibility
     """
+    from flattop.combat_results import AirToBaseCombatResult
     
     def get_a2b_bht(aircraft:Aircraft):
         # Returns the Basic Hit Table value for the aircraft, with modifiers 
@@ -965,6 +1066,19 @@ def resolve_air_to_base_combat(bombers:list[Aircraft], base:Base, clouds=False, 
 
                     
     results["bomber_hits"].summary = f"Base {base.name} took {total_hits} hits."
+
+    # Return typed result if sides provided
+    if attacker_side:
+        defender_side = getattr(base, 'side', 'Allied' if attacker_side == 'Japanese' else 'Japanese')
+        return AirToBaseCombatResult(
+            attacker_side=attacker_side,
+            defender_side=defender_side,
+            base_name=base.name,
+            base_damage=total_hits,
+            base_aircraft_lost=results["eliminated"]["aircraft"],
+            story_lines=results["bomber_hits"].story_line,
+            summary=results["bomber_hits"].summary
+        )
 
     return results
 
