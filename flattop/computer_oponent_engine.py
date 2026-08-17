@@ -812,7 +812,7 @@ class ComputerOpponent:
                         target_type = type(enemy.game_model)
                 if target:
                     # CAP logic: If enemy is AirFormation and own piece is interceptor, prioritize high-value base/carrier
-                    is_interceptor = any(ac.is_interceptor for ac in af.aircraft)
+                    is_interceptor = any(ac.is_interceptor for ac in af.aircraft) and not any(ac.is_bomber for ac in af.aircraft)
                     if target_type == AirFormation and is_interceptor:
                         logger.debug(f"Interceptor {af.name} prioritizing CAP for base/carrier.")
                         all_cap_pieces = friendly_taskforce_hexes + base_hexes
