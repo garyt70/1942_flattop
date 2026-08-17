@@ -1,4 +1,5 @@
 
+
 import os
 import pygame
 import sys
@@ -160,15 +161,29 @@ class CombatResultsList:
                                                     clicked_index = self.get_clicked_index(event.pos)
                                                     if clicked_index >= 0:
                                                             combat_result = self.turn_results[clicked_index][1]
-                                                            # Use battle_results if available
-                                                            if "battle_results" in combat_result:
-                                                                    detail_view = CombatResultsScreen(
-                                                                            combat_result,
-                                                                            self.screen,
-                                                                            self.width,
-                                                                            self.height,
-                                                                    )
-                                                                    detail_view.run()
+                                                            a2a = combat_result.get("result_attacker_a2a")
+                                                            aa = [
+                                                                    combat_result.get("result_tf_anti_aircraft"),
+                                                                    combat_result.get("result_base_anti_aircraft"),
+                                                            ]
+                                                            ship = combat_result.get("result_attacker_ship_air_attack")
+                                                            base = combat_result.get("result_attacker_base_air_attack")
+                                                            surface = combat_result.get("result_surface_combat")
+
+                                                            result_data = {
+                                                                    "air_to_air": a2a,
+                                                                    "anti_aircraft": aa,
+                                                                    "base": base,
+                                                                    "ship": ship,
+                                                                    "surface": surface,
+                                                            }
+                                                            detail_view = CombatResultsScreen(
+                                                                    result_data,
+                                                                    self.screen,
+                                                                    self.width,
+                                                                    self.height,
+                                                            )
+                                                            detail_view.run()
 
                             self.handle_scroll(event)
 
@@ -182,10 +197,9 @@ class CombatResultsList:
                     pygame.quit()
                     sys.exit()
 
-
+# Keep existing CombatResultsScreen class
 class CombatResultsScreen:
-        """Display detailed combat results from a BattleResults object"""
-        
+
         BG_COLOR = THEME_BG
         TEXT_COLOR = THEME_TEXT
         SUMMARY_BG = THEME_PANEL
@@ -212,12 +226,14 @@ class CombatResultsScreen:
                 # Extract BattleResults from dict if wrapped
                 if isinstance(combat_results_dict, BattleResults):
                         self.battle_results = combat_results_dict
-                        self.victory_points = None
                 elif isinstance(combat_results_dict, dict) and "battle_results" in combat_results_dict:
                         self.battle_results = combat_results_dict["battle_results"]
+                        # Also store victory points if present
                         self.victory_points = combat_results_dict.get("victory_points")
                 else:
                         raise ValueError("combat_results_dict must be a BattleResults object or dict containing 'battle_results' key")
+                
+                self.victory_points = None  # Will be set if passed in dict
                 
                 self.width = width
                 self.height = height
@@ -234,11 +250,26 @@ class CombatResultsScreen:
                         self.CLOSE_BUTTON_SIZE[1]
                 )
                 self.scrollbar = ScrollBar(width - SCROLLBAR_WIDTH - self.PADDING, self.header_height, self.viewport_height)
+                        "attacker_die": surface.attacker_die,
+                        "defender_die": surface.defender_die,
+                        "attacker_destroyed": [getattr(s, 'name', 'Unknown') for s in surface.attacker_ships_sunk],
+                        "defender_destroyed": [getattr(s, 'name', 'Unknown') for s in surface.defender_ships_sunk],
+                        "eliminated": {
+                                "attacker": surface.attacker_carrier_aircraft_lost,
+                                "defender": surface.defender_carrier_aircraft_lost
+                        },
+                        "attacker_side": surface.attacker_side,
+                        "defender_side": surface.defender_side,
+                        "summary": surface.summary,
+                        "story_lines": surface.story_lines
+                }
 
-        def draw_text(self, text, x, y, color=None):
+        def draw_text(self, text, x, y, color=None, surface=None):
                 color = color or self.TEXT_COLOR
                 text_surface = self.font.render(text, True, color)
-                self.content_surface.blit(text_surface, (x, y))
+                if surface is None:
+                        surface = self.content_surface
+                surface.blit(text_surface, (x, y))
 
         def draw_close_button(self):
                 mouse_pos = pygame.mouse.get_pos()
@@ -251,105 +282,109 @@ class CombatResultsScreen:
 
         def draw_header(self, title):
                 header_rect = pygame.Rect(0, 0, self.width, self.header_height)
-                pygame.draw.rect(self.screen, self.SUMMARY_BG, header_rect)
+                pygame.draw.rect(self.screen, THEME_PANEL, header_rect)
                 pygame.draw.line(self.screen, THEME_SEPARATOR, (0, self.header_height - 1), (self.width, self.header_height - 1), 1)
                 title_surf = get_font(self.FONT_SIZE + 2, bold=True).render(title, True, THEME_TEXT_HEADER)
                 self.screen.blit(title_surf, (self.PADDING, self.PADDING))
                 self.draw_close_button()
 
+        def draw_summary(self, y, label, summary):
+                pygame.draw.rect(self.content_surface, self.SUMMARY_BG, (0, y, self.viewport_width, self.SUMMARY_HEIGHT))
+                pygame.draw.rect(self.content_surface, THEME_SEPARATOR, (0, y, self.viewport_width, self.SUMMARY_HEIGHT), 1)
+                self.draw_text(f"{label}: {summary}", self.PADDING, y + 7, color=THEME_TEXT_HEADER)
+
+        def draw_results(self):
+                self.content_surface.fill(self.BG_COLOR)
+                y = 0
+                
+                # --- Victory Points Summary (if available) ---
+                vp_data = self.combat_results.get("victory_points")
+                if vp_data:
+                        y = self._draw_victory_points_summary(y, vp_data)
+                        y += self.PADDING
+                
+                # --- Summaries ---
+                a2a = self.combat_results.get("air_to_air", {})
+                a2a_summary = self._make_a2a_summary(a2a)
+                self.draw_summary(y, "Air-to-Air", a2a_summary)
+                y += self.SUMMARY_HEIGHT
+                aa_list = self.combat_results.get("anti_aircraft", [])
+                aa_summary = self._make_aa_summary(aa_list)
+                self.draw_summary(y, "Anti-Aircraft", aa_summary)
+                y += self.SUMMARY_HEIGHT
+                base = self.combat_results.get("base", {})
+                base_summary = self._make_base_summary(base)
+                self.draw_summary(y, "Base", base_summary)
+                y += self.SUMMARY_HEIGHT
+                ship = self.combat_results.get("ship", {})
+                ship_summary = self._make_ship_summary(ship)
+                self.draw_summary(y, "Ship", ship_summary)
+                y += self.SUMMARY_HEIGHT
+                surface = self.combat_results.get("surface", {})
+                surface_summary = self._make_surface_summary(surface)
+                self.draw_summary(y, "Surface", surface_summary)
+                y += self.SUMMARY_HEIGHT + self.PADDING
+
+                # --- Details ---
+                y = self._draw_a2a_details(y, a2a)
+                y += self.PADDING
+                y = self._draw_aa_details(y, aa_list)
+                y += self.PADDING
+                y = self._draw_base_details(y, base)
+                y += self.PADDING
+                y = self._draw_ship_details(y, ship)
+                y += self.PADDING
+                y = self._draw_surface_details(y, surface)
+
+                # Update max scroll based on final y position
+                self.max_scroll = max(0, y - self.viewport_height)
+
+                # Draw the visible portion to the screen
+                self.screen.fill(self.BG_COLOR)
+                self.draw_header("Combat Result Details")
+                visible_region = pygame.Rect(0, self.scroll_y, self.viewport_width, self.viewport_height)
+                self.screen.blit(self.content_surface, (self.PADDING, self.header_height), visible_region)
+                self.scrollbar.draw(self.screen, self.scroll_y, max(self.content_surface.get_height(), y), self.viewport_height)
+
         def handle_scroll(self, event):
                 self.scroll_y = self.scrollbar.handle_event(event, self.scroll_y, self.max_scroll)
-
-        def _draw_summary(self, y, title, summary_text):
-                """Draw a summary section"""
-                rect = pygame.Rect(0, y, self.viewport_width, self.SUMMARY_HEIGHT)
-                pygame.draw.rect(self.content_surface, self.SUMMARY_BG, rect)
-                pygame.draw.rect(self.content_surface, THEME_BORDER, rect, 1)
-                self.draw_text(f"{title}: {summary_text}", self.PADDING, y + 8)
-                return y + self.SUMMARY_HEIGHT
         
-        def _draw_victory_points(self, y, vp):
-                """Draw victory points section"""
+        def _draw_victory_points_summary(self, y, vp_data):
+                """Draw victory points summary box."""
+                # Draw a prominent box for victory points
                 box_height = self.SUMMARY_HEIGHT * 3
-                rect = pygame.Rect(0, y, self.viewport_width, box_height)
-                pygame.draw.rect(self.content_surface, self.SUMMARY_BG, rect)
-                pygame.draw.rect(self.content_surface, THEME_BORDER, rect, 2)
+                pygame.draw.rect(self.content_surface, (50, 70, 90), (0, y, self.viewport_width, box_height))
+                pygame.draw.rect(self.content_surface, THEME_SEPARATOR, (0, y, self.viewport_width, box_height), 2)
                 
-                y_inner = y + 8
-                title_surf = get_font(self.FONT_SIZE + 2, bold=True).render("VICTORY POINTS", True, THEME_TEXT_HEADER)
-                title_rect = title_surf.get_rect(centerx=self.viewport_width // 2, top=y_inner)
+                # Title
+                title_font = get_font(self.FONT_SIZE + 4, bold=True)
+                title_surf = title_font.render("VICTORY POINTS", True, (255, 215, 0))  # Gold color
+                title_rect = title_surf.get_rect(centerx=self.viewport_width // 2, top=y + self.PADDING)
                 self.content_surface.blit(title_surf, title_rect)
-                y_inner += self.SUMMARY_HEIGHT
+                y_inner = y + self.PADDING + title_surf.get_height() + 5
                 
-                allied_points = vp.get("allied_points", 0)
-                japanese_points = vp.get("japanese_points", 0)
-                points_text = f"Allied: {allied_points} VP        Japanese: {japanese_points} VP"
-                points_surf = self.font.render(points_text, True, THEME_TEXT)
-                points_rect = points_surf.get_rect(centerx=self.viewport_width // 2, top=y_inner)
-                self.content_surface.blit(points_surf, points_rect)
-                y_inner += self.SUMMARY_HEIGHT
+                # Allied points
+                allied_points = vp_data.get("allied_points", 0)
+                allied_text = f"Allied: {allied_points} VP"
+                allied_surf = self.font.render(allied_text, True, (100, 200, 255))  # Blue-ish
+                self.content_surface.blit(allied_surf, (self.PADDING * 2, y_inner))
                 
-                point_diff = vp.get("point_difference", 0)
-                leader = vp.get("leader", "Tied")
+                # Japanese points
+                japanese_points = vp_data.get("japanese_points", 0)
+                japanese_text = f"Japanese: {japanese_points} VP"
+                japanese_surf = self.font.render(japanese_text, True, (255, 150, 150))  # Red-ish
+                self.content_surface.blit(japanese_surf, (self.viewport_width // 2 + self.PADDING, y_inner))
+                y_inner += self.font.get_height() + 5
+                
+                # Point difference and leader
+                point_diff = vp_data.get("point_difference", abs(allied_points - japanese_points))
+                leader = vp_data.get("leader", "Tied")
                 diff_text = f"Difference: {point_diff} VP  |  Leader: {leader}"
                 diff_surf = self.font.render(diff_text, True, THEME_TEXT_HEADER)
                 diff_rect = diff_surf.get_rect(centerx=self.viewport_width // 2, top=y_inner)
                 self.content_surface.blit(diff_surf, diff_rect)
                 
                 return y + box_height
-
-        def draw_results(self):
-                self.screen.fill(self.BG_COLOR)
-                self.draw_header("Combat Results")
-                self.content_surface.fill(self.DETAIL_BG)
-                y = self.PADDING
-                
-                # Get typed results from BattleResults
-                a2a = self.battle_results.air_to_air
-                aa_list = []
-                if self.battle_results.taskforce_anti_aircraft:
-                        aa_list.append(self.battle_results.taskforce_anti_aircraft)
-                if self.battle_results.base_anti_aircraft:
-                        aa_list.append(self.battle_results.base_anti_aircraft)
-                ship_list = self.battle_results.air_to_ship or []
-                base = self.battle_results.air_to_base
-                surface = self.battle_results.surface_combat
-                
-                # Pre-combat counts
-                if self.battle_results.pre_combat_counts:
-                        for k, v in self.battle_results.pre_combat_counts.items():
-                                self.draw_text(f"{k}: {v}", self.PADDING, y)
-                                y += self.DETAIL_LINE_HEIGHT
-                
-                # Draw victory points if available
-                if self.victory_points:
-                        y = self._draw_victory_points(y, self.victory_points)
-                
-                # Draw summaries
-                y = self._draw_summary(y, "Air-to-Air Combat", self._make_a2a_summary(a2a))
-                y = self._draw_summary(y, "Anti-Aircraft Combat", self._make_aa_summary(aa_list))
-                y = self._draw_summary(y, "Base Combat", self._make_base_summary(base))
-                y = self._draw_summary(y, "Ship Combat", self._make_ship_summary(ship_list))
-                y = self._draw_summary(y, "Surface Combat", self._make_surface_summary(surface))
-                
-                # Draw details
-                y = self._draw_a2a_details(y, a2a)
-                y = self._draw_aa_details(y, aa_list)
-                y = self._draw_base_details(y, base)
-                y = self._draw_ship_details(y, ship_list)
-                y = self._draw_surface_details(y, surface)
-                
-                content_height = y + self.PADDING
-                if content_height > self.content_surface.get_height():
-                        new_surface = pygame.Surface((self.viewport_width, content_height))
-                        new_surface.fill(self.DETAIL_BG)
-                        new_surface.blit(self.content_surface, (0, 0))
-                        self.content_surface = new_surface
-                
-                self.max_scroll = max(0, content_height - self.viewport_height)
-                visible_region = pygame.Rect(0, self.scroll_y, self.viewport_width, self.viewport_height)
-                self.screen.blit(self.content_surface, (self.PADDING, self.header_height), visible_region)
-                self.scrollbar.draw(self.screen, self.scroll_y, content_height, self.viewport_height)
 
         def _make_a2a_summary(self, a2a: AirToAirCombatResult):
                 if not a2a:
@@ -419,15 +454,6 @@ class CombatResultsScreen:
                         parts.append(f"Aircraft lost: {total_aircraft_lost}")
                 
                 return ", ".join(parts) if parts else "No hits"
-
-        def _make_surface_summary(self, surface: SurfaceCombatResult):
-                if not surface:
-                        return "No surface combat."
-                
-                att_sunk = len(surface.attacker_ships_sunk) if surface.attacker_ships_sunk else 0
-                def_sunk = len(surface.defender_ships_sunk) if surface.defender_ships_sunk else 0
-                
-                return f"BHT {surface.bht} | Att sunk: {att_sunk}, Def sunk: {def_sunk}"
 
         def _draw_a2a_details(self, y, a2a: AirToAirCombatResult):
                 self.draw_text("Air-to-Air Details:", self.PADDING, y)
@@ -566,6 +592,15 @@ class CombatResultsScreen:
                 
                 return y
 
+        def _make_surface_summary(self, surface: SurfaceCombatResult):
+                if not surface:
+                        return "No surface combat."
+                
+                att_sunk = len(surface.attacker_ships_sunk) if surface.attacker_ships_sunk else 0
+                def_sunk = len(surface.defender_ships_sunk) if surface.defender_ships_sunk else 0
+                
+                return f"BHT {surface.bht} | Att sunk: {att_sunk}, Def sunk: {def_sunk}"
+
         def _draw_surface_details(self, y, surface: SurfaceCombatResult):
                 self.draw_text("Surface Combat Details:", self.PADDING, y)
                 y += self.DETAIL_LINE_HEIGHT
@@ -610,6 +645,27 @@ class CombatResultsScreen:
                 
                 return y
 
+        def _aircombat_result_to_lines(self, result):
+                if result is None:
+                        return ["No result."]
+                s = str(result)
+                return s.strip().splitlines() if s.strip() else ["No hits."]
+
+        def _eliminated_to_lines(self, elim_dict):
+                lines = []
+                if not elim_dict:
+                        return lines
+                for k, v in elim_dict.items():
+                        if v:
+                                # Handle new format: list of (aircraft_type, count) tuples
+                                if v and isinstance(v, list) and len(v) > 0 and isinstance(v[0], tuple) and len(v[0]) == 2:
+                                        details = ", ".join(f"{count}x {ac_type}" for ac_type, count in v)
+                                        lines.append(f"Eliminated {k}: {details}")
+                                else:
+                                        # Legacy format: simple list
+                                        lines.append(f"Eliminated {k}: {', '.join(str(x) for x in v)}")
+                return lines
+
         def run(self):
                 clock = pygame.time.Clock()
                 running = True
@@ -630,3 +686,6 @@ class CombatResultsScreen:
                 if not self.external_screen:
                         pygame.quit()
                         sys.exit()
+
+
+

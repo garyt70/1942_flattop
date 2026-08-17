@@ -20,6 +20,8 @@ from flattop.ui.desktop.piece_image_factory import PieceImageFactory
 from flattop.ui.desktop.ui_theme import MARGIN, PADDING, THEME_BG, THEME_BORDER, THEME_PANEL, THEME_TEXT, get_font
 from flattop.aircombat_engine import resolve_air_to_air_combat, classify_aircraft, resolve_base_anti_aircraft_combat, resolve_taskforce_anti_aircraft_combat, resolve_air_to_ship_combat, resolve_air_to_base_combat, award_aircraft_elimination_vp, award_ship_sunk_vp
 from flattop.surface_combat_engine import resolve_surface_combat
+from flattop.combat_results import BattleResults
+from flattop.victory_points import award_victory_points_from_typed_combat
 
 from flattop.computer_oponent_engine import ComputerOpponent
 
@@ -197,6 +199,7 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     """
 
     attacking_side = piece.side
+    defending_side = "Japanese" if attacking_side == "Allied" else "Allied"
 
     defending_taskforce_pieces = [p for p in board.pieces if isinstance(p.game_model, TaskForce) and p.side != attacking_side and p.position == piece.position]
 
@@ -255,7 +258,9 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
             bombers=defending_bombers,
             rf_expended=True,
             clouds=in_clouds,
-            night=at_night
+            night=at_night,
+            attacker_side=attacking_side,
+            defender_side=defending_side
         )
 
         # need to update the air operations chart for each side
@@ -279,14 +284,20 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], taskforce:TaskForce, pos:tuple[int, int]):
         combat_outcome = None
         if (taskforce and bombers):
-            combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, taskforce, {"clouds": in_clouds, "night": at_night})
+            combat_outcome = resolve_taskforce_anti_aircraft_combat( 
+                bombers, taskforce, {"clouds": in_clouds, "night": at_night},
+                attacker_side=attacking_side
+            )
 
         return combat_outcome
 
     def perform_base_anti_aircraft_combat(bombers:list[Aircraft], base:Base):
         combat_outcome = None
         if (base and bombers):
-                combat_outcome = resolve_base_anti_aircraft_combat( bombers, base, {"clouds": in_clouds, "night": at_night})
+                combat_outcome = resolve_base_anti_aircraft_combat( 
+                    bombers, base, {"clouds": in_clouds, "night": at_night},
+                    attacker_side=attacking_side
+                )
 
         return combat_outcome
 
@@ -304,7 +315,7 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
 
     #### execute the air combat attack against selected ship ####
 
-    def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce):
+    def perform_air_to_ship_combat(bombers:list[Aircraft], taskforce:TaskForce, attacker_side, defender_side):
         # this involves choosing which ship is attacked by which aircraft
         # and then resolve the combat for each ship
 
@@ -329,10 +340,18 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         sunk_ships = []  # Track sunk ships for victory points
         for ship, allocated_bombers in allocation.items():
             if allocated_bombers:
-                result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
-                # Add ship information to result for victory points tracking
-                result["ship"] = ship
-                result["ship_was_sunk"] = ship.status == "Sunk"
+                result = resolve_air_to_ship_combat(
+                    allocated_bombers, 
+                    ship, 
+                    clouds=in_clouds, 
+                    night=at_night,
+                    attacker_side=attacker_side,
+                    defender_side=defender_side
+                )
+                # Add ship information to result for backward compatibility
+                if isinstance(result, dict):
+                    result["ship"] = ship
+                    result["ship_was_sunk"] = ship.status == "Sunk"
                 if ship.status == "Sunk":
                     sunk_ships.append(ship)
                     taskforce.ships.remove(ship)
@@ -345,11 +364,22 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
     # airplanes attacking ships need to select a taskforce
     result_attacking_ship_air_attack = None
     if defending_taskforce_p:
-        result_attacking_ship_air_attack = perform_air_to_ship_combat(attacking_bombers,defending_taskforce_p.game_model)
+        result_attacking_ship_air_attack = perform_air_to_ship_combat(
+            attacking_bombers,
+            defending_taskforce_p.game_model,
+            attacker_side=attacking_side,
+            defender_side=defending_side
+        )
 
     result_attacking_base_air_attack = None
     if defending_base_pieces:
-        result_attacking_base_air_attack = resolve_air_to_base_combat(attacking_bombers, defending_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+        result_attacking_base_air_attack = resolve_air_to_base_combat(
+            attacking_bombers, 
+            defending_base_pieces[0].game_model, 
+            clouds=in_clouds, 
+            night=at_night,
+            attacker_side=attacking_side
+        )
 
     result_surface_combat = None
     attacking_taskforce_pieces = [
@@ -399,6 +429,37 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         if len(tf_piece.game_model.ships) == 0:
             board.pieces.remove(tf_piece)
 
+    # Extract typed results from dicts where needed
+    typed_surface_combat = None
+    if result_surface_combat and isinstance(result_surface_combat, dict):
+        typed_surface_combat = result_surface_combat.get("typed_result")
+
+    # Create BattleResults with typed combat results
+    battle_results = BattleResults(
+        attacker_side=attacking_side,
+        defender_side=defending_side,
+        air_to_air=result_attacking_a2a,
+        taskforce_anti_aircraft=result_tf_anti_aircraft,
+        base_anti_aircraft=result_base_anti_aircraft,
+        air_to_ship=result_attacking_ship_air_attack if isinstance(result_attacking_ship_air_attack, list) else ([result_attacking_ship_air_attack] if result_attacking_ship_air_attack else None),
+        air_to_base=result_attacking_base_air_attack,
+        surface_combat=typed_surface_combat,
+        pre_combat_counts={
+            "attacker_interceptors": pre_combat_count_attacking_interceptors,
+            "attacker_bombers": pre_combat_count_attacking_bombers,
+            "attacker_escorts": pre_combat_count_attacking_escorts,
+            "defender_interceptors": pre_combat_count_defending_interceptors,
+            "defender_bombers": pre_combat_count_defending_bombers,
+            "defender_escorts": pre_combat_count_defending_escorts
+        }
+    )
+    
+    # Award victory points based on combat results
+    award_victory_points_from_typed_combat(
+        battle_results, turn_manager.victory_points, turn_manager.turn_number
+    )
+
+    # Also maintain legacy dict format for backward compatibility with UI
     combat_results = {
         "result_attacker_a2a": result_attacking_a2a,
         "result_tf_anti_aircraft": result_tf_anti_aircraft,
@@ -411,13 +472,9 @@ def perform_air_combat_ui(screen, piece:Piece,pieces:list[Piece], board:HexBoard
         "pre_combat_count_attacker_escorts": pre_combat_count_attacking_escorts,
         "pre_combat_count_defender_interceptors": pre_combat_count_defending_interceptors,
         "pre_combat_count_defender_bombers": pre_combat_count_defending_bombers,
-        "pre_combat_count_defender_escorts": pre_combat_count_defending_escorts
+        "pre_combat_count_defender_escorts": pre_combat_count_defending_escorts,
+        "battle_results": battle_results  # Add typed results for new code
     }
-    
-    # Award victory points based on combat results
-    award_victory_points_from_combat(
-        combat_results, attacking_side, turn_manager.victory_points, turn_manager.turn_number
-    )
 
     return combat_results
 
@@ -1205,16 +1262,33 @@ class DesktopUI:
         if results==None:
             return
         
-        a2a = results.get("result_attacker_a2a")
-        aa = []
-        aa.append(results.get("result_tf_anti_aircraft"))
-        aa.append(results.get("result_base_anti_aircraft"))
-        ship = results.get("result_attacker_ship_air_attack")
-        base = results.get("result_attacker_base_air_attack")
-        surface = results.get("result_surface_combat")
-
-
-        result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship, "surface": surface}
+        # Check if results contain BattleResults object
+        if "battle_results" in results:
+            # Use the typed BattleResults directly - it will be converted by CombatResultsScreen
+            result_data = results
+        else:
+            # Legacy format - build result_data dict
+            a2a = results.get("result_attacker_a2a")
+            aa = []
+            aa.append(results.get("result_tf_anti_aircraft"))
+            aa.append(results.get("result_base_anti_aircraft"))
+            ship = results.get("result_attacker_ship_air_attack")
+            base = results.get("result_attacker_base_air_attack")
+            surface = results.get("result_surface_combat")
+            result_data = {"air_to_air": a2a, "anti_aircraft": aa, "base": base, "ship": ship, "surface": surface}
+        
+        # Add victory points information if available
+        if self.turn_manager and hasattr(self.turn_manager, 'victory_points') and self.turn_manager.victory_points:
+            vp_tracker = self.turn_manager.victory_points
+            result_data["victory_points"] = {
+                "allied_points": vp_tracker.allied_points,
+                "japanese_points": vp_tracker.japanese_points,
+                "point_difference": abs(vp_tracker.allied_points - vp_tracker.japanese_points),
+                "leader": "Allied" if vp_tracker.allied_points > vp_tracker.japanese_points 
+                         else "Japanese" if vp_tracker.japanese_points > vp_tracker.allied_points 
+                         else "Tied"
+            }
+        
         ui = CombatResultsScreen(result_data, self.screen)
         ui.draw_results()
         ui.run()

@@ -20,6 +20,8 @@ Key rules implemented (game_requirements.txt §19):
 import random
 from typing import Callable
 
+from flattop.combat_results import SurfaceCombatResult
+
 from flattop.aircombat_engine import get_hits_from_table, resolve_die_roll
 from flattop.operations_chart_models import Carrier, Ship, TaskForce
 
@@ -482,8 +484,38 @@ def resolve_surface_combat(
     )
 
     # ── Prune sunk ships ──────────────────────────────────────────────────────
+    initial_attacker_ships = set(s.name for s in attacker_taskforce.ships)
+    initial_defender_ships = set(s.name for s in defender_taskforce.ships)
+    
     attacker_taskforce.ships = [s for s in attacker_taskforce.ships if s.status != "Sunk"]
     defender_taskforce.ships = [s for s in defender_taskforce.ships if s.status != "Sunk"]
+    
+    remaining_attacker_ships = set(s.name for s in attacker_taskforce.ships)
+    remaining_defender_ships = set(s.name for s in defender_taskforce.ships)
+    
+    attacker_ships_sunk = list(initial_attacker_ships - remaining_attacker_ships)
+    defender_ships_sunk = list(initial_defender_ships - remaining_defender_ships)
+    
+    # Collect story lines from all phases
+    story_lines = []
+    for result in [att_gunnery_result, def_gunnery_result, att_torpedo_result, def_torpedo_result]:
+        if result and isinstance(result, dict) and "story_line" in result:
+            story_lines.extend(result["story_line"])
+    if breakthrough_result and isinstance(breakthrough_result, dict) and "story_line" in breakthrough_result:
+        story_lines.extend(breakthrough_result["story_line"])
+    
+    # Create typed result
+    typed_result = SurfaceCombatResult(
+        attacker_side=att_side,
+        defender_side=def_side,
+        bht=bht,
+        attacker_ships_sunk=attacker_ships_sunk,
+        defender_ships_sunk=defender_ships_sunk,
+        attacker_aircraft_lost=[],  # Surface combat doesn't track aircraft losses separately
+        defender_aircraft_lost=[],
+        story_lines=story_lines,
+        summary=f"Surface combat: BHT {bht}, Attacker sunk: {len(attacker_ships_sunk)}, Defender sunk: {len(defender_ships_sunk)}"
+    )
 
     return {
         "bht": bht,
@@ -499,4 +531,6 @@ def resolve_surface_combat(
         # Legacy keys for backward compat with existing combat results display
         "attacker": att_gunnery_result,
         "defender": def_gunnery_result,
+        # New typed result
+        "typed_result": typed_result,
     }

@@ -917,6 +917,10 @@ class ComputerOpponent:
         if not hex_enemies:
             return None
         
+        # Determine sides for combat
+        computer_side = self.side
+        enemy_side = "Allied" if computer_side == "Japanese" else "Japanese"
+        
         # Check if the piece is in a hex with other air formations on the same side
         hex_airformations = [
             p for p in self.board.pieces
@@ -1007,7 +1011,9 @@ class ComputerOpponent:
                 bombers=enemy_bombers,
                 rf_expended=True,
                 clouds=in_clouds,
-                night=at_night)
+                night=at_night,
+                attacker_side=computer_side,
+                defender_side=enemy_side)
         elif enemy_interceptors and computer_bombers:
             result_computer_a2a = resolve_air_to_air_combat(
                 interceptors=enemy_interceptors,
@@ -1015,7 +1021,9 @@ class ComputerOpponent:
                 bombers=computer_bombers,
                 rf_expended=True,
                 clouds=in_clouds,
-                night=at_night)
+                night=at_night,
+                attacker_side=enemy_side,
+                defender_side=computer_side)
 
         # need to update the air operations chart for each side
         # remove aircraft from air formations that have 0 or less count
@@ -1043,14 +1051,24 @@ class ComputerOpponent:
         def perform_taskforce_anti_aircraft_combat(bombers:list[Aircraft], taskforce:TaskForce, pos:tuple[int, int]):
             combat_outcome = None
             if (taskforce and bombers):
-                combat_outcome = resolve_taskforce_anti_aircraft_combat( bombers, taskforce, {"clouds": in_clouds, "night": at_night})
+                combat_outcome = resolve_taskforce_anti_aircraft_combat(
+                    bombers, 
+                    taskforce, 
+                    {"clouds": in_clouds, "night": at_night},
+                    attacker_side=computer_side
+                )
 
             return combat_outcome
 
         def perform_base_anti_aircraft_combat(bombers:list[Aircraft], base:Base):
             combat_outcome = None
             if (base and bombers):
-                    combat_outcome = resolve_base_anti_aircraft_combat( bombers, base, {"clouds": in_clouds, "night": at_night})
+                    combat_outcome = resolve_base_anti_aircraft_combat(
+                        bombers, 
+                        base, 
+                        {"clouds": in_clouds, "night": at_night},
+                        attacker_side=computer_side
+                    )
 
             return combat_outcome
 
@@ -1157,10 +1175,18 @@ class ComputerOpponent:
             results = []
             for ship, allocated_bombers in allocation.items():
                 if allocated_bombers:
-                    result = resolve_air_to_ship_combat(allocated_bombers, ship, clouds=in_clouds, night=at_night)
-                    # Add ship information to result for victory points tracking
-                    result["ship"] = ship
-                    result["ship_was_sunk"] = ship.status == "Sunk"
+                    result = resolve_air_to_ship_combat(
+                        allocated_bombers, 
+                        ship, 
+                        clouds=in_clouds, 
+                        night=at_night,
+                        attacker_side=computer_side,
+                        defender_side=enemy_side
+                    )
+                    # Add ship information to result for backward compatibility
+                    if isinstance(result, dict):
+                        result["ship"] = ship
+                        result["ship_was_sunk"] = ship.status == "Sunk"
                     if ship.status == "Sunk":
                         taskforce.ships.remove(ship)
                     results.append(result)
@@ -1190,7 +1216,13 @@ class ComputerOpponent:
 
         result_computer_base_air_attack = None
         if enemy_base_pieces:
-            result_computer_base_air_attack = resolve_air_to_base_combat(computer_bombers, enemy_base_pieces[0].game_model, clouds=in_clouds, night=at_night)
+            result_computer_base_air_attack = resolve_air_to_base_combat(
+                computer_bombers, 
+                enemy_base_pieces[0].game_model, 
+                clouds=in_clouds, 
+                night=at_night,
+                attacker_side=computer_side
+            )
 
         result_surface_combat = None
         if computer_taskforce_p and enemy_taskforce_p:
@@ -1234,12 +1266,40 @@ class ComputerOpponent:
             "pre_combat_count_defender_escorts": pre_combat_count_enemy_escorts
         }
         
-        # Import the award function from desktop_ui
-        from flattop.ui.desktop.desktop_ui import award_victory_points_from_combat
+        # Create BattleResults with typed combat results
+        from flattop.combat_results import BattleResults
         
-        # Award victory points based on combat results
-        award_victory_points_from_combat(
-            combat_results, self.side, self.turn_manager.victory_points, self.turn_manager.turn_number
+        # Extract typed surface combat result if available
+        typed_surface_combat = None
+        if result_surface_combat and isinstance(result_surface_combat, dict):
+            typed_surface_combat = result_surface_combat.get("typed_result")
+        
+        battle_results = BattleResults(
+            attacker_side=computer_side,
+            defender_side=enemy_side,
+            air_to_air=result_computer_a2a,
+            taskforce_anti_aircraft=result_tf_anti_aircraft,
+            base_anti_aircraft=result_base_anti_aircraft,
+            air_to_ship=result_computer_ship_air_attack if isinstance(result_computer_ship_air_attack, list) else ([result_computer_ship_air_attack] if result_computer_ship_air_attack else None),
+            air_to_base=result_computer_base_air_attack,
+            surface_combat=typed_surface_combat,
+            pre_combat_counts={
+                "attacker_interceptors": pre_combat_count_computer_interceptors,
+                "attacker_bombers": pre_combat_count_computer_bombers,
+                "attacker_escorts": pre_combat_count_computer_escorts,
+                "defender_interceptors": pre_combat_count_enemy_interceptors,
+                "defender_bombers": pre_combat_count_enemy_bombers,
+                "defender_escorts": pre_combat_count_enemy_escorts
+            }
+        )
+        
+        # Add battle_results to dict
+        combat_results["battle_results"] = battle_results
+        
+        # Award victory points based on typed combat results
+        from flattop.victory_points import award_victory_points_from_typed_combat
+        award_victory_points_from_typed_combat(
+            battle_results, self.turn_manager.victory_points, self.turn_manager.turn_number
         )
 
         return combat_results
