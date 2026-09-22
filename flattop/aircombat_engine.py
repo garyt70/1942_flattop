@@ -110,7 +110,7 @@ The die roll adjusts the hit table value by the die roll result, and the hit tab
 
 example:
 |           |  Attacking Factors                                                                                    |
-| Hit Table | 1-2 | 3-4 | 5-6 | 7-8 | 9-10 | 11-12 | 13-15 | 16-20 | 21-23 | 26-30 | 31-35 | 36-40 | 41=45| 46-50+  | 
+| Hit Table | 1-2 | 3-4 | 5-6 | 7-8 | 9-10 | 11-12 | 13-15 | 16-20 | 21-24 | 25-30 | 31-35 | 36-40 | 41=45| 46-50+  |
 | 1         | None| None| None| 0   | 0    | 0     | 1     | 1     | 1     | 1     | 1     | 1     | 1    | 2       |
 | 2         | None| None| 0   | 1   | 1    | 1     | 1     | 1     | 2     | 2     | 2     | 3     | 3    | 3       |
 | 3         | None| 0   | 1   | 1   | 1    | 1     | 2     | 2     | 2     | 3     | 3     | 4     | 4    | 5       |
@@ -215,7 +215,7 @@ logger = logging.getLogger(__name__)
 # Each row is a Hit Table value (1-15), each column is an attack factor range.
 # The table is indexed as [hit_table][attack_factor_range_index]
 COMBAT_RESULTS_TABLE = [
-    # 1-2, 3-4, 5-6, 7-8, 9-10, 11-12, 13-15, 16-20, 21-23, 26-30, 31-35, 36-40, 41-45, 46-50+
+    # 1-2, 3-4, 5-6, 7-8, 9-10, 11-12, 13-15, 16-20, 21-24, 25-30, 31-35, 36-40, 41-45, 46-50+
     [None, None, None, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2],   # Hit Table 1
     [None, None, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3],      # Hit Table 2
     [None, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5],         # Hit Table 3
@@ -236,7 +236,7 @@ COMBAT_RESULTS_TABLE = [
 # Attack factor ranges for columns in the table
 ATTACK_FACTOR_RANGES = [
     (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 15), (16, 20),
-    (21, 23), (26, 30), (31, 35), (36, 40), (41, 45), (46, 999)
+    (21, 24), (25, 30), (31, 35), (36, 40), (41, 45), (46, 999)
 ]
 
 def get_attack_factor_index(attack_factor):
