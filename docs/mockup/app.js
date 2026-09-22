@@ -81,6 +81,9 @@ function renderScenario(scenarioId) {
   $('#mapGrid').style.height = `${boardHeight}px`;
   $('#mapOverlays').style.width = `${boardWidth}px`;
   $('#mapOverlays').style.height = `${boardHeight}px`;
+  $('#mapContent').style.width = `${boardWidth + 40}px`;
+  $('#mapContent').style.height = `${boardHeight + 40}px`;
+  applyMapZoom();
   $('#mapGrid').style.aspectRatio = 'auto';
   $('#mapOverlays').style.aspectRatio = 'auto';
   $('#mapCanvas').classList.toggle('wide-board', scenario.dimensions[0] > 44);
@@ -95,6 +98,18 @@ function renderScenario(scenarioId) {
 
 function getDisplayDimensions(scenario) {
   return [scenario.dimensions[0], scenario.dimensions[1] - scenario.displayOrigin[1]];
+}
+
+function applyMapZoom() {
+  const content = $('#mapContent');
+  const viewport = $('#mapViewport');
+  if (!content || !viewport) return;
+  const width = content.offsetWidth;
+  const height = content.offsetHeight;
+  viewport.style.width = `${width * state.zoom}px`;
+  viewport.style.height = `${height * state.zoom}px`;
+  content.style.transform = `scale(${state.zoom})`;
+  content.style.transformOrigin = 'top left';
 }
 
 function hexGeometry(dimensions) {
@@ -248,8 +263,8 @@ function handleAction(action) {
   else if (action === 'inspect') toast('Detailed ship inspection opened in the operations chart.');
   else if (action === 'save') toast('Mock save created locally.');
   else if (action === 'clear-selection') { toast('Selection cleared.'); }
-  else if (action === 'zoom-in') { state.zoom = Math.min(1.3, state.zoom + .1); $('#mapCanvas').style.transform = `scale(${state.zoom})`; toast(`Map zoom ${Math.round(state.zoom * 100)}%.`); }
-  else if (action === 'zoom-out') { state.zoom = Math.max(.9, state.zoom - .1); $('#mapCanvas').style.transform = `scale(${state.zoom})`; toast(`Map zoom ${Math.round(state.zoom * 100)}%.`); }
+  else if (action === 'zoom-in') { state.zoom = Math.min(2.5, state.zoom + .1); applyMapZoom(); toast(`Map zoom ${Math.round(state.zoom * 100)}%.`); }
+  else if (action === 'zoom-out') { state.zoom = Math.max(.5, state.zoom - .1); applyMapZoom(); toast(`Map zoom ${Math.round(state.zoom * 100)}%.`); }
 }
 
 function bindDynamicActions() {

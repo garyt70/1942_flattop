@@ -38,6 +38,8 @@ button:focus-visible { outline:3px solid #f2c252; outline-offset:2px; }
 
 /* Keep the same physical hex size as the desktop renderer; larger boards scroll. */
 .map-canvas { overflow:auto; }
+.map-viewport { position:absolute; left:0; top:0; }
+.map-content { position:relative; }
 .map-grid { inset:20px auto auto 20px; }
 .map-overlays { inset:20px auto auto 20px; }
 .map-canvas.wide-board .map-grid,.map-canvas.wide-board .map-overlays { inset:20px auto auto 20px; }
