@@ -503,6 +503,19 @@ The UI must show relevant values for selected units, including:
 ### REQ-15.03: Action feedback
 If a move or action is illegal, the UI must provide a concise reason. Examples include invalid launch factor, impossible landing, out-of-range attack, or action outside the current phase.
 
+### REQ-15.03a: Piece selection and context menu
+Clicking a visible map piece must open a context action menu rather than immediately executing or bypassing interaction. The menu must be generated from the selected piece, current phase, side, and nearby pieces.
+
+The menu must support:
+
+- Details for bases, task forces, and air formations
+- Move for movable friendly units in the applicable movement phase
+- Land for an air formation in a friendly base or plane-carrying task-force hex when legal
+- Combat when an eligible opposing unit occupies the same hex during Combat
+- Cancel
+
+Right-click or an equivalent secondary action may open details directly. Clicking an empty map hex must begin map pan/drag behavior when no action target is present. When multiple pieces share a hex, the UI must first present a piece-selection list.
+
 ### REQ-15.04: Combat log
 The UI must present a readable combat log for each battle, summarizing hits, unit losses, and resulting damage states.
 

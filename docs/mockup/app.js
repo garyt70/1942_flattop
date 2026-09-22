@@ -8,7 +8,8 @@ const state = {
   scenario: 'one',
   formationNumber: 19,
   formationSelection: { wildcat: 0, dauntless: 0 },
-  formationArmament: { wildcat: 'None', dauntless: 'GP' }
+  formationArmament: { wildcat: 'None', dauntless: 'GP' },
+  pendingPiece: null
 };
 
 const units = {
@@ -95,8 +96,8 @@ function renderScenario(scenarioId) {
   scenario.forces.filter(force => force.side === 'J').forEach(force => { units[force.id] = forceToUnit(force); });
   scenario.forces.filter(force => force.side === 'A').forEach(force => { units[force.id] = forceToUnit(force); });
   bindDynamicActions();
-  $$('[data-unit]').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.unit)));
-  $$('[data-contact]').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.contact)));
+  $$('.force-card[data-unit]').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.unit)));
+  $$('[data-map-piece]').forEach(button => button.addEventListener('click', () => { state.pendingPiece = button.dataset.mapPiece; openModal('piece-menu'); }));
 }
 
 function getDisplayDimensions(scenario) {
@@ -157,7 +158,7 @@ function markerMarkup(id, kind, side, label, x, y, scenario) {
   const top = (center.y / geometry.viewHeight) * 100;
   const enemy = side === 'J';
   const icon = kind === 'base' ? '⌂' : enemy ? '?' : label.includes('Task') ? 'A' : '✦';
-  return `<button class="map-unit ${kind}-unit ${enemy ? 'enemy-unit' : ''}" style="left:${left}%;top:${top}%" data-${enemy ? 'contact' : 'unit'}="${id}" title="${label} · source hex ${x},${y} · view row ${displayY}"><span class="map-unit-badge ${enemy ? 'enemy-badge' : 'allied-badge'}">${icon}</span><span class="map-unit-label">${label} <em>[${x},${y}] / view ${displayY}</em></span>${kind === 'force' && !enemy ? '<i class="unit-pulse"></i>' : ''}</button>`;
+  return `<button class="map-unit ${kind}-unit ${enemy ? 'enemy-unit' : ''}" style="left:${left}%;top:${top}%" data-map-piece="${id}" data-${enemy ? 'contact' : 'unit'}="${id}" title="${label} · source hex ${x},${y} · view row ${displayY}"><span class="map-unit-badge ${enemy ? 'enemy-badge' : 'allied-badge'}">${icon}</span><span class="map-unit-label">${label} <em>[${x},${y}] / view ${displayY}</em></span>${kind === 'force' && !enemy ? '<i class="unit-pulse"></i>' : ''}</button>`;
 }
 
 function forceToUnit(force) {
@@ -209,6 +210,8 @@ function openModal(type) {
   const modal = $('#modal');
   let content = '';
   if (type === 'operations') content = interactiveOperationsModal();
+  if (type === 'piece-menu') content = pieceMenuModal(state.pendingPiece);
+  if (type === 'details') content = detailsModal(state.pendingPiece);
   if (type === 'combat') content = combatModal();
   if (type === 'score') content = scoreModal();
   if (type === 'rules' || type === 'help') content = rulesModal();
@@ -216,6 +219,20 @@ function openModal(type) {
   modal.innerHTML = content;
   backdrop.hidden = false;
   bindDynamicActions();
+}
+
+function pieceMenuModal(unitId) {
+  const unit = units[unitId] || { title: unitId, type: 'Map piece' };
+  const isAir = unit.type && unit.type.toLowerCase().includes('air');
+  return modalShell(unit.title, `${unit.type} · phase-aware actions`, `<div class="modal-body piece-action-list"><button class="secondary-action" data-piece-action="details"><span>⊙</span> Details <b>→</b></button>${isAir ? '<button class="secondary-action" data-piece-action="land"><span>↓</span> Land formation <b>→</b></button>' : ''}<button class="secondary-action" data-piece-action="move"><span>⌁</span> Move <b>→</b></button><button class="secondary-action" data-piece-action="combat"><span>⚔</span> Combat <b>→</b></button><button class="ghost-button" data-action="close-modal">Cancel</button></div>`);
+}
+
+function detailsModal(unitId) {
+  const unit = units[unitId] || {};
+  const isBase = unit.icon === '⌂' || unit.type === 'Air operations base';
+  const title = unit.title || 'Selected unit';
+  const body = isBase ? `<div class="modal-body"><div class="detail-hero"><span class="large-unit-icon base">⌂</span><div><strong>Air operations base</strong><small>Allied · source coordinate ${unit.location || 'unknown'}</small></div><span class="condition-pill">${unit.condition || 'OWN'}</span></div><div class="detail-section"><h3>BASE CAPABILITIES</h3><div class="detail-grid"><div><small>MAX CAPACITY</small><b>Unlimited</b></div><div><small>LF NORMAL / MIN</small><b>20 / 10</b></div><div><small>AA FACTOR</small><b>5</b></div><div><small>DAMAGE</small><b>0</b></div></div></div><div class="detail-section"><h3>AIRCRAFT ON BASE</h3><div class="detail-table"><div><span>Ready</span><b>12 P-40</b><em>launchable</em></div><div><span>Readying</span><b>12 P-39 · 5 B-25</b><em>arming / preparing</em></div><div><span>Just Landed</span><b>4 Catalina</b><em>needs Readying Factor</em></div><div><span>In Flight</span><b>none</b><em>no active sorties</em></div></div></div><div class="detail-section"><h3>AVAILABLE OPERATIONS</h3><div class="detail-actions"><button class="primary-action" data-action="operations"><span>▦</span> Open operations chart <b>→</b></button><button class="secondary-action" data-action="close-modal"><span>×</span> Close <b>→</b></button></div></div></div>` : `<div class="modal-body"><div class="detail-hero"><span class="large-unit-icon carrier">CV</span><div><strong>Carrier task force</strong><small>${unit.detail || 'Allied task force'} · source coordinate ${unit.location || 'unknown'}</small></div><span class="condition-pill">${unit.condition || 'OWN'}</span></div><div class="detail-section"><h3>SHIP COMPOSITION</h3><div class="detail-table"><div><span>Carrier</span><b>CV Lexington</b><em>LF 11 / 3 · damage 0</em></div><div><span>Cruisers</span><b>Pensacola · Minneapolis · San Francisco · Indianapolis</b><em>4 capital ships</em></div><div><span>Screen</span><b>10 destroyers</b><em>MF 2 · operational</em></div></div></div><div class="detail-section"><h3>AIR OPERATIONS</h3><div class="detail-grid"><div><small>READY</small><b>8 F4F</b></div><div><small>READYING</small><b>12 SBD</b></div><div><small>JUST LANDED</small><b>4 TBD</b></div><div><small>LAUNCH FACTOR</small><b>11 / 3</b></div></div></div><div class="detail-section"><h3>AVAILABLE OPERATIONS</h3><div class="detail-actions"><button class="primary-action" data-action="operations"><span>▦</span> Manage air operations <b>→</b></button><button class="secondary-action" data-action="plot"><span>⌁</span> Plot movement <b>→</b></button><button class="secondary-action" data-action="close-modal"><span>×</span> Close <b>→</b></button></div></div></div>`;
+  return modalShell(title, `${unit.eyebrow || 'UNIT DETAILS'} · source state preview`, body);
 }
 
 function modalShell(title, subtitle, body) {
@@ -278,11 +295,20 @@ function handleAction(action) {
   else if (action === 'zoom-out') { state.zoom = Math.max(.5, state.zoom - .1); applyMapZoom(); toast(`Map zoom ${Math.round(state.zoom * 100)}%.`); }
 }
 
+function handlePieceAction(action) {
+  const unitId = state.pendingPiece;
+  if (action === 'details') openModal('details');
+  if (action === 'move') { $('#modalBackdrop').hidden = true; toast('Move is phase-gated in this mockup; the action is available during the applicable movement phase.'); }
+  if (action === 'land') { $('#modalBackdrop').hidden = true; toast('Landing requires a friendly base or plane-carrying task force in the selected hex.'); }
+  if (action === 'combat') { openModal('combat'); }
+}
+
 function bindDynamicActions() {
   $$('[data-action]').forEach(button => { if (!button.dataset.bound) { button.dataset.bound = 'true'; button.addEventListener('click', () => handleAction(button.dataset.action)); } });
   $$('[data-launch]').forEach(button => button.addEventListener('click', () => { state.launchMode = button.dataset.launch; $$('.choice').forEach(choice => choice.classList.toggle('active', choice.dataset.launch === state.launchMode)); toast(`${button.textContent.trim().split(' ')[0]} launch selected.`); }));
   $$('[data-aircraft-select]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.aircraftSelect; state.formationSelection[type] = state.formationSelection[type] ? 0 : (type === 'wildcat' ? 2 : 4); openModal('operations'); }));
   $$('[data-armament]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.armament; const options = type === 'wildcat' ? ['None', 'GP'] : ['GP', 'AP', 'None']; const index = options.indexOf(state.formationArmament[type]); state.formationArmament[type] = options[(index + 1) % options.length]; openModal('operations'); }));
+  $$('[data-piece-action]').forEach(button => button.addEventListener('click', () => handlePieceAction(button.dataset.pieceAction)));
   const formationNumber = $('#formationNumber');
   if (formationNumber && !formationNumber.dataset.bound) { formationNumber.dataset.bound = 'true'; formationNumber.value = String(state.formationNumber); formationNumber.addEventListener('change', () => { state.formationNumber = Number(formationNumber.value); }); }
 }
@@ -290,8 +316,9 @@ function bindDynamicActions() {
 bindDynamicActions();
 renderScenario('one');
 renderUnit('allied-tf1');
-$$('[data-unit]').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.unit)));
-$$('[data-contact]').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.contact)));
+$$('[data-unit]:not(.map-unit)').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.unit)));
+$$('[data-contact]:not(.map-unit)').forEach(button => button.addEventListener('click', () => renderUnit(button.dataset.contact)));
+$$('[data-map-piece]').forEach(button => button.addEventListener('click', () => { state.pendingPiece = button.dataset.mapPiece; openModal('piece-menu'); }));
 $$('[data-board]').forEach(button => button.addEventListener('click', () => {
   $$('[data-board]').forEach(item => item.classList.toggle('active', item === button));
   renderScenario(button.dataset.board);

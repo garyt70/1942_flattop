@@ -137,6 +137,16 @@ The map must support:
 - clear selection
 - undo an uncommitted phase action where the phase permits planning
 
+### 5.4 Piece selection and context menu (REQ-15.03a)
+
+Clicking a map piece opens a context menu whose contents depend on the selected piece and current phase. The menu must not reveal hidden opponent details or offer actions that are not legal.
+
+- Base: Details
+- Task force: Details, Move during Task Force Movement, Combat when an enemy task force is co-located during Combat
+- Air formation: Details, Move during Plane Movement, Land in a friendly base or plane-carrying task-force hex during the legal phase, Combat when an eligible enemy is co-located
+
+Right-click may open the details or observation view directly. If several pieces share a hex, show a selection menu first. Clicking empty map space starts panning rather than opening a blank unit panel. The web mockup should demonstrate this as a local, non-engine-backed interaction.
+
 ### 5.3 Overlays
 
 The player can toggle overlays for:

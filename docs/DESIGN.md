@@ -448,6 +448,8 @@ The player should be able to:
 - examine damage and launch state at any time
 - review hidden information versus known information
 
+Map piece clicks must open a phase-aware context menu. Details, Move, Land, Combat, and Cancel are generated from the piece type, ownership, current phase, co-located units, and observation state. Empty map clicks pan the board. Multiple pieces in one hex require a selection step before the context menu. A secondary click may bypass the action menu for details or observation.
+
 ### 14.3 Action validation
 Every action must be validated by the rules engine before committing. The UI should handle the result by either:
 
