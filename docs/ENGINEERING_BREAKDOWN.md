@@ -194,6 +194,19 @@ Implement the legal transitions:
 
 Enforce that one air factor cannot make more than one readiness move per turn and that the total moves do not exceed the location's Readying Factor.
 
+### 6.4 Formation authoring contract
+
+The air-operations capability must expose a pending formation command with:
+
+- formation number 1-35
+- aircraft type selections and counts
+- armament per selected aircraft group
+- launch type and altitude
+- source carrier or base
+- projected LF use and resulting movement allowance
+
+The command is not state-changing until committed. Its validation must reject counts above Ready stock, illegal armament, unavailable formation numbers, and LF overuse. The committed transition removes selected aircraft from Ready, records the formation, and emits an event that the UI and AI can consume.
+
 ## 7. Movement, Weather, and Observation
 
 ### 7.1 Movement ownership

@@ -229,6 +229,24 @@ The system must support minimum, normal, and maximum launches with different mov
 
 The digital engine must calculate and display these constraints so the player can understand the tradeoff between tempo and launch volume.
 
+### 8.5 Formation construction and armament
+
+Air Operations is an authoring phase as well as a status view. The player constructs numbered formations by selecting aircraft factors from Ready groups, selecting a count, selecting legal armament, and committing the formation. One formation can contain multiple aircraft types.
+
+The operations workflow must maintain a pending assignment model until commit. On commit it must:
+
+- remove selected factors from Ready
+- consume the corresponding launch factor
+- assign the formation number and launch origin
+- preserve armament per aircraft group
+- make the formation available to the movement phase
+
+Armament options are `GP`, `AP`, `Torpedo`, and unarmed where the aircraft and situation allow. Armament determines whether aircraft are armed bombers, what attacks they can perform, and whether fighter aircraft are treated as escorts or interceptors.
+
+### 8.6 Readying and recovery controls
+
+The operations chart must support pending readiness transitions from Just Landed to Readying and from Readying to Ready. These transitions consume Readying Factor, cannot move an aircraft more than once in the same turn, and must be committed as an explicit readiness action. Recovery must place aircraft in Just Landed before they can be readied again.
+
 ## 9. Combat System Design
 
 The detailed combat rules reference is [COMBAT_RULES.md](COMBAT_RULES.md). It is the shared explanation for the UI, AI, rules engine, and test plan.

@@ -215,6 +215,24 @@ Aircraft on ships and bases must move through readiness states correctly:
 
 The system must enforce the rule that an aircraft cannot be in more than one readiness state at the same time and that aircraft may not exceed the readiness movement limit for the turn.
 
+### REQ-08.02a: Air operations assignment workflow
+The air-operations UI must let the player select individual aircraft groups or partial counts from the Ready area and assign them to a numbered Air Formation. The player must be able to:
+
+- choose the Air Formation number from the available 1-35 range
+- choose how many factors of each aircraft type to add
+- see the remaining Ready count and remaining LF before committing
+- add more than one aircraft type to the same formation
+- remove or reduce a pending selection before committing
+- create the formation only when at least one factor is selected
+
+Creating the formation must move the selected factors out of Ready, consume the applicable launch factor, register the formation, and make it available for the plane movement phase.
+
+### REQ-08.02b: Aircraft armament selection
+Before an aircraft group is committed to an Air Formation, the player must be able to select its armament from the legal options for that aircraft: General Purpose bomb (`GP`), Armor Piercing bomb (`AP`), torpedo, or unarmed where permitted. The selected armament must be visible in the operations chart and must affect whether the aircraft is treated as armed, its mission role, attack eligibility, and later combat resolution.
+
+### REQ-08.02c: Readying actions
+The player must be able to select aircraft in Just Landed and move them to Readying, and select aircraft in Readying and move them to Ready, subject to the remaining Readying Factor. The UI must show pending readiness moves and commit them together through an explicit action.
+
 ### REQ-08.03: Launch type behavior
 The system must support three launch behaviors:
 

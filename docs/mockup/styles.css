@@ -43,6 +43,18 @@ button:focus-visible { outline:3px solid #f2c252; outline-offset:2px; }
 .map-grid { inset:20px auto auto 20px; }
 .map-overlays { inset:20px auto auto 20px; }
 .map-canvas.wide-board .map-grid,.map-canvas.wide-board .map-overlays { inset:20px auto auto 20px; }
+.plane-token.selectable { width:100%; border:0; background:transparent; text-align:left; cursor:pointer; }
+.plane-token.selectable:hover,.plane-token.selectable.selected { background:#e5f1eb; }
+.plane-token small { display:block; margin-top:3px; color:var(--muted); font-size:9px; }
+.ops-hint { margin:12px 0 0; color:var(--muted); font-size:9px; line-height:1.4; }
+.formation-controls { display:flex; align-items:center; gap:22px; margin-bottom:14px; color:var(--muted); font-size:10px; }
+.formation-controls label { display:flex; align-items:center; gap:7px; }
+.formation-controls select { padding:5px 7px; border:1px solid #c8d8d0; border-radius:5px; background:#fff; font:11px 'DM Mono',monospace; }
+.formation-controls strong { color:var(--teal-dark); font:11px 'DM Mono',monospace; }
+.armament-list { margin-bottom:14px; border-top:1px solid #d6e4dc; }
+.armament-list div { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #d6e4dc; font-size:10px; }
+.armament-cycle { min-width:68px; padding:5px 7px; border:1px solid #a9c8ba; border-radius:5px; background:#fff; color:var(--teal-dark); font:10px 'DM Mono',monospace; }
+.primary-button:disabled { opacity:.45; cursor:not-allowed; }
 .hex-board { display:block; width:100%; height:100%; overflow:visible; }
 .hex-board polygon { vector-effect:non-scaling-stroke; stroke:#789b91; stroke-width:.035; shape-rendering:geometricPrecision; }
 .hex-board .sea-hex { fill:rgba(218,235,228,.82); }

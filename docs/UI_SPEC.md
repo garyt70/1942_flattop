@@ -186,6 +186,24 @@ The interface must prevent moving an aircraft more than once in the same turn or
 
 The review step must warn if the selected formation cannot reach a valid landing location before its deadline.
 
+### 6.3 Formation construction workflow
+
+The operations chart must provide a direct construction workflow for formations, not only a read-only status display:
+
+1. In Ready, select an aircraft row.
+2. Adjust the number of factors to add to the pending formation.
+3. Cycle or choose the armament: `GP`, `AP`, `Torpedo`, or unarmed where legal.
+4. Choose an available Air Formation number from 1 through 35.
+5. Add additional aircraft types if desired.
+6. Review total factors, LF consumption, launch type, payload, and resulting mission roles.
+7. Commit Create Air Formation.
+
+The UI must keep pending selections separate from committed game state. Cancel must restore the uncommitted selection without changing Ready counts.
+
+### 6.4 Readiness action workflow
+
+The operations chart must expose selectable controls for Just Landed and Readying aircraft. The player can queue Just Landed -> Readying and Readying -> Ready moves, see remaining Readying Factor, and commit the readiness batch. The control must be unavailable when the selected transition would exceed the remaining factor.
+
 ### 6.2 Recovery workflow
 
 When an air formation is in a valid landing hex, the UI must show eligible recovery locations and each location's remaining LF and capacity. It must show night-landing risk before confirmation.
