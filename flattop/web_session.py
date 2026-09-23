@@ -249,7 +249,10 @@ class GameSession:
                 "side": "Weather",
                 "position": [piece.position.q, piece.position.r],
             }
-        if not is_friendly and not is_observed:
+        # Airbases are fixed installations whose location is always known; only their
+        # aircraft contents (added below, friendly-only) are hidden from the enemy.
+        is_base = isinstance(piece.game_model, Base)
+        if not is_friendly and not is_observed and not is_base:
             return None
 
         piece_id = getattr(piece, "id", None) or str(id(piece))

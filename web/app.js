@@ -245,12 +245,13 @@ function renderMap(projection) {
       const left = (center.x / viewWidth) * 100;
       const top = (center.y / viewHeight) * 100;
       const draggable = unit.friendly && phaseAllowsMove(unit);
+      const showName = unit.friendly || unit.kind === 'Base';
       return `
         <button class="map-unit ${unit.friendly ? 'friendly-unit' : 'enemy-unit'} ${draggable ? 'draggable-unit' : ''}" style="left:${left}%;top:${top}%" data-unit="${
         unit.id
       }" draggable="${draggable}" title="${unit.name}">
           <span class="map-unit-badge ${unit.friendly ? 'allied-badge' : 'enemy-badge'}">${iconFor(unit)}</span>
-          <span class="map-unit-label">${unit.friendly ? unit.name : `Contact [${x},${y}]`}</span>
+          <span class="map-unit-label">${showName ? unit.name : `Contact [${x},${y}]`}</span>
         </button>`;
     })
     .join('');

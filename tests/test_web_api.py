@@ -48,10 +48,14 @@ class TestGameLifecycle(unittest.TestCase):
 
     def test_create_game_returns_side_filtered_projection(self):
         projection = self._create_game("Allied")
-        sides = {unit["side"] for unit in projection["units"]}
+        units = projection["units"]
+        sides = {unit["side"] for unit in units}
         self.assertIn("Allied", sides)
-        # The Japanese base/task force should not be visible until observed.
-        self.assertNotIn("Japanese", sides)
+        # Airbases are fixed installations and are always visible, but the
+        # Japanese air formation/task force should not be until observed.
+        japanese_units = [unit for unit in units if unit["side"] == "Japanese"]
+        self.assertTrue(japanese_units)
+        self.assertTrue(all(unit["kind"] == "Base" for unit in japanese_units))
 
     def test_advance_phase_changes_turn_state(self):
         projection = self._create_game()
