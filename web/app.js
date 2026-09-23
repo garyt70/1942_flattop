@@ -405,17 +405,8 @@ function renderUnitPanel(unitId) {
 }
 
 function taskForcePanel(unit) {
+  // Ship roster is intentionally not shown inline here - it's a popup, opened via "Inspect ship detail", matching the mockup.
   const carriersWithAir = (unit.ships || []).filter((s) => s.air_operations);
-  const shipRows = (unit.ships || [])
-    .map(
-      (ship) => `
-      <button class="ship-card" data-ship="${ship.name}">
-        <span class="ship-class ${shipClassFor(ship.type)}">${ship.type}</span>
-        <span><strong>${ship.name}</strong><small>Gun ${ship.gunnery_factor} \u00b7 AA ${ship.anti_air_factor} \u00b7 MF ${ship.move_factor}</small></span>
-        <b>${ship.damage} / ${ship.damage_factor}</b>
-      </button>`
-    )
-    .join('');
   const carrierPanels = carriersWithAir
     .map(
       (ship) => `
@@ -426,9 +417,6 @@ function taskForcePanel(unit) {
     .join('');
   const moveDisabled = phaseAllowsMove(unit) ? '' : 'disabled title="Only available during the Task Force Movement phase"';
   return `
-    <div class="subheading"><span>SHIP ROSTER</span></div>
-    <div class="ship-roster">${shipRows}</div>
-    <div class="panel-divider"></div>
     ${carrierPanels}
     <div class="panel-divider"></div>
     <div class="subheading"><span>ACTIONS</span></div>
