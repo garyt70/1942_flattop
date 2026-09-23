@@ -155,6 +155,21 @@ class GameSession:
         tracker.set_operations_status(moving, to_status, from_aircraft=source_entry)
         self._log(f"{base.name}: moved {count} {aircraft_type} from {from_status} to {to_status}.")
 
+    def set_armament(self, base_id: str, aircraft_type: str, armament: str | None) -> None:
+        """Sets the armament of a Readying aircraft factor (REQ-08.02b: armament is only editable in Readying)."""
+        base = self._resolve_base(base_id)
+        tracker = base.air_operations_tracker
+        aircraft_type_enum = _AIRCRAFT_TYPE_BY_VALUE.get(aircraft_type)
+        if aircraft_type_enum is None:
+            raise CommandError("UNKNOWN_AIRCRAFT", f"Unknown aircraft type '{aircraft_type}'")
+
+        entry = next((ac for ac in tracker.readying if _aircraft_type_value(ac.type) == aircraft_type_enum.value), None)
+        if entry is None:
+            raise CommandError("NOT_READYING", f"{aircraft_type} is not in Readying and cannot have its armament changed")
+
+        entry.armament = armament or None
+        self._log(f"{base.name}: set {aircraft_type} armament to {entry.armament or 'None'}.")
+
     def create_air_formation(self, base_id: str, formation_number: int, aircraft: list[dict[str, Any]]) -> str:
         base = self._resolve_base(base_id)
         piece = self._find_piece(base_id)

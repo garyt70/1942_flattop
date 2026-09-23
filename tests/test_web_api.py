@@ -99,6 +99,18 @@ class TestGameLifecycle(unittest.TestCase):
     def test_readiness_move_and_create_formation(self):
         projection = self._create_game()
         game_id = projection["game_id"]
+        readiness_response = self.client.post(
+            f"/api/games/{game_id}/air-ops/readiness",
+            json={
+                "side": "Allied",
+                "base_id": "allied-tf-1",
+                "aircraft_type": "Wildcat",
+                "from_status": "readying",
+                "to_status": "ready",
+                "count": 4,
+            },
+        )
+        self.assertTrue(readiness_response.json()["accepted"])
         response = self.client.post(
             f"/api/games/{game_id}/air-ops/formation",
             json={

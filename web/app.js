@@ -557,9 +557,9 @@ function operationsModalMarkup(baseId) {
       <div class="air-table-wrap">
         <table class="air-combat-table">
           <thead>
-            <tr><th rowspan="2">Aircraft</th><th rowspan="2">Count</th><th rowspan="2">A2A</th><th colspan="6">vs Base</th><th colspan="7">vs Ship</th><th rowspan="2">Move</th><th rowspan="2">Range</th><th rowspan="2">Actions</th></tr>
+            <tr><th rowspan="2">Aircraft</th><th rowspan="2">Count</th><th rowspan="2">A2A</th><th colspan="6">vs Base</th><th colspan="7">vs Ship</th><th rowspan="2">Move</th><th rowspan="2">Range</th><th rowspan="2">Armament</th><th rowspan="2">Actions</th></tr>
             <tr><th colspan="2">High</th><th colspan="2">Low</th><th colspan="2">Dive</th><th colspan="2">High</th><th colspan="2">Low</th><th colspan="2">Dive</th><th>Torp</th></tr>
-            <tr class="table-subhead"><th></th><th></th><th></th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>TORP</th><th></th><th></th><th></th></tr>
+            <tr class="table-subhead"><th></th><th></th><th></th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>TORP</th><th></th><th></th><th></th><th></th></tr>
           </thead>
           <tbody>
             ${statusGroup('READY \u00b7 select factors for the pending formation', airOps.ready, 'ready')}
@@ -624,15 +624,34 @@ function aircraftRow(ac, statusKey, baseId, canEdit) {
       <button class="table-step transfer" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="ready" data-to="readying" ${canEdit ? '' : 'disabled'}>&darr;</button>`;
   } else if (statusKey === 'readying') {
     controls = `
-      <button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="readying" data-to="just_landed" ${canEdit ? '' : 'disabled'}>&minus; Just landed</button>
-      <button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="readying" data-to="ready" ${canEdit ? '' : 'disabled'}>+ Ready</button>`;
+      <button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="readying" data-to="just_landed" title="Move to Just Landed" aria-label="Move ${ac.type} to Just Landed" ${canEdit ? '' : 'disabled'}>&minus;</button>
+      <button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="readying" data-to="ready" title="Move to Ready" aria-label="Move ${ac.type} to Ready" ${canEdit ? '' : 'disabled'}>&plus;</button>`;
   } else if (statusKey === 'just_landed') {
-    controls = `<button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="just_landed" data-to="readying" ${canEdit ? '' : 'disabled'}>+ Readying</button>`;
+    controls = `<button class="table-step" data-readiness data-base="${baseId}" data-type="${ac.type}" data-from="just_landed" data-to="readying" title="Move to Readying" aria-label="Move ${ac.type} to Readying" ${canEdit ? '' : 'disabled'}>&plus;</button>`;
   } else {
     controls = '<small class="muted-copy">airborne</small>';
   }
 
-  return `<tr class="aircraft-row ${pendingCount ? 'selected' : ''}"><td>${ac.type}</td><td><b>${ac.count}</b></td>${cells}<td>${ac.move_factor}</td><td>${ac.range_remaining}/${ac.range_factor}</td><td><span class="aircraft-row-controls">${controls}</span></td></tr>`;
+  const armamentLabel = ac.armament || 'None';
+  const armamentOptions = armamentOptionsFor(cd);
+  const canCycleArmament = canEdit && statusKey === 'readying' && armamentOptions.length > 1;
+  const armamentCell = `<td><button class="armament-cycle ${canCycleArmament ? '' : 'locked'}" data-armament-cycle="${ac.type}" data-base="${baseId}" data-options='${JSON.stringify(armamentOptions)}' ${canCycleArmament ? '' : 'disabled'}>${armamentLabel}</button></td>`;
+
+  return `<tr class="aircraft-row ${pendingCount ? 'selected' : ''}"><td>${ac.type}</td><td><b>${ac.count}</b></td>${cells}<td>${ac.move_factor}</td><td>${ac.range_remaining}/${ac.range_factor}</td>${armamentCell}<td><span class="aircraft-row-controls">${controls}</span></td></tr>`;
+}
+
+function armamentOptionsFor(cd) {
+  const options = ['None'];
+  if (cd.level_bombing_high_base_gp || cd.level_bombing_low_base_gp || cd.dive_bombing_base_gp || cd.level_bombing_high_ship_gp || cd.level_bombing_low_ship_gp || cd.dive_bombing_ship_gp) {
+    options.push('GP');
+  }
+  if (cd.level_bombing_high_base_ap || cd.level_bombing_low_base_ap || cd.dive_bombing_base_ap || cd.level_bombing_high_ship_ap || cd.level_bombing_low_ship_ap || cd.dive_bombing_ship_ap) {
+    options.push('AP');
+  }
+  if (cd.torpedo_bombing_ship) {
+    options.push('Torpedo');
+  }
+  return options;
 }
 
 function bindOperationsModalActions(baseId) {
@@ -660,6 +679,21 @@ function bindOperationsModalActions(baseId) {
         button.dataset.from,
         button.dataset.to,
         1
+      );
+      handleCommandResult(result, baseId);
+    })
+  );
+  $$('#modal [data-armament-cycle]').forEach((button) =>
+    button.addEventListener('click', async () => {
+      const options = JSON.parse(button.dataset.options);
+      const currentIndex = options.indexOf(button.textContent.trim());
+      const next = options[(currentIndex + 1) % options.length];
+      const result = await FlatTopApi.setArmament(
+        state.gameId,
+        state.side,
+        button.dataset.base,
+        button.dataset.armamentCycle,
+        next === 'None' ? null : next
       );
       handleCommandResult(result, baseId);
     })

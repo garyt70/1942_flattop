@@ -45,6 +45,11 @@ const FlatTopApi = (() => {
           count,
         }),
       }),
+    setArmament: (gameId, side, baseId, aircraftType, armament) =>
+      request(`/games/${gameId}/air-ops/armament`, {
+        method: 'POST',
+        body: JSON.stringify({ side, base_id: baseId, aircraft_type: aircraftType, armament }),
+      }),
     createFormation: (gameId, side, baseId, formationNumber, aircraft) =>
       request(`/games/${gameId}/air-ops/formation`, {
         method: 'POST',

@@ -55,6 +55,13 @@ class ReadinessMoveRequest(BaseModel):
     count: int
 
 
+class SetArmamentRequest(BaseModel):
+    side: str
+    base_id: str
+    aircraft_type: str
+    armament: str | None = None
+
+
 class FormationAircraft(BaseModel):
     type: str
     count: int
@@ -148,6 +155,16 @@ def readiness_move(game_id: str, request: ReadinessMoveRequest):
         session.readiness_move(
             request.base_id, request.aircraft_type, request.from_status, request.to_status, request.count
         )
+    except CommandError as error:
+        return _command_error_response(error)
+    return {"accepted": True, "projection": session.to_projection(request.side)}
+
+
+@app.post("/api/games/{game_id}/air-ops/armament")
+def set_armament(game_id: str, request: SetArmamentRequest):
+    session = _get_session(game_id)
+    try:
+        session.set_armament(request.base_id, request.aircraft_type, request.armament)
     except CommandError as error:
         return _command_error_response(error)
     return {"accepted": True, "projection": session.to_projection(request.side)}

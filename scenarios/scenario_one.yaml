@@ -272,10 +272,10 @@ scenario:
         aircraft:
           - type: P-40
             count: 12
-            state: ready
+            state: readying
           - type: Catalina
             count: 4
-            state: ready
+            state: readying
       - id: rabaul
         name: Rabaul
         side: japanese
@@ -289,10 +289,10 @@ scenario:
         aircraft:
           - type: Zero
             count: 10
-            state: ready
+            state: readying
           - type: Val
             count: 8
-            state: ready
+            state: readying
           - type: Kate
             count: 10
             state: readying
@@ -345,13 +345,13 @@ scenario:
             aircraft:
               - type: Wildcat
                 count: 8
-                state: ready
+                state: readying
               - type: Dauntless
                 count: 12
-                state: ready
+                state: readying
               - type: Devastator
                 count: 4
-                state: ready
+                state: readying
           - name: Pensacola
           - name: Minneapolis
           - name: San Francisco
