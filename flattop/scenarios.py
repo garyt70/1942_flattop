@@ -22,11 +22,13 @@ from flattop.operations_chart_models import (
     AircraftFactory,
     AircraftOperationsStatus,
     AircraftType,
+    AirFormation,
     AirOperationsConfiguration,
     AlliedShipFactory,
     Base,
     Carrier,
     JapaneseShipFactory,
+    Ship,
     TaskForce,
 )
 
@@ -88,6 +90,14 @@ def _validate_scenario_document(document: dict[str, Any], path: Path) -> dict[st
         known_ids.add(tf["id"])
         _validate_position(tf["position"], width, height, path, tf["id"])
 
+    for formation in setup.get("air_formations", []):
+        if formation["side"] not in side_ids:
+            raise ScenarioError(f"{path}: air formation '{formation['id']}' has unknown side '{formation['side']}'")
+        if formation["id"] in known_ids:
+            raise ScenarioError(f"{path}: duplicate setup id '{formation['id']}'")
+        known_ids.add(formation["id"])
+        _validate_position(formation["position"], width, height, path, formation["id"])
+
     return scenario
 
 
@@ -141,6 +151,13 @@ def _side_label(side_id: str) -> str:
     return "Allied" if side_id == "allied" else "Japanese"
 
 
+_AIRCRAFT_STATE_TO_STATUS = {
+    "ready": AircraftOperationsStatus.READY,
+    "readying": AircraftOperationsStatus.READYING,
+    "just_landed": AircraftOperationsStatus.JUST_LANDED,
+}
+
+
 def _add_aircraft_to_tracker(tracker, aircraft_entries: list[dict[str, Any]]):
     for entry in aircraft_entries:
         type_value = entry["type"]
@@ -150,7 +167,9 @@ def _add_aircraft_to_tracker(tracker, aircraft_entries: list[dict[str, Any]]):
         if aircraft_type is None:
             raise ScenarioError(f"Unknown aircraft type '{type_value}' in scenario setup")
         aircraft = AircraftFactory.create(aircraft_type, count)
-        status = AircraftOperationsStatus.READY if state == "ready" else AircraftOperationsStatus.JUST_LANDED
+        status = _AIRCRAFT_STATE_TO_STATUS.get(state)
+        if status is None:
+            raise ScenarioError(f"Unknown aircraft state '{state}' in scenario setup")
         tracker.set_operations_status(aircraft, status)
 
 
@@ -179,13 +198,42 @@ def _build_task_force(entry: dict[str, Any]) -> TaskForce:
     tf = TaskForce(entry.get("number", 1), name=entry.get("name"), side=side)
     factory = AlliedShipFactory if side == "Allied" else JapaneseShipFactory
     for ship_entry in entry.get("ships", []):
-        ship = factory.create(ship_entry["name"])
-        if ship is None:
-            raise ScenarioError(f"Unknown ship '{ship_entry['name']}' for side '{side}'")
+        if "class" in ship_entry:
+            # Generic escort/support ship (e.g. destroyer, transport) with explicit stats.
+            ship = Ship(
+                ship_entry["name"],
+                ship_entry["class"],
+                "operational",
+                ship_entry.get("gunnery_factor", 0),
+                ship_entry.get("anti_air_factor", 0),
+                ship_entry.get("move_factor", 2),
+                ship_entry.get("damage_factor", 1),
+                ship_entry.get("torpedo_factor", 0),
+            )
+        else:
+            try:
+                ship = factory.create(ship_entry["name"])
+            except ValueError as error:
+                raise ScenarioError(f"Unknown ship '{ship_entry['name']}' for side '{side}'") from error
         if isinstance(ship, Carrier) and ship_entry.get("aircraft"):
             _add_aircraft_to_tracker(ship.air_operations, ship_entry["aircraft"])
         tf.add_ship(ship)
     return tf
+
+
+def _build_air_formation(entry: dict[str, Any]) -> AirFormation:
+    side = _side_label(entry["side"])
+    formation = AirFormation(entry.get("number", 1), name=entry.get("name"), side=side, height=entry.get("height", "High"))
+    for aircraft_entry in entry.get("aircraft", []):
+        type_value = aircraft_entry["type"]
+        aircraft_type = _AIRCRAFT_TYPE_BY_VALUE.get(type_value)
+        if aircraft_type is None:
+            raise ScenarioError(f"Unknown aircraft type '{type_value}' in scenario setup")
+        aircraft = AircraftFactory.create(aircraft_type, aircraft_entry.get("count", 0))
+        if aircraft_entry.get("armament"):
+            aircraft.armament = aircraft_entry["armament"]
+        formation.add_aircraft(aircraft)
+    return formation
 
 
 def build_game_from_scenario(scenario: dict[str, Any]) -> tuple[HexBoardModel, TurnManager]:
@@ -208,6 +256,18 @@ def build_game_from_scenario(scenario: dict[str, Any]) -> tuple[HexBoardModel, T
         position = Hex(*tf_entry["position"])
         piece = Piece(tf_entry.get("name", tf.name), side=_side_label(tf_entry["side"]), position=position, gameModel=tf)
         piece.id = tf_entry["id"]
+        board.add_piece(piece)
+
+    for formation_entry in setup.get("air_formations", []):
+        formation = _build_air_formation(formation_entry)
+        position = Hex(*formation_entry["position"])
+        piece = Piece(
+            formation_entry.get("name", formation.name),
+            side=_side_label(formation_entry["side"]),
+            position=position,
+            gameModel=formation,
+        )
+        piece.id = formation_entry["id"]
         board.add_piece(piece)
 
     return board, turn_manager

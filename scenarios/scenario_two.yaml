@@ -294,15 +294,55 @@ scenario:
         side: allied
         position: [3, 23]
         air_operations:
-          maximum_capacity: 16
-          launch_factor_min: 4
-          launch_factor_normal: 8
-          launch_factor_max: 16
-          ready_factors: 6
+          maximum_capacity: 9999
+          launch_factor_min: 10
+          launch_factor_normal: 20
+          launch_factor_max: 40
+          ready_factors: 8
         aircraft:
           - type: P-40
-            count: 12
+            count: 2
             state: ready
+          - type: P-39
+            count: 12
+            state: readying
+          - type: Hudson
+            count: 2
+            state: readying
+          - type: Dauntless
+            count: 3
+            state: readying
+          - type: B-26
+            count: 12
+            state: readying
+          - type: B-25
+            count: 5
+            state: readying
+      - id: australia
+        name: Australia
+        side: allied
+        position: [0, 49]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 10
+          launch_factor_normal: 20
+          launch_factor_max: 40
+          ready_factors: 8
+        aircraft:
+          - type: B-17
+            count: 5
+            state: readying
+      - id: new-caledonia
+        name: New Caledonia
+        side: allied
+        position: [70, 49]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 10
+          launch_factor_normal: 20
+          launch_factor_max: 40
+          ready_factors: 8
+        aircraft:
           - type: Catalina
             count: 4
             state: ready
@@ -311,57 +351,97 @@ scenario:
         side: japanese
         position: [23, 4]
         air_operations:
-          maximum_capacity: 24
+          maximum_capacity: 9999
           launch_factor_min: 6
           launch_factor_normal: 12
           launch_factor_max: 24
-          ready_factors: 8
+          ready_factors: 7
         aircraft:
           - type: Zero
+            count: 7
+            state: ready
+          - type: Betty
+            count: 5
+            state: ready
+          - type: Nell
             count: 8
+            state: readying
+          - type: Mavis
+            count: 5
+            state: readying
+      - id: gasmata
+        name: Gasmata
+        side: japanese
+        position: [14, 10]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 7
+        aircraft:
+          - type: Rufe
+            count: 1
+            state: readying
+          - type: Zero
+            count: 7
+            state: readying
+          - type: Nell
+            count: 8
+            state: readying
+      - id: kavieng
+        name: Kavieng
+        side: japanese
+        position: [12, 0]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 7
+      - id: truk
+        name: Truk
+        side: japanese
+        position: [17, 0]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 7
+      - id: lae
+        name: Lae
+        side: japanese
+        position: [2, 13]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 7
+        aircraft:
+          - type: Zero
+            count: 7
             state: ready
-          - type: Val
-            count: 6
+          - type: Betty
+            count: 7
             state: ready
+      - id: shortland
+        name: Shortland
+        side: japanese
+        position: [38, 16]
+        air_operations:
+          maximum_capacity: 9999
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 7
     task_forces:
-      - id: lexington-tf
-        number: 1
-        side: allied
-        position: [35, 45]
-        ships:
-          - name: Lexington
-            aircraft:
-              - type: Wildcat
-                count: 7
-                state: ready
-              - type: Dauntless
-                count: 12
-                state: ready
-              - type: Devastator
-                count: 4
-                state: ready
-          - name: Minneapolis
-      - id: yorktown-tf
-        number: 2
-        side: allied
-        position: [40, 35]
-        ships:
-          - name: Yorktown
-            aircraft:
-              - type: Wildcat
-                count: 7
-                state: ready
-              - type: Dauntless
-                count: 12
-                state: ready
-              - type: Devastator
-                count: 4
-                state: ready
-          - name: Hobart
       - id: shokaku-tf
         number: 1
         side: japanese
         position: [30, 10]
+        name: Shokaku Task Force
         ships:
           - name: Shokaku
             aircraft:
@@ -370,14 +450,23 @@ scenario:
                 state: ready
               - type: Val
                 count: 7
-                state: ready
+                state: readying
               - type: Kate
                 count: 7
-                state: ready
+                state: readying
+          - name: Myoko
+          - name: Haguro
+          - name: Aoba
+          - name: Kako
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 4, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
       - id: zuikaku-tf
         number: 2
         side: japanese
         position: [32, 10]
+        name: Zuikaku Task Force
         ships:
           - name: Zuikaku
             aircraft:
@@ -386,21 +475,148 @@ scenario:
                 state: ready
               - type: Val
                 count: 7
-                state: ready
+                state: readying
               - type: Kate
                 count: 7
-                state: ready
+                state: readying
+          - name: Kinugasa
+          - name: Furutaka
+          - name: Yubari
+          - name: Tenryu
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 4, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
       - id: shoho-tf
         number: 3
         side: japanese
         position: [28, 10]
+        name: Shoho Task Force
         ships:
           - name: Shoho
             aircraft:
               - type: Kate
                 count: 3
+                state: readying
+              - type: Dave
+                count: 3
+                state: readying
+              - type: Pete
+                count: 4
+                state: readying
+          - name: Kamikawa
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 4, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 5, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 6, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+      - id: landing-force-1a
+        number: 4
+        side: japanese
+        position: [26, 5]
+        name: Landing Force 1a
+        ships:
+          - { name: Transport 1, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 2, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 3, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 4, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 5, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 6, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Gunboat 1, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 2, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Oiler 1, class: AO, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+      - id: landing-force-1b
+        number: 5
+        side: japanese
+        position: [26, 5]
+        name: Landing Force 1b
+        ships:
+          - { name: Transport 1, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 2, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 3, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 4, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 5, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Transport 6, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Gunboat 1, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 2, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Oiler 1, class: AO, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+      - id: landing-force-2
+        number: 6
+        side: japanese
+        position: [27, 10]
+        name: Landing Force 2
+        ships:
+          - name: Tatsuta
+          - { name: Transport, class: AP, gunnery_factor: 0, anti_air_factor: 0, move_factor: 1, damage_factor: 1 }
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 1, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 2, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 3, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Gunboat 4, class: PG, gunnery_factor: 1, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+      - id: lexington-tf
+        number: 1
+        side: allied
+        position: [35, 45]
+        name: Lexington Task Force
+        ships:
+          - name: Lexington
+            aircraft:
+              - type: Wildcat
+                count: 7
                 state: ready
+              - type: Dauntless
+                count: 12
+                state: readying
+              - type: Devastator
+                count: 4
+                state: readying
+          - name: Chester
+          - name: New Orleans
+          - name: Astoria
+          - name: Portland
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 4, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 5, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 6, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 7, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Tanker 1, class: AO, gunnery_factor: 0, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+          - { name: Tanker 2, class: AO, gunnery_factor: 0, anti_air_factor: 0, move_factor: 2, damage_factor: 1 }
+      - id: yorktown-tf
+        number: 2
+        side: allied
+        position: [40, 35]
+        name: Yorktown Task Force
+        ships:
+          - name: Yorktown
+            aircraft:
+              - type: Wildcat
+                count: 7
+                state: ready
+              - type: Dauntless
+                count: 12
+                state: readying
+              - type: Devastator
+                count: 4
+                state: readying
+          - name: Minneapolis
+          - name: Australia
+          - name: Chicago
+          - name: Hobart
+          - { name: Destroyer 1, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 2, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 3, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 4, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 5, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 6, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
+          - { name: Destroyer 7, class: DD, gunnery_factor: 1, anti_air_factor: 1, move_factor: 2, damage_factor: 1 }
   expected_setup:
     unit_counts:
-      bases: 2
-      task_forces: 5
+      bases: 9
+      task_forces: 8
