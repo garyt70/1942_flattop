@@ -1,0 +1,406 @@
+schema_version: 1
+scenario:
+  id: scenario-two
+  version: "1.0.0"
+  name: "Scenario Two - Coral Sea"
+  description: >
+    The full Coral Sea battle across two connected boards. Allied Lexington
+    and Yorktown task forces defend Port Moresby and the sea approaches
+    against the Japanese Shokaku, Zuikaku, and Shoho carrier task forces.
+  status: published
+  ruleset: flat-top-standard-v1
+  board:
+    width: 80
+    height: 50
+    land_hexes:
+      - [0, 9]
+      - [0, 10]
+      - [0, 11]
+      - [0, 12]
+      - [0, 13]
+      - [0, 14]
+      - [0, 15]
+      - [0, 16]
+      - [0, 17]
+      - [0, 18]
+      - [0, 19]
+      - [0, 20]
+      - [0, 21]
+      - [0, 22]
+      - [0, 23]
+      - [1, 9]
+      - [1, 10]
+      - [1, 11]
+      - [1, 12]
+      - [1, 13]
+      - [1, 14]
+      - [1, 15]
+      - [1, 16]
+      - [1, 17]
+      - [1, 18]
+      - [1, 19]
+      - [1, 20]
+      - [1, 21]
+      - [1, 22]
+      - [1, 23]
+      - [2, 5]
+      - [2, 10]
+      - [2, 11]
+      - [2, 12]
+      - [2, 13]
+      - [2, 14]
+      - [2, 15]
+      - [2, 16]
+      - [2, 17]
+      - [2, 18]
+      - [2, 19]
+      - [2, 20]
+      - [2, 21]
+      - [2, 22]
+      - [2, 23]
+      - [3, 7]
+      - [3, 10]
+      - [3, 11]
+      - [3, 12]
+      - [3, 16]
+      - [3, 17]
+      - [3, 18]
+      - [3, 19]
+      - [3, 20]
+      - [3, 21]
+      - [3, 22]
+      - [3, 23]
+      - [3, 24]
+      - [4, 8]
+      - [4, 17]
+      - [4, 18]
+      - [4, 19]
+      - [4, 20]
+      - [4, 21]
+      - [4, 22]
+      - [4, 23]
+      - [4, 24]
+      - [4, 25]
+      - [4, 26]
+      - [5, 8]
+      - [5, 17]
+      - [5, 18]
+      - [5, 19]
+      - [5, 20]
+      - [5, 21]
+      - [5, 22]
+      - [5, 23]
+      - [5, 24]
+      - [5, 25]
+      - [5, 26]
+      - [6, 8]
+      - [6, 20]
+      - [6, 21]
+      - [6, 22]
+      - [6, 23]
+      - [6, 24]
+      - [6, 25]
+      - [6, 26]
+      - [6, 28]
+      - [7, 7]
+      - [7, 8]
+      - [7, 21]
+      - [7, 22]
+      - [7, 23]
+      - [7, 24]
+      - [7, 25]
+      - [7, 26]
+      - [7, 27]
+      - [8, 7]
+      - [8, 8]
+      - [8, 9]
+      - [8, 21]
+      - [8, 22]
+      - [8, 23]
+      - [8, 24]
+      - [8, 25]
+      - [8, 26]
+      - [8, 27]
+      - [9, 8]
+      - [9, 9]
+      - [9, 10]
+      - [9, 21]
+      - [9, 22]
+      - [9, 23]
+      - [9, 24]
+      - [9, 25]
+      - [9, 26]
+      - [9, 27]
+      - [10, 8]
+      - [10, 9]
+      - [10, 10]
+      - [10, 21]
+      - [10, 23]
+      - [10, 24]
+      - [10, 25]
+      - [10, 26]
+      - [10, 27]
+      - [11, 8]
+      - [11, 9]
+      - [11, 10]
+      - [11, 23]
+      - [11, 24]
+      - [11, 25]
+      - [11, 26]
+      - [11, 27]
+      - [12, 7]
+      - [12, 8]
+      - [12, 9]
+      - [12, 10]
+      - [12, 24]
+      - [12, 25]
+      - [12, 26]
+      - [12, 27]
+      - [13, 6]
+      - [13, 7]
+      - [13, 8]
+      - [13, 9]
+      - [13, 10]
+      - [13, 24]
+      - [13, 26]
+      - [13, 27]
+      - [14, 5]
+      - [14, 6]
+      - [14, 7]
+      - [14, 8]
+      - [14, 9]
+      - [14, 10]
+      - [14, 26]
+      - [14, 27]
+      - [15, 7]
+      - [15, 8]
+      - [15, 9]
+      - [15, 10]
+      - [15, 26]
+      - [15, 27]
+      - [16, 7]
+      - [16, 8]
+      - [16, 9]
+      - [16, 10]
+      - [16, 26]
+      - [16, 27]
+      - [17, 7]
+      - [17, 8]
+      - [17, 9]
+      - [17, 26]
+      - [17, 27]
+      - [18, 7]
+      - [18, 8]
+      - [18, 9]
+      - [18, 26]
+      - [18, 27]
+      - [19, 7]
+      - [19, 8]
+      - [19, 9]
+      - [19, 26]
+      - [19, 27]
+      - [20, 7]
+      - [20, 8]
+      - [20, 9]
+      - [20, 26]
+      - [20, 27]
+      - [21, 3]
+      - [21, 4]
+      - [21, 5]
+      - [21, 6]
+      - [21, 7]
+      - [21, 8]
+      - [21, 9]
+      - [22, 0]
+      - [22, 4]
+      - [22, 5]
+      - [22, 6]
+      - [22, 7]
+      - [22, 8]
+      - [22, 9]
+      - [23, 0]
+      - [23, 1]
+      - [23, 3]
+      - [23, 4]
+      - [23, 6]
+      - [23, 7]
+      - [24, 2]
+      - [25, 2]
+      - [25, 3]
+      - [25, 4]
+      - [26, 3]
+      - [26, 4]
+      - [33, 6]
+      - [33, 7]
+      - [34, 8]
+      - [34, 9]
+      - [34, 10]
+      - [34, 11]
+      - [34, 12]
+      - [35, 9]
+      - [35, 10]
+      - [35, 11]
+      - [35, 12]
+      - [35, 13]
+      - [35, 14]
+      - [36, 11]
+      - [36, 12]
+      - [36, 13]
+      - [36, 14]
+      - [37, 13]
+      - [37, 14]
+      - [38, 16]
+      - [39, 16]
+      - [40, 14]
+      - [41, 14]
+      - [41, 16]
+      - [41, 17]
+      - [42, 15]
+      - [42, 17]
+      - [42, 18]
+      - [43, 17]
+      - [43, 18]
+      - [44, 16]
+      - [44, 18]
+      - [44, 19]
+      - [45, 18]
+      - [45, 19]
+      - [47, 16]
+      - [47, 17]
+      - [47, 21]
+      - [48, 18]
+      - [48, 22]
+      - [48, 23]
+      - [49, 18]
+      - [49, 19]
+      - [49, 23]
+      - [78, 35]
+      - [78, 36]
+      - [79, 35]
+  sides:
+    - id: allied
+      display_name: Allied
+    - id: japanese
+      display_name: Japanese
+  objectives:
+    - id: protect-port-moresby
+      type: victory_points
+    - id: repel-invasion-fleet
+      type: victory_points
+  setup:
+    bases:
+      - id: port-moresby
+        name: Port Moresby
+        side: allied
+        position: [3, 23]
+        air_operations:
+          maximum_capacity: 16
+          launch_factor_min: 4
+          launch_factor_normal: 8
+          launch_factor_max: 16
+          ready_factors: 6
+        aircraft:
+          - type: P-40
+            count: 12
+            state: ready
+          - type: Catalina
+            count: 4
+            state: ready
+      - id: rabaul
+        name: Rabaul
+        side: japanese
+        position: [23, 4]
+        air_operations:
+          maximum_capacity: 24
+          launch_factor_min: 6
+          launch_factor_normal: 12
+          launch_factor_max: 24
+          ready_factors: 8
+        aircraft:
+          - type: Zero
+            count: 8
+            state: ready
+          - type: Val
+            count: 6
+            state: ready
+    task_forces:
+      - id: lexington-tf
+        number: 1
+        side: allied
+        position: [35, 45]
+        ships:
+          - name: Lexington
+            aircraft:
+              - type: Wildcat
+                count: 7
+                state: ready
+              - type: Dauntless
+                count: 12
+                state: ready
+              - type: Devastator
+                count: 4
+                state: ready
+          - name: Minneapolis
+      - id: yorktown-tf
+        number: 2
+        side: allied
+        position: [40, 35]
+        ships:
+          - name: Yorktown
+            aircraft:
+              - type: Wildcat
+                count: 7
+                state: ready
+              - type: Dauntless
+                count: 12
+                state: ready
+              - type: Devastator
+                count: 4
+                state: ready
+          - name: Hobart
+      - id: shokaku-tf
+        number: 1
+        side: japanese
+        position: [30, 10]
+        ships:
+          - name: Shokaku
+            aircraft:
+              - type: Zero
+                count: 8
+                state: ready
+              - type: Val
+                count: 7
+                state: ready
+              - type: Kate
+                count: 7
+                state: ready
+      - id: zuikaku-tf
+        number: 2
+        side: japanese
+        position: [32, 10]
+        ships:
+          - name: Zuikaku
+            aircraft:
+              - type: Zero
+                count: 8
+                state: ready
+              - type: Val
+                count: 7
+                state: ready
+              - type: Kate
+                count: 7
+                state: ready
+      - id: shoho-tf
+        number: 3
+        side: japanese
+        position: [28, 10]
+        ships:
+          - name: Shoho
+            aircraft:
+              - type: Kate
+                count: 3
+                state: ready
+  expected_setup:
+    unit_counts:
+      bases: 2
+      task_forces: 5
