@@ -4,6 +4,8 @@
 
 This document turns the gameplay requirements and UI specification into a platform- and language-neutral implementation plan. It identifies the capabilities to build, the responsibilities and contracts of each subsystem, their dependencies, the recommended delivery order, and the tests required to prove the rule behavior.
 
+The authoritative unit schema and current aircraft/ship data inventory are documented in [UNIT_DATA_SPEC.md](UNIT_DATA_SPEC.md). The web implementation should validate and version that data before using it in rules, UI, AI, or persistence.
+
 The current repository is one possible prototype, but the target implementation may be a web application or another client/server product. This document therefore specifies domain capabilities, interfaces, state boundaries, and deployment concerns without requiring Python, a particular frontend framework, a particular database, or a particular hosting model.
 
 ## 2. Implementation Strategy
@@ -534,6 +536,8 @@ Exit condition: the computer can complete a full scenario without illegal action
 ## 15. Test Matrix
 
 ### 15.1 Rules unit tests
+
+Unit-data tests must verify aircraft movement/range/combat records, ship factors, carrier operations values, duplicate factory names, missing combat data, and scenario references against [UNIT_DATA_SPEC.md](UNIT_DATA_SPEC.md).
 
 Combat tests must cover BHT meaning and bounds, every Combat Results Table row, every attack-factor range, the 24 and 25 boundary assignments, Result Number lookup, die conversion, air-to-air, anti-aircraft, air attack, surface combat, damage application, RF expenditure, and persistence of combat events.
 

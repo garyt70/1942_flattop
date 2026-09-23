@@ -4,6 +4,8 @@
 
 This document defines the design for a digital implementation of 1942 Flat Top that remains faithful to the rule spirit of the original naval-air wargame while being playable and understandable as a computer game. The design is grounded in the original board-game model but is intentionally framed as a digital strategy game rather than a literal tabletop reproduction.
 
+Unit attributes and source-data validation are specified in [UNIT_DATA_SPEC.md](UNIT_DATA_SPEC.md). The design must use that catalog rather than duplicating aircraft or ship statistics in UI, AI, or scenario code.
+
 The implementation must support:
 
 - human-vs-human gameplay

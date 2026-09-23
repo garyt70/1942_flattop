@@ -6,6 +6,8 @@ This document defines the detailed gameplay, interaction, and AI requirements fo
 
 This specification is grounded in the original rules as captured in the project rule source, especially the turn sequence, damage model, flight endurance, repair rules, and victory-point system. It intentionally preserves the strategic feel of the board game while describing the behavior a digital implementation must support in a clear and testable form.
 
+The complete aircraft, ship, carrier, base, and combat-data contract is defined in [UNIT_DATA_SPEC.md](UNIT_DATA_SPEC.md). This document defines player-visible and behavioral requirements; the unit-data document defines the values and schema those requirements operate on.
+
 ## 2. Product Goal
 
 The product must provide a playable, rule-aware naval-air strategy game for a human player or a human-versus-computer match. It must support multiple historical scenarios, maintain hidden information, preserve tactical uncertainty, and enable a serious opponent to make decisions that are meaningful and legal.
