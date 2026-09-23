@@ -235,6 +235,8 @@ The digital engine must calculate and display these constraints so the player ca
 
 Air Operations is an authoring phase as well as a status view. The player constructs numbered formations by selecting aircraft factors from Ready groups, selecting a count, selecting legal armament, and committing the formation. One formation can contain multiple aircraft types.
 
+The operations chart presents two explicit budgets above the aircraft lanes: remaining Launch Factor for the selected carrier/base and remaining Readying Factor for the turn. Launch Factor is consumed by committed takeoffs/landings; Readying Factor is consumed by queued movement between Just Landed, Readying, and Ready. Both budgets are validated by the rules engine, not inferred by the client.
+
 The operations workflow must maintain a pending assignment model until commit. On commit it must:
 
 - remove selected factors from Ready
@@ -248,6 +250,8 @@ Armament options are `GP`, `AP`, `Torpedo`, and unarmed where the aircraft and s
 ### 8.6 Readying and recovery controls
 
 The operations chart must support pending readiness transitions from Just Landed to Readying and from Readying to Ready. These transitions consume Readying Factor, cannot move an aircraft more than once in the same turn, and must be committed as an explicit readiness action. Recovery must place aircraft in Just Landed before they can be readied again.
+
+The aircraft combat-values table is the single control surface for these transitions. Each row exposes state-appropriate plus/minus controls: Ready `+` assigns factors to the pending formation, Ready `-` removes pending formation factors, Just Landed `+` moves factors to Readying, Readying `+` moves factors to Ready, Readying `-` moves factors back to Just Landed, and Ready exposes a reverse move to Readying. Armament is editable only in the Readying row; Ready aircraft show a locked armament value and can be selected for formation construction. The chart must make the disabled state and the reason visible when an adjustment would exceed Readying Factor or Launch Factor.
 
 ## 9. Combat System Design
 

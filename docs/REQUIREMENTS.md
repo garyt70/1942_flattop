@@ -205,7 +205,7 @@ The system must track:
 - launch factor (LF) at minimum, normal, and maximum launch levels
 - the rule that launch factor can be reduced by damage
 
-The digital rules engine must enforce that the total number of aircraft taking off and landing at a ship or base does not exceed that unit’s launch factor.
+The digital rules engine must enforce that the total number of aircraft taking off and landing at a ship or base does not exceed that unit’s launch factor. Launch Factor is a per-carrier or per-base turn budget and the UI must show its total, used amount, and remaining amount.
 
 ### REQ-08.02: Readiness progression
 Aircraft on ships and bases must move through readiness states correctly:
@@ -216,6 +216,8 @@ Aircraft on ships and bases must move through readiness states correctly:
 - air formation box
 
 The system must enforce the rule that an aircraft cannot be in more than one readiness state at the same time and that aircraft may not exceed the readiness movement limit for the turn.
+
+Readying Factor is a batch budget for readiness transitions. One plus or minus adjustment may move a chosen number of aircraft factors between Just Landed, Readying, Ready, or a pending Air Formation, but the total queued readiness movement may not exceed the remaining Readying Factor. Aircraft in Ready may be assigned to a pending formation and launched; those factors are removed from Ready only when the formation or launch is committed.
 
 ### REQ-08.02a: Air operations assignment workflow
 The air-operations UI must let the player select individual aircraft groups or partial counts from the Ready area and assign them to a numbered Air Formation. The player must be able to:
@@ -232,8 +234,10 @@ Creating the formation must move the selected factors out of Ready, consume the 
 ### REQ-08.02b: Aircraft armament selection
 Before an aircraft group is committed to an Air Formation, the player must be able to select its armament from the legal options for that aircraft: General Purpose bomb (`GP`), Armor Piercing bomb (`AP`), torpedo, or unarmed where permitted. The selected armament must be visible in the operations chart and must affect whether the aircraft is treated as armed, its mission role, attack eligibility, and later combat resolution.
 
+Armament may be changed only while the aircraft factor is in Readying. Armament controls must be disabled for Just Landed, Ready, Air Formation, and In Flight aircraft. A formation inherits the armament selected before its factors leave Readying/Ready for commitment.
+
 ### REQ-08.02c: Readying actions
-The player must be able to select aircraft in Just Landed and move them to Readying, and select aircraft in Readying and move them to Ready, subject to the remaining Readying Factor. The UI must show pending readiness moves and commit them together through an explicit action.
+The aircraft combat-values table is the primary air-operations control surface. Each aircraft row must provide plus/minus controls appropriate to its current state: Ready `+` adds factors to the pending Air Formation and `-` removes pending formation factors back to the Ready pool; Just Landed `+` queues movement to Readying; Readying `+` queues movement to Ready and `-` queues movement back to Just Landed; Ready also exposes a reverse transition control to Readying. All readiness transitions are subject to the remaining Readying Factor. The UI must show pending readiness moves and commit them together through an explicit action.
 
 ### REQ-08.03: Launch type behavior
 The system must support three launch behaviors:

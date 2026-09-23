@@ -9,6 +9,13 @@ const state = {
   formationNumber: 19,
   formationSelection: { wildcat: 0, dauntless: 0, devastator: 0 },
   formationArmament: { wildcat: 'None', dauntless: 'GP', devastator: 'Torpedo' },
+  aircraftPools: {
+    wildcat: { ready: 6, readying: 0, landed: 0 },
+    dauntless: { ready: 4, readying: 8, landed: 0 },
+    devastator: { ready: 0, readying: 0, landed: 4 }
+  },
+  readinessMoves: { landedToReadying: 0, readyingToReady: 0, readyToReadying: 0, readyingToLanded: 0 },
+  launchFactors: { total: 11, used: 0 },
   pendingPiece: null
 };
 
@@ -244,6 +251,10 @@ function openModal(type) {
   const modal = $('#modal');
   let content = '';
   if (type === 'operations') content = interactiveOperationsModal();
+  if (type === 'operations') content = content.replace('<div class="modal-body">', `<div class="modal-body"><div class="air-ops-budget"><div><span>LAUNCH FACTOR · CV ENTERPRISE</span><b>${state.launchFactors.total - state.launchFactors.used} remaining</b><small>${state.launchFactors.used} used of ${state.launchFactors.total} · committed takeoffs and landings</small></div><div><span>READYING FACTOR · THIS TURN</span><b>${8 - readinessBudgetUsed()} remaining</b><small>${readinessBudgetUsed()} queued of 8 · batch readiness moves</small></div></div>`);
+  if (type === 'operations') content = content.replace('<div class="tracker-toolbar">', `${readinessControls()}<div class="tracker-toolbar">`);
+  if (type === 'operations') content = content.replace('<tr class="status-row"><th colspan="19">JUST LANDED / IN FLIGHT · tracked below</th></tr>', `<tr class="status-row"><th colspan="19">JUST LANDED / IN FLIGHT · tracked below</th></tr>${aircraftTableRow('landedDevastator', 'TBD Devastator', 4, ['2','3','1','5','2','0','0','0','0','1','5','0','0'], '6', '5 / 5', 0)}`);
+  if (type === 'operations') content = content.replace('<tr class="status-row"><th colspan="19">READYING · aircraft available after readiness move</th></tr>', `<tr class="status-row"><th colspan="19">READYING · aircraft available after readiness move</th></tr>${aircraftTableRow('dauntlessReadying', 'SBD Dauntless', 8, ['3','1','1','5','1','6','2','0','0','2','5','2','7'], '9', '6 / 6', 0)}`);
   if (type === 'piece-menu') content = pieceMenuModal(state.pendingPiece);
   if (type === 'details') content = detailsModal(state.pendingPiece);
   if (type === 'combat') content = combatModal();
@@ -293,6 +304,24 @@ function operationsModal() {
   return modalShell('Operations chart', 'Task Force 7 · CV Enterprise · air operations phase', `<div class="modal-body"><div class="operations-grid"><div class="ops-box"><h3>READY · 10</h3><div class="plane-token"><span>F4F Wildcat</span><b>6</b></div><div class="plane-token"><span>SBD Dauntless</span><b>4</b></div></div><div class="ops-box"><h3>READYING · 8</h3><div class="plane-token"><span>SBD Dauntless</span><b>8</b></div></div><div class="ops-box"><h3>JUST LANDED · 4</h3><div class="plane-token"><span>TBD Devastator</span><b>4</b></div></div><div class="ops-box"><h3>IN FLIGHT · 4</h3><div class="plane-token"><span>Formation 18</span><b>4</b></div></div></div><div class="launch-planner"><h3>Launch planner <span class="condition-pill">preview</span></h3><div class="launch-controls"><button class="choice ${state.launchMode === 'minimum' ? 'active' : ''}" data-launch="minimum"><strong>Minimum launch</strong><small>1-3 factors · full MF</small></button><button class="choice ${state.launchMode === 'normal' ? 'active' : ''}" data-launch="normal"><strong>Normal launch</strong><small>4-11 factors · half MF</small></button><button class="choice ${state.launchMode === 'maximum' ? 'active' : ''}" data-launch="maximum"><strong>Maximum launch</strong><small>12-22 factors · no movement</small></button></div><div class="formula">6 F4F + 4 SBD · normal launch · 10 / 11 LF used · formation MF 2 · safe return by 1600</div><div class="modal-actions"><button class="ghost-button" data-action="close-modal">Cancel</button><button class="primary-button" data-action="confirm-launch">Confirm launch <span>→</span></button></div></div></div>`);
 }
 
+function readinessControls() {
+  const landed = state.readinessMoves.landedToReadying;
+  const readied = state.readinessMoves.readyingToReady;
+  return `<div class="air-ops-lanes"><div class="air-ops-lane"><strong>JUST LANDED</strong><span>4 TBD Devastator</span><button class="step-button" data-readiness="landedToReadying" data-delta="-1">−</button><b>${landed}</b><button class="step-button" data-readiness="landedToReadying" data-delta="1">+</button><small>to Readying</small></div><div class="air-ops-lane"><strong>READYING</strong><span>8 SBD Dauntless</span><button class="step-button" data-readiness="readyingToReady" data-delta="-1">−</button><b>${readied}</b><button class="step-button" data-readiness="readyingToReady" data-delta="1">+</button><small>to Ready · armament editable here</small></div><div class="air-ops-lane"><strong>READY</strong><span>6 F4F · 4 SBD</span><b>launchable</b><small>table + assigns formation · ↓ returns to Readying</small></div><div class="air-ops-lane"><strong>FORMATION</strong><span>${state.formationSelection.wildcat + state.formationSelection.dauntless + state.formationSelection.devastator} selected</span><b>${state.launchFactors.used} LF reserved</b><small>table − returns factors to Ready</small></div></div>`;
+}
+
+function readinessBudgetUsed() {
+  return Object.values(state.readinessMoves).reduce((sum, value) => sum + value, 0);
+}
+
+function moveAircraft(key, from, to, amount) {
+  const pools = state.aircraftPools[key];
+  if (!pools || amount < 0 || pools[from] < amount) return false;
+  pools[from] -= amount;
+  pools[to] += amount;
+  return true;
+}
+
 function interactiveOperationsModal() {
   const selected = state.formationSelection;
   const total = selected.wildcat + selected.dauntless + selected.devastator;
@@ -306,8 +335,18 @@ function aircraftTableRow(key, name, factors, values, movement, range, selectedC
     devastator: ['2','3','1','5','2','0','0','0','0','1','5','0','0','6']
   };
   const cells = (catalogValues[key] || values).map(value => `<td class="combat-value">${value}</td>`).join('');
-  const armament = state.formationArmament[key] || (key === 'dauntless' ? 'GP' : 'None');
-  return `<tr class="aircraft-row ${selectedCount ? 'selected' : ''}"><td><button class="aircraft-choice" data-aircraft-select="${key}"><span class="plane-dot ${key === 'wildcat' ? 'fighter' : key === 'devastator' ? 'torpedo' : 'bomber'}"></span><strong>${name}</strong></button></td><td><b>${factors}</b></td>${cells}<td>${movement}</td><td>${range}</td><td><button class="armament-cycle" data-armament="${key}">${armament}</button></td></tr>`;
+  const poolKey = key === 'landedDevastator' ? 'devastator' : key === 'dauntlessReadying' ? 'dauntless' : key;
+  const armament = state.formationArmament[poolKey] || (poolKey === 'dauntless' ? 'GP' : 'None');
+  const canArm = key === 'dauntlessReadying' || key === 'devastator';
+  const status = key === 'landedDevastator' ? 'Just Landed' : key === 'dauntlessReadying' || key === 'devastator' ? 'Readying' : 'Ready';
+  const controls = status === 'Ready'
+    ? `<button class="table-step" data-aircraft-adjust="${key}" data-delta="-1" aria-label="Remove ${name} from formation">−</button><b>${selectedCount}</b><button class="table-step" data-aircraft-adjust="${key}" data-delta="1" aria-label="Add ${name} to formation">+</button><button class="table-step transfer" data-readiness="readyToReadying" data-aircraft-key="${key}" data-delta="1" aria-label="Move ${name} to Readying">↓</button>`
+    : status === 'Readying'
+      ? `<button class="table-step" data-readiness="readyingToLanded" data-aircraft-key="${poolKey}" data-delta="1" aria-label="Move ${name} to Just Landed">−</button><b>${selectedCount}</b><button class="table-step" data-readiness="readyingToReady" data-aircraft-key="${poolKey}" data-delta="1" aria-label="Move ${name} to Ready">+</button>`
+      : `<button class="table-step" data-readiness="landedToReadying" data-aircraft-key="${poolKey}" data-delta="1" aria-label="Move ${name} to Readying">+</button><b>${selectedCount}</b><button class="table-step" disabled>−</button>`;
+  const poolState = key === 'landedDevastator' ? 'landed' : key === 'dauntlessReadying' || key === 'devastator' ? 'readying' : 'ready';
+  const available = state.aircraftPools[poolKey][poolState];
+  return `<tr class="aircraft-row ${selectedCount ? 'selected' : ''}"><td><div class="aircraft-row-main"><button class="aircraft-choice" data-aircraft-select="${poolKey}"><span class="plane-dot ${key === 'wildcat' ? 'fighter' : key === 'devastator' || key === 'landedDevastator' ? 'torpedo' : 'bomber'}"></span><strong>${name}</strong></button><span class="aircraft-row-controls">${controls}</span></div></td><td><b>${available}</b></td>${cells}<td>${movement}</td><td>${range}</td><td><button class="armament-cycle ${canArm ? '' : 'locked'}" data-armament="${poolKey}" ${canArm ? '' : 'disabled'}>${armament}</button><small class="armament-state">${canArm ? 'Readying: editable' : 'Ready: locked'}</small></td></tr>`;
 }
 
 function legacyInteractiveOperationsModal() {
@@ -362,7 +401,7 @@ function handleAction(action) {
   else if (action === 'close-modal') $('#modalBackdrop').hidden = true;
   else if (action === 'advance') advancePhase();
   else if (action === 'confirm-launch') { $('#modalBackdrop').hidden = true; toast('Launch committed: 10 LF used. Formation 19 is airborne.'); }
-  else if (action === 'create-formation') { $('#modalBackdrop').hidden = true; toast(`Air Formation ${state.formationNumber} created with ${state.formationSelection.wildcat + state.formationSelection.dauntless + state.formationSelection.devastator} selected factors.`); state.formationSelection = { wildcat: 0, dauntless: 0, devastator: 0 }; }
+  else if (action === 'create-formation') { const created = Object.entries(state.formationSelection); created.forEach(([key, count]) => { state.aircraftPools[key].ready -= count; }); $('#modalBackdrop').hidden = true; toast(`Air Formation ${state.formationNumber} created with ${created.reduce((sum, [, count]) => sum + count, 0)} selected factors.`); state.formationSelection = { wildcat: 0, dauntless: 0, devastator: 0 }; }
   else if (action === 'queue-ready') toast('Readiness move queued. One Readying Factor reserved.');
   else if (action === 'resolve-combat') { $('#modalBackdrop').hidden = true; toast('Combat result applied. 3 hits recorded on CV Shokaku.'); }
   else if (action === 'confirm') { toast('Air operations phase confirmed. Movement plotting is now available.'); advancePhase(); }
@@ -385,6 +424,8 @@ function handlePieceAction(action) {
 
 function bindDynamicActions() {
   $$('[data-action]').forEach(button => { if (!button.dataset.bound) { button.dataset.bound = 'true'; button.addEventListener('click', () => handleAction(button.dataset.action)); } });
+  $$('[data-readiness]').forEach(button => button.addEventListener('click', () => { const transition = button.dataset.readiness; const aircraftKey = button.dataset.aircraftKey; const direction = { landedToReadying: ['landed', 'readying'], readyingToReady: ['readying', 'ready'], readyToReadying: ['ready', 'readying'], readyingToLanded: ['readying', 'landed'] }[transition]; if (!aircraftKey || !direction) return; const queued = readinessBudgetUsed(); if (queued >= 8 || !moveAircraft(aircraftKey, direction[0], direction[1], 1)) return toast('No aircraft available or Readying Factor remaining.'); state.readinessMoves[transition] += 1; openModal('operations'); }));
+  $$('[data-aircraft-adjust]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.aircraftAdjust; const delta = Number(button.dataset.delta); const next = state.formationSelection[key] + delta; const available = state.aircraftPools[key].ready - state.formationSelection[key]; const total = Object.values(state.formationSelection).reduce((sum, value) => sum + value, 0); if (next < 0 || (delta > 0 && (available < 1 || total >= state.launchFactors.total - state.launchFactors.used))) return toast('No Ready aircraft or Launch Factor remaining.'); state.formationSelection[key] = next; state.launchFactors.used = total + delta; openModal('operations'); }));
   $$('[data-launch]').forEach(button => button.addEventListener('click', () => { state.launchMode = button.dataset.launch; $$('.choice').forEach(choice => choice.classList.toggle('active', choice.dataset.launch === state.launchMode)); toast(`${button.textContent.trim().split(' ')[0]} launch selected.`); }));
   $$('[data-aircraft-select]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.aircraftSelect; state.formationSelection[type] = state.formationSelection[type] ? 0 : (type === 'wildcat' ? 2 : 4); openModal('operations'); }));
   $$('[data-armament]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.armament; const options = type === 'wildcat' ? ['None', 'GP'] : type === 'devastator' ? ['Torpedo', 'GP', 'None'] : ['GP', 'AP', 'None']; const index = options.indexOf(state.formationArmament[type]); state.formationArmament[type] = options[(index + 1) % options.length]; openModal('operations'); }));

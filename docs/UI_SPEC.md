@@ -185,6 +185,8 @@ For each area, show aircraft type and count where the player is entitled to know
 
 The interface must prevent moving an aircraft more than once in the same turn or exceeding the Readying Factor.
 
+The screen must show `LF total / used / remaining` for the selected carrier or base and `RF total / queued / remaining` for the current turn. Plus and minus buttons adjust batch counts between readiness lanes and the pending formation. Controls must update these counters immediately and must be disabled when the move exceeds the available budget. Armament is editable only for aircraft in Readying; Ready aircraft use a locked armament display and may be added to a formation.
+
 ### 6.1 Launch workflow
 
 1. Select aircraft from a valid Ready area.
@@ -202,17 +204,18 @@ The operations chart must provide a direct construction workflow for formations,
 
 1. In Ready, select an aircraft row.
 2. Adjust the number of factors to add to the pending formation.
-3. Cycle or choose the armament: `GP`, `AP`, `Torpedo`, or unarmed where legal.
+3. Cycle or choose the armament: `GP`, `AP`, `Torpedo`, or unarmed where legal. This control is enabled only while the aircraft is in Readying.
 4. Choose an available Air Formation number from 1 through 35.
 5. Add additional aircraft types if desired.
-6. Review total factors, LF consumption, launch type, payload, and resulting mission roles.
-7. Commit Create Air Formation.
+6. Use plus/minus controls to adjust the selected factor count. Removing a pending factor returns it to Ready.
+7. Review total factors, LF consumption, launch type, payload, and resulting mission roles.
+8. Commit Create Air Formation.
 
 The UI must keep pending selections separate from committed game state. Cancel must restore the uncommitted selection without changing Ready counts.
 
 ### 6.4 Readiness action workflow
 
-The operations chart must expose selectable controls for Just Landed and Readying aircraft. The player can queue Just Landed -> Readying and Readying -> Ready moves, see remaining Readying Factor, and commit the readiness batch. The control must be unavailable when the selected transition would exceed the remaining factor.
+The aircraft combat-values table must expose the plus/minus controls. Ready `+` assigns factors to the pending formation and Ready `-` returns pending factors to the available Ready pool. Just Landed `+` queues Just Landed -> Readying; Readying `+` queues Readying -> Ready; Readying `-` queues Readying -> Just Landed; and Ready exposes a reverse Ready -> Readying transition. The player can queue transitions, see remaining Readying Factor, and commit the readiness batch. Controls must be unavailable when the selected transition would exceed the remaining factor.
 
 ### 6.2 Recovery workflow
 
