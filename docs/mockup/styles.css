@@ -26,6 +26,17 @@ button:focus-visible { outline:3px solid #f2c252; outline-offset:2px; }
 .modal:has(.ship-roster-table) { width:min(1400px,calc(100vw - 40px)); }
 .modal:has(.ship-roster-table) .ship-roster-table { min-width:900px; }
 .modal:has(.ship-roster-table) .ship-roster-header,.modal:has(.ship-roster-table) .ship-roster-row { grid-template-columns:minmax(260px,2.2fr) repeat(8,minmax(70px,1fr)); }
+.modal:has(.ship-roster-table) .detail-hero strong { font-size:15px; }
+.modal:has(.ship-roster-table) .detail-hero small { font-size:12px; }
+.modal:has(.ship-roster-table) .detail-section h3 { font-size:11px; }
+.modal:has(.ship-roster-table) .ship-roster-header { font-size:11px; }
+.modal:has(.ship-roster-table) .ship-roster-row { min-height:58px; }
+.modal:has(.ship-roster-table) .ship-roster-row strong { font-size:12px; }
+.modal:has(.ship-roster-table) .ship-roster-row small { font-size:10px; }
+.modal:has(.ship-roster-table) .ship-roster-row>b { font-size:12px; }
+.modal:has(.ship-roster-table) .detail-table div { font-size:12px; }
+.modal:has(.ship-roster-table) .detail-table b { font-size:12px; }
+.modal:has(.ship-roster-table) .detail-table em { font-size:10px; }
 
 /* Source-coordinate map overrides for the scenario mockup. */
 .map-grid { position:absolute; inset:5% 7%; overflow:hidden; border:1px solid rgba(48,93,87,.32); background-color:#d9e7df; background-image:linear-gradient(30deg,rgba(255,255,255,.28) 12%,transparent 12.5%,transparent 87%,rgba(255,255,255,.28) 87.5%,rgba(255,255,255,.28)),linear-gradient(150deg,rgba(255,255,255,.28) 12%,transparent 12.5%,transparent 87%,rgba(255,255,255,.28) 87.5%,rgba(255,255,255,.28)),linear-gradient(90deg,transparent 49.5%,rgba(83,126,116,.14) 50%,transparent 50.5%),linear-gradient(0deg,transparent 49.5%,rgba(83,126,116,.14) 50%,transparent 50.5%); background-size:34px 58px,34px 58px,68px 58px,68px 58px; }
