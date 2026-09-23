@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flat Top / Pacific Theater Command</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">FT</span>
+        <div>
+          <p class="eyebrow">1942 FLAT TOP</p>
+          <h1>Pacific Theater Command</h1>
+        </div>
+      </div>
+      <div class="turn-status" aria-live="polite">
+        <span class="status-dot"></span>
+        <div>
+          <strong id="phaseLabel">AIR OPERATIONS</strong>
+          <span id="turnLabel">Turn 14 · 1200 · Daylight</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" data-action="help" title="Open rules reference" aria-label="Open rules reference">?</button>
+        <button class="icon-button" data-action="save" title="Save mock game" aria-label="Save mock game">↓</button>
+        <button class="avatar" title="Allied command">A</button>
+      </div>
+    </header>
+
+    <nav class="phase-rail" aria-label="Turn phases">
+      <div class="phase-item complete"><span>01</span><b>Weather</b><small>Clear · wind 3</small></div>
+      <div class="phase-item active"><span>02</span><b>Air ops</b><small>Your action</small></div>
+      <div class="phase-item"><span>03</span><b>Plot movement</b><small>Locked</small></div>
+      <div class="phase-item"><span>04</span><b>Shadowing</b><small>Locked</small></div>
+      <div class="phase-item"><span>05</span><b>Move task forces</b><small>Locked</small></div>
+      <div class="phase-item"><span>06</span><b>Initiative</b><small>Locked</small></div>
+      <div class="phase-item"><span>07</span><b>Plane movement</b><small>Locked</small></div>
+      <div class="phase-item"><span>08</span><b>Combat</b><small>Locked</small></div>
+      <button class="advance-button" data-action="advance">Advance phase <span>→</span></button>
+    </nav>
+
+    <main class="workspace">
+      <aside class="left-sidebar">
+        <section class="score-card">
+          <div class="section-heading"><span>THE SCORE</span><button class="text-button" data-action="score">Ledger</button></div>
+          <div class="score-row allied-score"><span class="faction-chip allied">A</span><div><strong>Allied</strong><small>automatic win at +40</small></div><b>62</b></div>
+          <div class="score-row japanese-score"><span class="faction-chip japanese">J</span><div><strong>Japanese</strong><small>current total</small></div><b>48</b></div>
+          <div class="score-progress"><span style="width: 63%"></span></div>
+          <p class="score-note"><span>+14</span> Allied advantage · 3 turns to decision check</p>
+        </section>
+
+        <section class="fleet-section">
+          <div class="section-heading"><span>YOUR FORCES</span><span class="muted" id="forceCount">3 groups</span></div>
+          <button class="force-card selected" data-unit="tf7">
+            <span class="unit-icon carrier">CV</span><span><strong>Task Force 7</strong><small>CV Enterprise · 7 ships</small></span><i class="unit-state ready-state"></i>
+          </button>
+          <button class="force-card" data-unit="air18">
+            <span class="unit-icon air">✦</span><span><strong>Air Formation 18</strong><small>10 SBD · 6 F4F · airborne</small></span><i class="unit-state warning-state"></i>
+          </button>
+          <button class="force-card" data-unit="base">
+            <span class="unit-icon base">⌂</span><span><strong>Port Moresby</strong><small>LF 8/4 · damage 1</small></span><i class="unit-state repair-state"></i>
+          </button>
+        </section>
+
+        <section class="intel-section">
+          <div class="section-heading"><span>CONTACTS</span><span class="contact-count">2</span></div>
+          <button class="contact-row" data-contact="contact1"><span class="contact-marker c1">?</span><span><strong>Unknown task force</strong><small>Condition 1 · BB or carrier</small></span><em>12:00</em></button>
+          <button class="contact-row" data-contact="contact2"><span class="contact-marker c2">◈</span><span><strong>Air contact</strong><small>Condition 2 · 8-14 planes</small></span><em>11:00</em></button>
+        </section>
+
+        <section class="quick-links">
+          <button data-action="operations">▦ <span>Operations chart</span><kbd>O</kbd></button>
+          <button data-action="log">≡ <span>Event log</span><kbd>L</kbd></button>
+          <button data-action="rules">◌ <span>Rules reference</span><kbd>?</kbd></button>
+        </section>
+      </aside>
+
+      <section class="map-stage" aria-label="Operational map">
+        <div class="map-toolbar">
+          <div class="map-title"><span class="map-pin">◎</span><div><strong id="mapTitle">Coral Sea · Board One</strong><small id="mapSubtitle">44 × 50 hexes · scenario one · coordinates visible</small></div></div>
+          <div class="map-tools">
+            <button class="tool-toggle active" data-board="one">Board One</button>
+            <button class="tool-toggle" data-board="two">Board Two</button>
+            <button class="tool-toggle active" data-overlay="movement">Movement</button>
+            <button class="tool-toggle" data-overlay="contacts">Contacts</button>
+            <button class="tool-toggle" data-overlay="weather">Weather</button>
+            <button class="icon-button small" data-action="zoom-in" aria-label="Zoom in">+</button>
+            <button class="icon-button small" data-action="zoom-out" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="map-canvas" id="mapCanvas"><div class="map-viewport" id="mapViewport"><div class="map-content" id="mapContent"><div class="map-grid" id="mapGrid"></div><div class="map-overlays" id="mapOverlays"></div></div></div>
+          <div class="cloud cloud-a"><span>CLOUD</span></div><div class="cloud cloud-b"><span>STORM</span></div>
+          <div class="wind-arrow">↗ <small>wind</small></div>
+          <div class="movement-line"></div>
+          <div class="map-legend"><span><i class="legend-swatch allied-swatch"></i> Allied</span><span><i class="legend-swatch enemy-swatch"></i> Contact</span><span><i class="legend-swatch cloud-swatch"></i> Weather</span></div>
+          <div class="map-coordinates"><span>I</span><span>II</span><span>III</span><span>IV</span></div>
+        </div>
+        <div class="map-footer"><span><b>Selected:</b> <span id="selectedMapLabel">Task Force 7</span></span><span>Click a marker to inspect · map coordinates match scenario setup</span><span class="latency"><i></i> Local simulation</span></div>
+      </section>
+
+      <aside class="right-panel" id="rightPanel">
+        <div class="panel-header"><div><p class="eyebrow" id="panelEyebrow">SELECTED UNIT</p><h2 id="panelTitle">Task Force 7</h2></div><button class="close-panel" data-action="clear-selection" aria-label="Clear selection">×</button></div>
+        <div id="unitPanel" class="panel-content">
+          <div class="unit-summary"><span class="large-unit-icon carrier">CV</span><div><strong>Carrier task force</strong><span>Allied · observed by enemy</span></div><span class="condition-pill">C3</span></div>
+          <div class="stat-grid"><div><small>LOCATION</small><b>CC16</b></div><div><small>SHIPS</small><b>7</b></div><div><small>MF</small><b>3</b></div><div><small>STATUS</small><b class="text-green">Ready</b></div></div>
+          <div class="panel-divider"></div>
+          <div class="subheading"><span>AIR OPERATIONS</span><button class="text-button" data-action="operations">Open chart</button></div>
+          <div class="capacity-bar"><div><span>Launch factor</span><b>11 / 3</b></div><div class="bar"><i style="width: 72%"></i></div><small>7 aircraft ready · 4 in flight</small></div>
+          <div class="air-mini-list"><div><span class="plane-dot fighter"></span><span>F4F Wildcat</span><b>6</b><small>ready</small></div><div><span class="plane-dot bomber"></span><span>SBD Dauntless</span><b>8</b><small>readying</small></div><div><span class="plane-dot torpedo"></span><span>TBD Devastator</span><b>4</b><small>just landed</small></div></div>
+          <div class="panel-divider"></div>
+          <div class="subheading"><span>AVAILABLE ACTIONS</span></div>
+          <button class="primary-action" data-action="operations"><span>▦</span> Manage air operations <b>→</b></button>
+          <button class="secondary-action" data-action="plot"><span>⌁</span> Plot movement <b>→</b></button>
+          <button class="secondary-action" data-action="inspect"><span>⊙</span> Inspect ship detail <b>→</b></button>
+          <div class="warning-callout"><strong>Planning note</strong><p>Weather front reaches CC18 next turn. Aircraft in formation 18 must land by 1400.</p></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="command-bar"><div class="command-message"><span class="command-icon">i</span><span id="commandText"><b>Air Operations</b> · Ready aircraft can be assigned to formations. Maximum launch: 11 factors.</span></div><div class="footer-actions"><button class="ghost-button" data-action="undo">Undo</button><button class="primary-button" data-action="confirm">Confirm phase <span>→</span></button></div></footer>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>
