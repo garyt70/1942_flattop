@@ -7,8 +7,8 @@ const state = {
   launchMode: 'normal',
   scenario: 'one',
   formationNumber: 19,
-  formationSelection: { wildcat: 0, dauntless: 0 },
-  formationArmament: { wildcat: 'None', dauntless: 'GP' },
+  formationSelection: { wildcat: 0, dauntless: 0, devastator: 0 },
+  formationArmament: { wildcat: 'None', dauntless: 'GP', devastator: 'Torpedo' },
   pendingPiece: null
 };
 
@@ -25,7 +25,40 @@ const BOARD_ONE_LABEL = 'Board One';
 const BOARD_TWO_LABEL = 'Board Two';
 const MOCK_HEX_SIZE = 20;
 const scenarios = {
-  one: {
+    one: {
+      sourceSetup: 'scenario_one_setup', boardLabel: BOARD_ONE_LABEL, dimensionLabel: '44x50',
+      displayOrigin: [0, 0],
+      name: 'Scenario One · Coral Sea approach', dimensions: [44, 50], land: landBoardOne,
+      bases: [
+        ['Rabaul','J',[23,4]], ['Gasmata','J',[14,10]], ['Kavieng','J',[12,0]], ['Truk','J',[17,0]],
+        ['Port Moresby','A',[3,23]]
+      ],
+      forces: [
+        { id:'allied-tf1', title:'Allied Task Force 1', side:'A', icon:'CV', type:'Carrier task force', detail:'CV Lexington · 4 cruisers · 10 destroyers', pos:[20,10], ships:'15 ships', air:'8 F4F · 12 SBD · 4 TBD' },
+        { id:'j-air1', title:'Japanese Air Formation 1', side:'J', icon:'✦', type:'Air formation contact', detail:'6 Zero · 4 Val · low altitude', pos:[10,10], ships:'', air:'10 aircraft' }
+      ]
+    },
+    two: {
+      sourceSetup: 'scenario_two_setup', boardLabel: `${BOARD_ONE_LABEL} + ${BOARD_TWO_LABEL}`, dimensionLabel: '80x50',
+      displayOrigin: [0, 0],
+      name: 'Scenario Two · Coral Sea', dimensions: [80, 50], land: [...landBoardOne, ...landBoardTwo],
+      bases: [
+        ['Rabaul','J',[23,4]], ['Gasmata','J',[14,10]], ['Kavieng','J',[12,0]], ['Truk','J',[17,0]], ['Lae','J',[2,13]], ['Shortland','J',[38,16]],
+        ['Port Moresby','A',[3,23]], ['Australia','A',[0,49]], ['New Caledonia','A',[70,49]]
+      ],
+      forces: [
+        { id:'lexington', title:'Lexington Task Force', side:'A', icon:'CV', type:'Carrier task force', detail:'CV Lexington · Chester · New Orleans · Astoria · Portland · 7 DD · 2 AO', pos:[35,45], ships:'17 ships', air:'7 F4F · 12 SBD · 4 TBD' },
+        { id:'yorktown', title:'Yorktown Task Force', side:'A', icon:'CV', type:'Carrier task force', detail:'CV Yorktown · Minneapolis · Australia · Chicago · Hobart · 7 DD', pos:[40,35], ships:'12 ships', air:'7 F4F · 12 SBD · 4 TBD' },
+        { id:'shokaku', title:'Shokaku Task Force', side:'J', icon:'CV', type:'Carrier task force contact', detail:'CV Shokaku · 4 cruisers · 4 destroyers', pos:[30,10], ships:'9 ships', air:'8 Zero · 7 Val · 7 Kate' },
+        { id:'zuikaku', title:'Zuikaku Task Force', side:'J', icon:'CV', type:'Carrier task force contact', detail:'CV Zuikaku · 4 cruisers · 4 destroyers', pos:[32,10], ships:'9 ships', air:'8 Zero · 7 Val · 7 Kate' },
+        { id:'shoho', title:'Shoho Task Force', side:'J', icon:'CV', type:'Light carrier contact', detail:'CV Shoho · AV Kamikawa · 6 destroyers', pos:[28,10], ships:'8 ships', air:'3 Kate · 3 Dave · 4 Pete' },
+        { id:'landing1a', title:'Landing Force 1a', side:'J', icon:'AP', type:'Landing force contact', detail:'6 AP · 2 PG · AO · DD', pos:[26,5], ships:'10 ships', air:'none' },
+        { id:'landing1b', title:'Landing Force 1b', side:'J', icon:'AP', type:'Landing force contact', detail:'6 AP · 2 PG · AO · DD', pos:[26,5], ships:'10 ships', air:'none' },
+        { id:'landing2', title:'Landing Force 2', side:'J', icon:'AP', type:'Landing force contact', detail:'Tatsuta · AP · 3 DD · 4 PG', pos:[27,10], ships:'9 ships', air:'none' }
+      ]
+    }
+  };
+/*
     sourceSetup: 'scenario_one_setup', boardLabel: BOARD_ONE_LABEL, dimensionLabel: '44x50',
     displayOrigin: [0, 0],
     name: 'Scenario One · Coral Sea approach', dimensions: [44, 50], land: landBoardOne,
@@ -58,6 +91,7 @@ const scenarios = {
     ]
   }
 };
+*/
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -216,6 +250,7 @@ function openModal(type) {
   if (type === 'score') content = scoreModal();
   if (type === 'rules' || type === 'help') content = rulesModal();
   if (type === 'log') content = logModal();
+  content = content.replace('>A2A</th>', '>Air2Air</th>');
   modal.innerHTML = content;
   renderOperationsCombatDetails();
   backdrop.hidden = false;
@@ -255,6 +290,23 @@ function operationsModal() {
 }
 
 function interactiveOperationsModal() {
+  const selected = state.formationSelection;
+  const total = selected.wildcat + selected.dauntless + selected.devastator;
+  return modalShell('Air operations tracker', 'Task Force 7 · CV Enterprise · air operations phase', `<div class="modal-body"><div class="tracker-toolbar"><span>Aircraft combat values</span><small>Values are shown before armament and attack selection</small></div><div class="air-table-wrap"><table class="air-combat-table"><thead><tr><th rowspan="2">Aircraft</th><th rowspan="2">Factors</th><th rowspan="2">A2A</th><th colspan="6">vs Base</th><th colspan="7">vs Ship</th><th rowspan="2">Move</th><th rowspan="2">Range</th><th rowspan="2">Armament</th></tr><tr><th colspan="2">High</th><th colspan="2">Low</th><th colspan="2">Dive</th><th colspan="2">High</th><th colspan="2">Low</th><th colspan="2">Dive</th><th>Torpedo</th></tr><tr class="table-subhead"><th></th><th></th><th></th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>GP</th><th>AP</th><th>TORP</th><th></th><th></th><th></th></tr></thead><tbody><tr class="status-row"><th colspan="19">READY · select aircraft for formation</th></tr>${aircraftTableRow('wildcat', 'F4F Wildcat', 6, ['9','0','0','4','0','0','0','0','1','0','0','0','0'], '8', '6 / 6', selected.wildcat)}${aircraftTableRow('dauntless', 'SBD Dauntless', 4, ['3','1','1','5','1','6','2','0','0','2','5','2','7'], '9', '6 / 6', selected.dauntless)}<tr class="status-row"><th colspan="19">READYING · aircraft available after readiness move</th></tr>${aircraftTableRow('devastator', 'TBD Devastator', 4, ['2','1','1','5','2','0','0','0','0','1','5','0','0'], '6', '5 / 5', 0)}<tr class="status-row"><th colspan="19">JUST LANDED / IN FLIGHT · tracked below</th></tr><tr class="summary-row"><td colspan="19">Formation 18 · 10 SBD armed GP · 6 F4F escort · landing window 1400</td></tr></tbody></table></div><div class="formation-planner"><div class="formation-planner-head"><h3>Build Air Formation</h3><span class="condition-pill">${total} selected · ${total ? 'ready to launch' : 'select aircraft'}</span></div><div class="formation-controls"><label>Formation number <select id="formationNumber"><option>19</option><option>20</option><option>21</option></select></label><label>Selected factors <strong>${total} / 11 LF</strong></label></div><div class="formation-profile"><span>SELECTED PROFILE</span><strong>${selected.wildcat} F4F ${state.formationArmament.wildcat} · ${selected.dauntless} SBD ${state.formationArmament.dauntless}</strong><small>Armament choices determine the legal attack values used when the formation attacks.</small></div><div class="launch-controls"><button class="choice ${state.launchMode === 'minimum' ? 'active' : ''}" data-launch="minimum"><strong>Minimum launch</strong><small>1-3 factors · full MF</small></button><button class="choice ${state.launchMode === 'normal' ? 'active' : ''}" data-launch="normal"><strong>Normal launch</strong><small>4-11 factors · half MF</small></button><button class="choice ${state.launchMode === 'maximum' ? 'active' : ''}" data-launch="maximum"><strong>Maximum launch</strong><small>12-22 factors · no movement</small></button></div><div class="modal-actions"><button class="ghost-button" data-action="close-modal">Cancel</button><button class="primary-button" data-action="create-formation" ${total ? '' : 'disabled'}>Create Air Formation <span>→</span></button></div></div></div>`);
+}
+
+function aircraftTableRow(key, name, factors, values, movement, range, selectedCount) {
+  const catalogValues = {
+    wildcat: ['9','0','0','4','0','0','0','0','0','1','0','0','0','0'],
+    dauntless: ['3','3','1','5','1','6','2','0','0','2','5','2','7','0'],
+    devastator: ['2','3','1','5','2','0','0','0','0','1','5','0','0','6']
+  };
+  const cells = (catalogValues[key] || values).map(value => `<td class="combat-value">${value}</td>`).join('');
+  const armament = state.formationArmament[key] || (key === 'dauntless' ? 'GP' : 'None');
+  return `<tr class="aircraft-row ${selectedCount ? 'selected' : ''}"><td><button class="aircraft-choice" data-aircraft-select="${key}"><span class="plane-dot ${key === 'wildcat' ? 'fighter' : key === 'devastator' ? 'torpedo' : 'bomber'}"></span><strong>${name}</strong></button></td><td><b>${factors}</b></td>${cells}<td>${movement}</td><td>${range}</td><td><button class="armament-cycle" data-armament="${key}">${armament}</button></td></tr>`;
+}
+
+function legacyInteractiveOperationsModal() {
   const selected = state.formationSelection;
   const total = selected.wildcat + selected.dauntless;
   return modalShell('Operations chart', 'Task Force 7 · CV Enterprise · air operations phase', `<div class="modal-body"><div class="operations-grid"><div class="ops-box"><h3>READY · select for formation</h3><button class="plane-token selectable ${selected.wildcat ? 'selected' : ''}" data-aircraft-select="wildcat"><span>F4F Wildcat <small>6 available</small></span><b>${selected.wildcat}</b></button><button class="plane-token selectable ${selected.dauntless ? 'selected' : ''}" data-aircraft-select="dauntless"><span>SBD Dauntless <small>4 available</small></span><b>${selected.dauntless}</b></button></div><div class="ops-box"><h3>READYING · queue</h3><button class="plane-token selectable" data-action="queue-ready"><span>SBD Dauntless <small>8 waiting</small></span><b>+1</b></button><p class="ops-hint">Select a row to queue a readiness move.</p></div><div class="ops-box"><h3>JUST LANDED · queue</h3><button class="plane-token selectable" data-action="queue-ready"><span>TBD Devastator <small>4 landed</small></span><b>+1</b></button><p class="ops-hint">Ready Factor remaining: 8</p></div><div class="ops-box"><h3>IN FLIGHT · 4</h3><div class="plane-token"><span>Formation 18</span><b>1400</b></div></div></div><div class="launch-planner"><h3>Build Air Formation <span class="condition-pill">${total} selected</span></h3><div class="formation-controls"><label>Formation number <select id="formationNumber"><option>19</option><option>20</option><option>21</option></select></label><label>Selected factors <strong>${total} / 11 LF</strong></label></div><div class="armament-list"><div><span>F4F Wildcat · ${selected.wildcat}</span><button class="armament-cycle" data-armament="wildcat">${state.formationArmament.wildcat}</button></div><div><span>SBD Dauntless · ${selected.dauntless}</span><button class="armament-cycle" data-armament="dauntless">${state.formationArmament.dauntless}</button></div></div><div class="launch-controls"><button class="choice ${state.launchMode === 'minimum' ? 'active' : ''}" data-launch="minimum"><strong>Minimum launch</strong><small>full MF</small></button><button class="choice ${state.launchMode === 'normal' ? 'active' : ''}" data-launch="normal"><strong>Normal launch</strong><small>half MF</small></button><button class="choice ${state.launchMode === 'maximum' ? 'active' : ''}" data-launch="maximum"><strong>Maximum launch</strong><small>no movement</small></button></div><div class="formula">${selected.wildcat} F4F (${state.formationArmament.wildcat}) + ${selected.dauntless} SBD (${state.formationArmament.dauntless}) · formation ${state.formationNumber} · safe return by 1600</div><div class="modal-actions"><button class="ghost-button" data-action="close-modal">Cancel</button><button class="primary-button" data-action="create-formation" ${total ? '' : 'disabled'}>Create Air Formation <span>→</span></button></div></div></div>`);
@@ -306,7 +358,7 @@ function handleAction(action) {
   else if (action === 'close-modal') $('#modalBackdrop').hidden = true;
   else if (action === 'advance') advancePhase();
   else if (action === 'confirm-launch') { $('#modalBackdrop').hidden = true; toast('Launch committed: 10 LF used. Formation 19 is airborne.'); }
-  else if (action === 'create-formation') { $('#modalBackdrop').hidden = true; toast(`Air Formation ${state.formationNumber} created with ${state.formationSelection.wildcat + state.formationSelection.dauntless} selected factors.`); state.formationSelection = { wildcat: 0, dauntless: 0 }; }
+  else if (action === 'create-formation') { $('#modalBackdrop').hidden = true; toast(`Air Formation ${state.formationNumber} created with ${state.formationSelection.wildcat + state.formationSelection.dauntless + state.formationSelection.devastator} selected factors.`); state.formationSelection = { wildcat: 0, dauntless: 0, devastator: 0 }; }
   else if (action === 'queue-ready') toast('Readiness move queued. One Readying Factor reserved.');
   else if (action === 'resolve-combat') { $('#modalBackdrop').hidden = true; toast('Combat result applied. 3 hits recorded on CV Shokaku.'); }
   else if (action === 'confirm') { toast('Air operations phase confirmed. Movement plotting is now available.'); advancePhase(); }
@@ -331,7 +383,7 @@ function bindDynamicActions() {
   $$('[data-action]').forEach(button => { if (!button.dataset.bound) { button.dataset.bound = 'true'; button.addEventListener('click', () => handleAction(button.dataset.action)); } });
   $$('[data-launch]').forEach(button => button.addEventListener('click', () => { state.launchMode = button.dataset.launch; $$('.choice').forEach(choice => choice.classList.toggle('active', choice.dataset.launch === state.launchMode)); toast(`${button.textContent.trim().split(' ')[0]} launch selected.`); }));
   $$('[data-aircraft-select]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.aircraftSelect; state.formationSelection[type] = state.formationSelection[type] ? 0 : (type === 'wildcat' ? 2 : 4); openModal('operations'); }));
-  $$('[data-armament]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.armament; const options = type === 'wildcat' ? ['None', 'GP'] : ['GP', 'AP', 'None']; const index = options.indexOf(state.formationArmament[type]); state.formationArmament[type] = options[(index + 1) % options.length]; openModal('operations'); }));
+  $$('[data-armament]').forEach(button => button.addEventListener('click', () => { const type = button.dataset.armament; const options = type === 'wildcat' ? ['None', 'GP'] : type === 'devastator' ? ['Torpedo', 'GP', 'None'] : ['GP', 'AP', 'None']; const index = options.indexOf(state.formationArmament[type]); state.formationArmament[type] = options[(index + 1) % options.length]; openModal('operations'); }));
   $$('[data-piece-action]').forEach(button => button.addEventListener('click', () => handlePieceAction(button.dataset.pieceAction)));
   const formationNumber = $('#formationNumber');
   if (formationNumber && !formationNumber.dataset.bound) { formationNumber.dataset.bound = 'true'; formationNumber.value = String(state.formationNumber); formationNumber.addEventListener('change', () => { state.formationNumber = Number(formationNumber.value); }); }
