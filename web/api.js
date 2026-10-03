@@ -50,10 +50,10 @@ const FlatTopApi = (() => {
         method: 'POST',
         body: JSON.stringify({ side, base_id: baseId, aircraft_type: aircraftType, armament }),
       }),
-    createFormation: (gameId, side, baseId, formationNumber, aircraft) =>
+    createFormation: (gameId, side, baseId, aircraft) =>
       request(`/games/${gameId}/air-ops/formation`, {
         method: 'POST',
-        body: JSON.stringify({ side, base_id: baseId, formation_number: formationNumber, aircraft }),
+        body: JSON.stringify({ side, base_id: baseId, aircraft }),
       }),
   };
 })();

@@ -1,6 +1,5 @@
 from enum import Enum
 from enum import Enum, auto
-import random
 
 """
 Requirements Overview:
@@ -24,7 +23,7 @@ class AirOperationsChart:
     Represents an Air Operations Chart containing Air Formations and Task Forces.
 
     Attributes:
-        air_formations (dict): Mapping from number (1–35) to AirFormation.
+        air_formations (dict): Mapping from formation number to AirFormation; starts with slots 1–35 and grows as needed.
         task_forces (dict): Mapping from number (1–14) to TaskForce.
         name (str): Optional name for the chart.
         description (str): Optional description for the chart.
@@ -51,8 +50,10 @@ class AirOperationsChart:
         for num, formation in self.air_formations.items():
             if not formation.aircraft:
                 return num
-        
-        return random.choice(list(self.air_formations.keys()))  # If all are occupied, return a random number
+
+        num = max(self.air_formations, default=0) + 1
+        self.air_formations[num] = AirFormation(num, side=self.side)
+        return num
 
     def get_all_empty_formation_numbers(self):
         """
@@ -254,7 +255,7 @@ class Base:
     """
     #create a AirFormation for this base. To create an AirFormation the AirOperationsTracker status for the aircraft must be set to READY.
     - AirCraft must be in the READY status to be assigned to an AirFormation.
-    - The AirFormation can be assigned to a specific AirFormation number (1–35).
+    - The AirFormation can be assigned to a specific positive AirFormation number.
     - The number of AirCraft, by type, in the AirFormation is determined by the count of each type of aircraft in the READY status.
     - The number of AirCraft, allocated to the AirFormation, is subtracted from the READY status in the AirOperationsTracker for the plane type.
     """
@@ -263,7 +264,7 @@ class Base:
         Creates an AirFormation for this base, adhering to ready/launch factor rules.
 
         Args:
-            number (int): Air Formation counter number (1–35).
+            number (int): Air Formation counter number (a positive integer).
             aircraft (list, optional): List of aircraft to include in the formation.
 
         Returns:
@@ -275,8 +276,8 @@ class Base:
             - used_ready_factor and used_launch_factor are incremented accordingly.
             - If not enough ready/launch factors remain, only as many aircraft as allowed are moved.
         """
-        if number < 1 or number > 35:
-            raise ValueError("Air Formation number must be between 1 and 35.")
+        if number < 1:
+            raise ValueError("Air Formation number must be a positive integer.")
 
         # Determine how many aircraft can be launched this turn
         allowed = self.available_launch_factor_max - self.used_launch_factor
@@ -447,7 +448,7 @@ class AirFormation:
     def __init__(self, number, name=None, side="Allied", launch_hour=0, height="High"):
         """
         Args:
-            number (int): Air Formation counter number (1–35).
+            number (int): Air Formation counter number (a positive integer).
             name (str, optional): Optional name for the Air Formation.
             side
             launch_time = 1-24, represents 24 hour clock.

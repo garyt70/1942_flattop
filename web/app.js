@@ -526,7 +526,7 @@ function handleCommandResult(result, reopenBaseId) {
 // Operations tracker modal (Ready / Readying / Just Landed / In Flight)
 // ---------------------------------------------------------------------
 
-const pendingFormation = { baseId: null, formationNumber: 1, selections: {} };
+const pendingFormation = { baseId: null, selections: {} };
 
 function openOperationsModal(baseId) {
   if (pendingFormation.baseId !== baseId) {
@@ -581,13 +581,7 @@ function operationsModalMarkup(baseId) {
       <div class="formation-planner">
         <div class="formation-planner-head"><h3>Build Air Formation</h3><span class="condition-pill">${pendingTotal} selected</span></div>
         <div class="formation-controls">
-          <label>Formation number
-            <select id="formationNumberSelect">
-              ${Array.from({ length: 35 }, (_, i) => i + 1)
-                .map((n) => `<option value="${n}" ${n === pendingFormation.formationNumber ? 'selected' : ''}>${n}</option>`)
-                .join('')}
-            </select>
-          </label>
+          <label>Formation number <strong>Assigned automatically</strong></label>
           <label>Selected factors <strong>${pendingTotal} / ${airOps.launch_factor_max - airOps.used_launch_factor} LF</strong></label>
         </div>
         <div class="armament-list">
@@ -665,9 +659,6 @@ function armamentOptionsFor(cd) {
 
 function bindOperationsModalActions(baseId) {
   $('#modal [data-action="close-modal"]').addEventListener('click', () => ($('#modalBackdrop').hidden = true));
-  $('#formationNumberSelect')?.addEventListener('change', (event) => {
-    pendingFormation.formationNumber = Number(event.target.value);
-  });
   $$('#modal [data-pending-adjust]').forEach((button) =>
     button.addEventListener('click', () => {
       const type = button.dataset.pendingAdjust;
@@ -712,7 +703,13 @@ function bindOperationsModalActions(baseId) {
       .filter(([, count]) => count > 0)
       .map(([type, count]) => ({ type, count }));
     if (!aircraft.length) return toast('Select at least one aircraft type.');
-    const result = await FlatTopApi.createFormation(state.gameId, state.side, baseId, pendingFormation.formationNumber, aircraft);
+    let result;
+    try {
+      result = await FlatTopApi.createFormation(state.gameId, state.side, baseId, aircraft);
+    } catch (error) {
+      toast(`Could not create Air Formation: ${error.message}`);
+      return;
+    }
     if (result.accepted !== false) {
       pendingFormation.selections = {};
       $('#modalBackdrop').hidden = true;

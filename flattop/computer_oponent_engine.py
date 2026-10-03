@@ -73,6 +73,17 @@ class ComputerOpponent:
         # Track created search air formations per base (by base_piece id)
         self._search_airformation_counts = {}  # {base_piece_id: count}
         logger.info(f"ComputerOpponent initialized for side: {side}")
+
+    def _next_air_formation_number(self):
+        used_numbers = {
+            piece.game_model.number
+            for piece in self.board.pieces
+            if piece.side == self.side and isinstance(piece.game_model, AirFormation)
+        }
+        number = 1
+        while number in used_numbers:
+            number += 1
+        return number
         
     def _update_last_spotted_taskforce(self, observed_enemy_pieces):
         """
@@ -409,7 +420,7 @@ class ComputerOpponent:
             if dist <= 10:
                 interceptors = [ac for ac in ready if ac.armament is None and ac.is_interceptor]
                 if interceptors:
-                    af = base.create_air_formation(random.randint(1, 35), aircraft=interceptors)
+                    af = base.create_air_formation(self._next_air_formation_number(), aircraft=interceptors)
                     if af:
                         logger.debug(f"Creating interceptor air formation {af.name} at base {base.name} for air target {air_target.name}.")
                         af_piece = Piece(name=af.name, side=self.side, position=base_position, gameModel=af)
@@ -481,7 +492,7 @@ class ComputerOpponent:
                     if max_launch <= 0:
                         continue
                     attack_aircraft = self._select_best_ready_aircraft(ready, max_count=max_launch, purpose="attack_ship")
-                    af = base.create_air_formation(random.randint(1, 35), aircraft=attack_aircraft)
+                    af = base.create_air_formation(self._next_air_formation_number(), aircraft=attack_aircraft)
                     if af:
                         logger.debug(f"Creating air formation {af.name} at base {base.name} to attack taskforce.")
                         af_piece = Piece(name=af.name, side=self.side, position=base_piece.position, gameModel=af)
@@ -1378,7 +1389,7 @@ class ComputerOpponent:
                     break
                 logger.debug(f"Selected best ready aircraft for search: {[ac.type for ac in best]}")
                 for ac in best:
-                    af:AirFormation = base.create_air_formation(random.randint(1, 35), aircraft=[ac])
+                    af:AirFormation = base.create_air_formation(self._next_air_formation_number(), aircraft=[ac])
                     created_airformation.append(af)
                     if af:
                         logger.debug(f"Creating search air formation {af.name} at base {base.name}.")  

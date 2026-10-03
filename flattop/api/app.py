@@ -17,7 +17,7 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from flattop.scenarios import ScenarioError, get_scenario, load_all_scenarios, scenario_catalog_summary
 from flattop.web_session import CommandError, GameSession
@@ -70,8 +70,18 @@ class FormationAircraft(BaseModel):
 class CreateFormationRequest(BaseModel):
     side: str
     base_id: str
-    formation_number: int
     aircraft: list[FormationAircraft]
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_stale_api_client_payload(cls, values):
+        # A cached pre-change API client can send the aircraft list under
+        # formation_number when paired with the updated four-argument caller.
+        if isinstance(values, dict) and "aircraft" not in values:
+            legacy_aircraft = values.get("formation_number")
+            if isinstance(legacy_aircraft, list):
+                values = {**values, "aircraft": legacy_aircraft}
+        return values
 
 
 def _get_session(game_id: str) -> GameSession:
@@ -174,9 +184,7 @@ def set_armament(game_id: str, request: SetArmamentRequest):
 def create_formation(game_id: str, request: CreateFormationRequest):
     session = _get_session(game_id)
     try:
-        session.create_air_formation(
-            request.base_id, request.formation_number, [entry.model_dump() for entry in request.aircraft]
-        )
+        session.create_air_formation(request.base_id, [entry.model_dump() for entry in request.aircraft])
     except CommandError as error:
         return _command_error_response(error)
     return {"accepted": True, "projection": session.to_projection(request.side)}

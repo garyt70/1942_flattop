@@ -38,6 +38,14 @@ class TestAirOperationsChart(unittest.TestCase):
         self.assertIsInstance(tf, TaskForce)
         self.assertEqual(tf.number, 1)
 
+    def test_get_empty_formation_number_adds_slot_when_full(self):
+        chart = AirOperationsChart()
+        for formation in chart.air_formations.values():
+            formation.add_aircraft(Aircraft("Fighter"))
+
+        self.assertEqual(chart.get_empty_formation_number(), 36)
+        self.assertIn(36, chart.air_formations)
+
     def test_bases_dict(self):
         chart = AirOperationsChart()
         base = Base("TestBase")

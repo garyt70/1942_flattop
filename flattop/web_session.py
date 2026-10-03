@@ -183,11 +183,19 @@ class GameSession:
         entry.armament = armament or None
         self._log(f"{base.name}: set {aircraft_type} armament to {entry.armament or 'None'}.")
 
-    def create_air_formation(self, base_id: str, formation_number: int, aircraft: list[dict[str, Any]]) -> str:
+    def create_air_formation(self, base_id: str, aircraft: list[dict[str, Any]]) -> str:
         base = self._resolve_base(base_id)
         piece = self._find_piece(base_id)
         if not aircraft:
             raise CommandError("EMPTY_FORMATION", "At least one aircraft entry is required to create a formation")
+        used_numbers = {
+            board_piece.game_model.number
+            for board_piece in self.board.pieces
+            if board_piece.side == piece.side and isinstance(board_piece.game_model, AirFormation)
+        }
+        formation_number = 1
+        while formation_number in used_numbers:
+            formation_number += 1
         requested = []
         for entry in aircraft:
             aircraft_type_enum = _AIRCRAFT_TYPE_BY_VALUE.get(entry["type"])

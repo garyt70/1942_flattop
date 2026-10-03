@@ -10,7 +10,8 @@ import unittest
 from fastapi.testclient import TestClient
 
 from flattop.api.app import GAMES, app
-from flattop.hex_board_game_model import Hex, get_distance
+from flattop.hex_board_game_model import Hex, Piece, get_distance
+from flattop.operations_chart_models import AirFormation
 
 
 class TestScenarioCatalog(unittest.TestCase):
@@ -133,14 +134,71 @@ class TestGameLifecycle(unittest.TestCase):
             json={
                 "side": "Allied",
                 "base_id": "allied-tf-1",
-                "formation_number": 3,
                 "aircraft": [{"type": "Wildcat", "count": 4}],
             },
         )
         body = response.json()
         self.assertTrue(body["accepted"])
         formation = next(u for u in body["projection"]["units"] if u["kind"] == "AirFormation")
+        self.assertEqual(formation["id"], "allied-tf-1-formation-1")
         self.assertEqual(sum(ac["count"] for ac in formation["aircraft"]), 4)
+
+    def test_create_formation_expands_past_35_used_numbers(self):
+        projection = self._create_game()
+        session = GAMES[projection["game_id"]]
+        base_piece = next(piece for piece in session.board.pieces if piece.id == "allied-tf-1")
+        for number in range(1, 36):
+            counter = AirFormation(number, side="Allied")
+            piece = Piece(f"test-formation-{number}", side="Allied", position=base_piece.position, gameModel=counter)
+            piece.id = f"test-formation-{number}"
+            session.board.add_piece(piece)
+
+        readiness_response = self.client.post(
+            f"/api/games/{session.id}/air-ops/readiness",
+            json={
+                "side": "Allied",
+                "base_id": "allied-tf-1",
+                "aircraft_type": "Wildcat",
+                "from_status": "readying",
+                "to_status": "ready",
+                "count": 1,
+            },
+        )
+        self.assertTrue(readiness_response.json()["accepted"])
+        response = self.client.post(
+            f"/api/games/{session.id}/air-ops/formation",
+            json={"side": "Allied", "base_id": "allied-tf-1", "aircraft": [{"type": "Wildcat", "count": 1}]},
+        )
+        self.assertTrue(response.json()["accepted"])
+        self.assertTrue(any(piece.id == "allied-tf-1-formation-36" for piece in session.board.pieces))
+
+    def test_create_formation_accepts_stale_client_payload(self):
+        projection = self._create_game()
+        game_id = projection["game_id"]
+        ready = self.client.post(
+            f"/api/games/{game_id}/air-ops/readiness",
+            json={
+                "side": "Allied",
+                "base_id": "allied-tf-1",
+                "aircraft_type": "Wildcat",
+                "from_status": "readying",
+                "to_status": "ready",
+                "count": 1,
+            },
+        )
+        self.assertTrue(ready.json()["accepted"])
+        response = self.client.post(
+            f"/api/games/{game_id}/air-ops/formation",
+            json={
+                "side": "Allied",
+                "base_id": "allied-tf-1",
+                "formation_number": [{"type": "Wildcat", "count": 1}],
+            },
+        )
+        self.assertTrue(response.json()["accepted"], response.json())
+        self.assertTrue(
+            any(unit["id"] == "allied-tf-1-formation-1" for unit in response.json()["projection"]["units"])
+        )
 
 
 if __name__ == "__main__":
