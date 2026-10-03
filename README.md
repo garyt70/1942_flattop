@@ -58,6 +58,31 @@ python main.py
 
 This will launch the desktop UI. You can play against another human or the computer opponent.
 
+## Running the Web Application (prototype)
+
+A server-authoritative web client is also available, implementing the design in
+[docs/design/WEB_ARCHITECTURE.md](docs/design/WEB_ARCHITECTURE.md) and
+[docs/design/SCENARIO_CATALOG_DESIGN.md](docs/design/SCENARIO_CATALOG_DESIGN.md)
+as a functional prototype: a FastAPI backend adapts HTTP commands to the same
+`flattop` domain engine used by the desktop UI, scenarios are loaded from
+versioned YAML files in `scenarios/`, and a static HTML/JS client (`web/`)
+renders side-filtered projections only. Game state is kept in memory for this
+prototype rather than PostgreSQL.
+
+1. **Install web dependencies:**
+   ```sh
+   pip install -r requirements-web.txt
+   ```
+2. **Run the server:**
+   ```sh
+   python run_web_server.py --reload
+   ```
+3. Open `http://127.0.0.1:8000/` in a browser, choose a scenario and side, and
+   start a new game.
+
+API endpoints are documented at `http://127.0.0.1:8000/docs` (FastAPI's
+generated OpenAPI UI).
+
 ## Game Rules
 
 The game implements the original Avalon Hill "Flat Top" rules, including:
@@ -77,6 +102,9 @@ Run all unit tests with:
 ```sh
 python -m unittest discover tests
 ```
+
+Web API smoke tests (`tests/test_web_api.py`) require `requirements-web.txt` to
+be installed first.
 
 ## License
 

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flat Top / Pacific Theater Command</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="api.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="new-game-shell" id="newGameShell">
+    <section class="new-game-card">
+      <h1>1942 Flat Top &middot; Pacific Theater Command</h1>
+      <p class="subtitle">Select a scenario and side to start a new game against the server-authoritative game engine.</p>
+      <p class="new-game-error" id="newGameError" hidden></p>
+      <div class="scenario-list" id="scenarioList">Loading scenario catalog&hellip;</div>
+      <div class="new-game-row">
+        <label>Play as
+          <select id="playerSideSelect">
+            <option value="Allied">Allied</option>
+            <option value="Japanese">Japanese</option>
+          </select>
+        </label>
+        <label>Opponent
+          <select id="opponentSelect">
+            <option value="computer">Computer</option>
+            <option value="human">Human (pass and play)</option>
+          </select>
+        </label>
+      </div>
+      <div class="new-game-actions">
+        <button class="primary-button" id="startGameButton" disabled>Start new game <span>&rarr;</span></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="app-shell" id="appRoot" hidden>
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">FT</span>
+        <div>
+          <p class="eyebrow">1942 FLAT TOP</p>
+          <h1 id="scenarioTitle">Pacific Theater Command</h1>
+        </div>
+      </div>
+      <div class="turn-status" aria-live="polite">
+        <span class="status-dot"></span>
+        <div>
+          <strong id="phaseLabel">SETUP</strong>
+          <span id="turnLabel">Turn &mdash;</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" data-action="log" title="Open event log" aria-label="Open event log">&equiv;</button>
+        <button class="avatar" id="sideAvatar" title="Your side">A</button>
+      </div>
+    </header>
+
+    <nav class="phase-rail" aria-label="Turn phases" id="phaseRail">
+      <button class="advance-button" data-action="advance">Advance phase <span>&rarr;</span></button>
+    </nav>
+
+    <main class="workspace">
+      <aside class="left-sidebar">
+        <section class="score-card">
+          <div class="section-heading"><span>THE SCORE</span></div>
+          <div class="score-row allied-score"><span class="faction-chip allied">A</span><div><strong>Allied</strong><small>victory points</small></div><b id="alliedScore">0</b></div>
+          <div class="score-row japanese-score"><span class="faction-chip japanese">J</span><div><strong>Japanese</strong><small>victory points</small></div><b id="japaneseScore">0</b></div>
+        </section>
+
+        <section class="fleet-section">
+          <div class="section-heading"><span>YOUR FORCES</span><span class="muted" id="forceCount">0 groups</span></div>
+          <div id="forceList"></div>
+        </section>
+
+        <section class="intel-section">
+          <div class="section-heading"><span>CONTACTS</span><span class="contact-count" id="contactCount">0</span></div>
+          <div id="contactList"></div>
+        </section>
+      </aside>
+
+      <section class="map-stage" aria-label="Operational map">
+        <div class="map-toolbar">
+          <div class="map-title"><span class="map-pin">&#9678;</span><div><strong id="mapTitle">Scenario</strong><small id="mapSubtitle"></small></div></div>
+          <div class="map-tools">
+            <button class="icon-button small" data-action="zoom-out" aria-label="Zoom out">&minus;</button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <button class="icon-button small" data-action="zoom-in" aria-label="Zoom in">+</button>
+            <button class="icon-button small" data-action="zoom-reset" aria-label="Reset zoom" title="Reset zoom">&#8634;</button>
+          </div>
+        </div>
+        <div class="map-canvas" id="mapCanvas"><div class="map-viewport" id="mapViewport"><div class="map-content" id="mapContent"><div class="map-grid" id="mapGrid"></div><div class="map-overlays" id="mapOverlays"></div></div></div></div>
+        <div class="map-footer"><span><b>Selected:</b> <span id="selectedMapLabel">None</span></span><span>Click a unit to select it, then drag it onto a highlighted hex to move.</span></div>
+      </section>
+
+      <aside class="right-panel" id="rightPanel">
+        <div class="panel-header"><div><p class="eyebrow" id="panelEyebrow">SELECTED UNIT</p><h2 id="panelTitle">No selection</h2></div><button class="close-panel" data-action="clear-selection" aria-label="Clear selection">&times;</button></div>
+        <div id="unitPanel" class="panel-content"></div>
+      </aside>
+    </main>
+
+    <footer class="command-bar">
+      <div class="command-message"><span class="command-icon">i</span><span id="commandText">Select a unit to see legal actions.</span></div>
+      <div class="footer-actions"><button class="primary-button" data-action="advance">Advance phase <span>&rarr;</span></button></div>
+    </footer>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>
