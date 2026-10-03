@@ -305,17 +305,25 @@ function onMarkerDragEnd() {
   state.draggingUnitId = null;
 }
 
+// The marker overlay covers the grid, so find the hex polygon beneath the pointer.
+function reachablePolygonAt(event) {
+  const polygon = document
+    .elementsFromPoint(event.clientX, event.clientY)
+    .find((el) => el.tagName.toLowerCase() === 'polygon' && el.closest('#mapGrid'));
+  return polygon && polygon.classList.contains('reachable-hex') ? polygon : null;
+}
+
 function onMapGridDragOver(event) {
-  const polygon = event.target.closest('polygon');
-  if (polygon && polygon.classList.contains('reachable-hex')) {
+  const polygon = reachablePolygonAt(event);
+  if (polygon) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }
 }
 
 async function onMapGridDrop(event) {
-  const polygon = event.target.closest('polygon');
-  if (!polygon || !polygon.classList.contains('reachable-hex')) return;
+  const polygon = reachablePolygonAt(event);
+  if (!polygon) return;
   event.preventDefault();
   const unitId = event.dataTransfer.getData('text/plain') || state.draggingUnitId;
   if (!unitId) return;
@@ -784,8 +792,8 @@ function bindGlobalActions() {
     if (event.target.id === 'modalBackdrop') $('#modalBackdrop').hidden = true;
   });
   $('#startGameButton').addEventListener('click', startNewGame);
-  $('#mapGrid').addEventListener('dragover', onMapGridDragOver);
-  $('#mapGrid').addEventListener('drop', onMapGridDrop);
+  $('#mapContent').addEventListener('dragover', onMapGridDragOver);
+  $('#mapContent').addEventListener('drop', onMapGridDrop);
 }
 
 function openLogModal() {

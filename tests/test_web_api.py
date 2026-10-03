@@ -10,6 +10,7 @@ import unittest
 from fastapi.testclient import TestClient
 
 from flattop.api.app import GAMES, app
+from flattop.hex_board_game_model import Hex, get_distance
 
 
 class TestScenarioCatalog(unittest.TestCase):
@@ -95,10 +96,22 @@ class TestGameLifecycle(unittest.TestCase):
         hexes = response.json()["hexes"]
         self.assertTrue(hexes)
         tf_unit = next(u for u in projection["units"] if u["id"] == "allied-tf-1")
-        origin_q, origin_r = tf_unit["position"]
-        max_distance = tf_unit["movement_factor"]
+        origin = Hex(*tf_unit["position"])
         for q, r in hexes:
-            self.assertLessEqual(max(abs(q - origin_q), abs(r - origin_r)), max_distance + 1)
+            self.assertLessEqual(get_distance(origin, Hex(q, r)), tf_unit["movement_factor"])
+
+    def test_every_reachable_hex_is_accepted_by_move(self):
+        projection = self._create_game()
+        game_id = projection["game_id"]
+        hexes = self.client.get(f"/api/games/{game_id}/units/allied-tf-1/reachable").json()["hexes"]
+        for q, r in hexes:
+            GAMES.clear()
+            game_id = self._create_game()["game_id"]
+            body = self.client.post(
+                f"/api/games/{game_id}/move",
+                json={"side": "Allied", "piece_id": "allied-tf-1", "q": q, "r": r},
+            ).json()
+            self.assertTrue(body["accepted"], f"({q}, {r}) highlighted but rejected: {body}")
 
     def test_readiness_move_and_create_formation(self):
         projection = self._create_game()

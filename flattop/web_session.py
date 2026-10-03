@@ -93,6 +93,19 @@ class GameSession:
             raise CommandError("ILLEGAL_MOVE", f"{piece.name} cannot move to ({q}, {r})")
         self._log(f"{piece.name} moved to ({q}, {r}).")
 
+    def _odd_q_neighbors(self, hex_coord):
+        # Must match get_distance() and the web map, which use odd-q offset coordinates.
+        if hex_coord.q % 2 == 0:
+            deltas = [(1, -1), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 0)]
+        else:
+            deltas = [(1, 0), (1, 1), (0, -1), (0, 1), (-1, 0), (-1, 1)]
+        neighbors = []
+        for dq, dr in deltas:
+            neighbor = self.board.get_hex(hex_coord.q + dq, hex_coord.r + dr)
+            if neighbor:
+                neighbors.append(neighbor)
+        return neighbors
+
     def reachable_hexes(self, piece_id: str) -> list[list[int]]:
         """BFS flood-fill of hexes within the piece's remaining movement factor.
 
@@ -113,7 +126,7 @@ class GameSession:
                 current_distance = visited[(current.q, current.r)]
                 if current_distance >= max_range:
                     continue
-                for neighbor in self.board.get_neighbors(current):
+                for neighbor in self._odd_q_neighbors(current):
                     key = (neighbor.q, neighbor.r)
                     if key in visited:
                         continue
